@@ -1,0 +1,256 @@
+# UNIUN – Application Specification (MVP)
+
+## Overview
+
+UNIUN is an **offline-first decentralized social application** built on Nostr.
+
+The app is centered around **Notes**, which act as:
+
+* posts (like Twitter)
+* messages (like chat)
+* knowledge units (graph-based)
+
+All data is stored locally and synced via Nostr relays.
+
+No backend server is used. The app itself handles all logic.
+
+---
+
+## Core Concepts
+
+### Notes
+
+Notes are the fundamental unit.
+
+A note can contain:
+
+* text
+* image (URL)
+* user mentions
+* references to other notes
+
+Notes are stored locally and published to relays.
+
+---
+
+### Graph-Based References
+
+Notes can reference other notes using tags.
+
+This creates a **graph structure** instead of a simple thread.
+
+A note can:
+
+* reply to one note
+* reference multiple notes
+
+This is used for:
+
+* threads
+* idea linking
+* knowledge graph
+
+---
+
+### Vishnu (Feed + Notes)
+
+Vishnu is the main feed and note system.
+
+Features:
+
+* view all notes (feed)
+* filter by channel
+* see note threads
+* like notes
+* save notes locally
+
+Notes appear in a clean feed UI.
+
+---
+
+### Brahma (Create Note)
+
+Brahma is used to create notes.
+
+User can:
+
+* write text
+* add image
+* tag users
+* reference existing notes
+* choose channel
+
+Also includes:
+
+* preview of note reference graph before posting
+
+---
+
+### Shiv (AI Assistant)
+
+Shiv is a local AI assistant running on device.
+
+Capabilities:
+
+* summarize notes
+* search notes
+* answer questions from notes
+* translate content
+
+AI uses local RAG over stored notes.
+
+No external API required.
+
+---
+
+### Channels (Public Only)
+
+Channels are used for grouping discussions.
+
+Examples:
+
+* #general
+* #ai
+* #design
+
+Features:
+
+* anyone can read
+* anyone can post (MVP)
+
+Channels are implemented using NIP-28 (Kind 40 = create, Kind 42 = message).
+
+No private channels in MVP.
+
+---
+
+### Direct Messages (DM)
+
+Simple 1:1 messaging using Kind 14 (NIP-17).
+
+MVP:
+
+* uses Kind 14 message events
+* basic 1:1 only
+
+Future:
+
+* full 3-layer encryption (Kind 14 → Kind 13 seal → Kind 1059 gift wrap)
+
+---
+
+### Saved Notes
+
+* stored locally only (Isar)
+* not synced to relay
+* used for personal bookmarking and RAG (AI)
+
+---
+
+### No Delete
+
+Notes are permanent. There is no delete — not local, not relay.
+
+This is intentional: **feed freedom**. Once a note is published to the Nostr network, it exists. The app does not pretend otherwise.
+
+NIP-09 is not used.
+
+---
+
+## Architecture
+
+Offline-first design:
+
+```
+Flutter UI
+→ Isar DB (local source of truth)
+← EmbeddedServer (SyncEngine + RelayConnector + EventQueue)
+↔ Relay network (WebSocket)
+```
+
+Relay is used only for:
+
+* publishing events
+* receiving events
+
+All logic is handled inside the app. No backend server.
+
+---
+
+## Nostr Protocol Usage
+
+NIP set for MVP:
+
+* NIP-01 → base event system (all events)
+* NIP-10 → note references and threading (e-tag markers)
+* NIP-28 → public channels (Kind 40/41/42)
+* NIP-17 → direct messages (Kind 14)
+* NIP-44 → encryption (future, for full DM wrapping)
+
+Not used:
+
+* NIP-09 → deletion — intentionally excluded (feed freedom)
+
+---
+
+## Event Structure
+
+All data is stored as Nostr events.
+
+| Kind | Meaning |
+|------|---------|
+| 0    | User profile |
+| 1    | Public note (feed) |
+| 7    | Reaction (like) |
+| 14   | Direct message |
+| 40   | Channel creation |
+| 41   | Channel metadata update |
+| 42   | Channel message |
+
+Tags used in Kind 1:
+
+* `e` → referenced note (graph edge)
+* `p` → user mention
+* `t` → topic/channel tag
+
+---
+
+## Data Handling
+
+* all notes stored locally in Isar
+* synced with relay via EmbeddedServer
+* Isar is the source of truth — UI never reads from relay directly
+
+---
+
+## Scope (MVP)
+
+Included:
+
+* notes feed (Vishnu)
+* create note with references (Brahma)
+* knowledge graph view
+* public channels (NIP-28)
+* direct messages (Kind 14)
+* local AI assistant with RAG (Shiv)
+* saved notes + embeddings
+
+Not included:
+
+* private groups
+* channel permissions
+* delete / NIP-09
+* advanced moderation
+
+---
+
+## Goal
+
+UNIUN provides a **decentralized, offline-first social + knowledge system** combining:
+
+* social feed
+* chat
+* knowledge graph
+* local AI
+
+All controlled by the user, without central servers.
