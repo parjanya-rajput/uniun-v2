@@ -533,6 +533,55 @@ User's Blossom servers declared in Kind 10063 event.
 
 ---
 
+## Backend Responsibility Split
+
+```
+Flutter App (this repo)
+    ↓ reads/writes
+Isar DB (local, offline-first source of truth)
+    ↑ written by
+Dart Gateway / EmbeddedServer (flutter isolate — separate team)
+    ↓ WebSocket
+Go Relay Server (Khatru — separate team)
+    ↓
+Other Nostr clients
+```
+
+- **Flutter App (this repo)**: Create/sign notes, render UI from Isar, all user interactions
+- **Dart Gateway (separate team)**: Saves relay events to Isar, manages WebSocket connections, EventQueue for offline sync
+- **Go Relay (separate team)**: Note routing, relay management
+
+The Flutter app **never talks to the relay directly**. It only reads/writes Isar. The Gateway handles all network sync.
+
+---
+
+## Datasource
+
+There is no remote datasource in this app. The only datasource is Isar (local, on-device).
+
+Each repository impl receives `Isar` via constructor injection. The Isar instance is opened once as a `@singleton` via `IsarModule`:
+
+File: `lib/data/datasources/isar_module.dart`
+
+```dart
+@module
+abstract class IsarModule {
+  @singleton
+  @preResolve
+  Future<Isar> createIsar() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return Isar.open(
+      [NoteModelSchema, ProfileModelSchema, ...],  // add every new model schema here
+      directory: dir.path,
+    );
+  }
+}
+```
+
+**Rule**: Every new Isar `@Collection` model must have its generated schema added to `IsarModule.createIsar()`.
+
+---
+
 ## Current Implementation Status
 
 ### Done
@@ -540,27 +589,50 @@ User's Blossom servers declared in Kind 10063 event.
 | File | Description |
 |------|-------------|
 | `lib/core/enum/note_type.dart` | `NoteType` enum: `text`, `image`, `link`, `reference` |
+| `lib/core/error/failures.dart` | `Failure` freezed union type |
+| `lib/core/error/failures.freezed.dart` | Generated (do not edit) |
+| `lib/core/usecases/usecase.dart` | `UseCase<T,P>` and `NoParamsUseCase<T>` base classes |
 | `lib/data/models/note_model.dart` | `NoteModel` Isar collection + `toDomain()` extension |
 | `lib/data/models/note_model.g.dart` | Generated Isar schema (do not edit) |
 | `lib/domain/entities/note/note_entity.dart` | `NoteEntity` freezed domain entity |
-| `lib/domain/entities/note/note_entity.freezed.dart` | Generated freezed implementation (do not edit) |
+| `lib/domain/entities/note/note_entity.freezed.dart` | Generated (do not edit) |
 | `lib/domain/repositories/note_repository.dart` | `NoteRepository` abstract interface |
 | `lib/data/repositories/note_repository_impl.dart` | `NoteRepositoryImpl` with Isar queries |
-| `lib/core/error/failures.dart` | `Failure` freezed union type |
-| `lib/core/usecases/usecase.dart` | `UseCase<T,P>` and `NoParamsUseCase<T>` base classes |
 
-### Next Steps (in build order)
+### Pending
 
-1. `NostrProfile` model (Kind 0) + entity + repository interface + repository impl
-2. `GetFeedUseCase` — wraps `NoteRepository.getFeed()`
-3. `SaveNoteUseCase` — wraps `NoteRepository.saveNote()`
-4. `GetRepliesUseCase` — wraps `NoteRepository.getReplies()`
-5. `VishnuFeedBloc` — feed state management
-6. Feed UI: `NoteCard` widget + `VishnuFeedPage`
-7. EmbeddedServer integration (separate team handoff)
-8. `BrahmaCreateBloc` + compose UI
-9. Channels (DrawerBloc + ChannelReadStateModel)
-10. Shiv AI (EmbeddingService + ShivAIBloc + flutter_gemma integration)
+**User Identity + Profile**
+- `lib/data/datasources/isar_module.dart` — Isar singleton, registers all schemas
+- `UserKeyModel` — stores user's nsec + npub locally (never synced to relay)
+- `UserKeyEntity` + `UserRepository` + `UserRepositoryImpl`
+- `NostrProfileModel` — Isar collection for Kind 0 (name, about, avatarUrl, nip05)
+- `ProfileEntity` + `ProfileRepository` + `ProfileRepositoryImpl`
+
+**Note Use Cases**
+- `GetFeedUseCase`, `SaveNoteUseCase`, `GetNoteByIdUseCase`, `GetRepliesUseCase`, `MarkSeenUseCase`
+- `lib/domain/inputs/note_input.dart`
+
+**SavedNote + DraftNote**
+- `SavedNoteModel` (noteId, savedAt, embedding `List<double>?`) + entity + repository
+- `DraftNoteModel` (localId, content, referenceIds, imageUrl) + entity + repository
+
+**Channels + Messages (Kind 40/42)**
+- `ChannelModel`, `MessageModel`, `ChannelReadStateModel` + entities + repositories
+
+**DMs (Kind 14/1059)**
+- `DMModel`, `DMReadStateModel` + entities + repositories
+
+**AI Conversations (local only — never synced)**
+- `AIConversationModel`, `AIMessageModel` + entities + `AIRepository`
+
+**Vishnu Feed**
+- `VishnuFeedBloc`, `NoteCard` widget, `VishnuFeedPage`
+
+**Brahma Create Note**
+- `BrahmaCreateBloc`, compose note page
+
+**Shiv AI**
+- `EmbeddingService`, `VectorSearchService`, `ShivAIBloc`, `flutter_gemma` integration
 
 ---
 
