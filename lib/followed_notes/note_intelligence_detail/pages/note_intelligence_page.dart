@@ -1,106 +1,276 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/repositories/note_repository.dart';
+import 'package:uniun/domain/repositories/profile_repository.dart';
+import 'package:uniun/domain/usecases/get_note_by_id_usecase.dart';
+import 'package:uniun/domain/usecases/get_replies_usecase.dart';
+import 'package:uniun/followed_notes/note_intelligence_detail/cubit/note_intelligence_cubit.dart';
 import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_header_card.dart';
 import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_intelligence_app_bar.dart';
 import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_references_section.dart';
 import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_thread_button.dart';
 
-/// Displays detailed view of a single note with references, connections, and thread.
-/// Input: note ID passed via route arguments (or later via parameter/cubit).
-///
-/// For now, showing placeholder data structure. Wire to actual note data once
-/// NoteEntity + GetNoteByIdUseCase are available.
 class NoteIntelligencePage extends StatelessWidget {
-  const NoteIntelligencePage({super.key, this.noteId});
-
-  final String? noteId;
+  const NoteIntelligencePage({super.key, required this.noteId});
+  final String noteId;
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Replace with actual cubit + bloc once GetNoteByIdUseCase is wired
-    final note = _PlaceholderNoteData();
+    return BlocProvider(
+      create: (_) => NoteIntelligenceCubit(
+        getNoteById: getIt<GetNoteByIdUseCase>(),
+        getReplies: getIt<GetRepliesUseCase>(),
+        profileRepository: getIt<ProfileRepository>(),
+        noteRepository: getIt<NoteRepository>(),
+      )..load(noteId),
+      child: const _NoteIntelligenceView(),
+    );
+  }
+}
 
+// ── View ──────────────────────────────────────────────────────────────────────
+
+class _NoteIntelligenceView extends StatelessWidget {
+  const _NoteIntelligenceView();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLow,
-      body: CustomScrollView(
-        slivers: [
-          NoteIntelligenceAppBar(onBack: () => Navigator.pop(context)),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // ── Note Header ─────────────────────────────────────────
-                NoteHeaderCard(
-                  authorName: note.authorName,
-                  authorPubkey: note.authorPubkey,
-                  avatarUrl: note.avatarUrl,
-                  content: note.content,
-                  hashtags: note.hashtags,
-                  timestamp: note.timestamp,
-                ),
-                const SizedBox(height: 20),
-
-                // ── References ──────────────────────────────────────────
-                NoteReferencesSection(
-                  title: 'REFERENCES',
-                  references: note.references,
-                ),
-                const SizedBox(height: 16),
-
-                // ── Related Notes ───────────────────────────────────────
-                NoteReferencesSection(
-                  title: 'RELATED CONNECTIONS',
-                  references: note.relatedConnections,
-                ),
-                const SizedBox(height: 16),
-
-                // ── Thread Info ────────────────────────────────────────
-                if (note.replyCount > 0) ...[
-                  NoteThreadButton(
-                    replyCount: note.replyCount,
-                    onPressed: () {
-                      // Navigate to thread view once route is set up
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.home, // TODO: add threadView route
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
+      body: BlocBuilder<NoteIntelligenceCubit, NoteIntelligenceState>(
+        builder: (context, state) {
+          return Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  NoteIntelligenceAppBar(
+                      onBack: () => Navigator.pop(context)),
+                  if (state.status == NoteIntelligenceStatus.loading)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.primary, strokeWidth: 2),
+                      ),
+                    )
+                  else if (state.status == NoteIntelligenceStatus.error)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Text(
+                          state.errorMessage ?? 'Failed to load note',
+                          style: const TextStyle(
+                              color: AppColors.onSurfaceVariant),
+                        ),
+                      ),
+                    )
+                  else if (state.note != null)
+                    _NoteContent(state: state),
                 ],
+              ),
+              if (state.note != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _BottomActionBar(
+                    onViewThread: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.thread,
+                      arguments: state.note!.id,
+                    ),
+                    onAddComment: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.thread,
+                      arguments: state.note!.id,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
 
-                // ── Bottom spacing ─────────────────────────────────────
-                const SizedBox(height: 40),
-              ]),
+// ── Content sliver ────────────────────────────────────────────────────────────
+
+class _NoteContent extends StatelessWidget {
+  const _NoteContent({required this.state});
+  final NoteIntelligenceState state;
+
+  String _displayName(String pubkey, Map<String, ProfileEntity> profiles) {
+    final p = profiles[pubkey];
+    return p?.name ?? p?.username ?? '${pubkey.substring(0, 8)}…';
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final note = state.note!;
+    final profile = state.profile;
+    final authorName = profile?.name ??
+        profile?.username ??
+        '${note.authorPubkey.substring(0, 8)}…';
+
+    // Combine replies + referenced notes into one "Replies" list
+    final allProfiles = {
+      if (profile != null) note.authorPubkey: profile,
+      ...state.replyProfiles,
+    };
+
+    final replyEntries = state.replies
+        .map((r) => ReferenceEntry(
+              title: _displayName(r.authorPubkey, allProfiles),
+              subtitle: r.content.length > 100
+                  ? r.content.substring(0, 100)
+                  : r.content,
+            ))
+        .toList();
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          NoteHeaderCard(
+            authorName: authorName,
+            authorPubkey: note.authorPubkey,
+            avatarUrl: profile?.avatarUrl,
+            content: note.content,
+            hashtags: note.tTags,
+            timestamp: note.created,
+            commentCount: state.replies.length,
+          ),
+          const SizedBox(height: 28),
+
+          if (replyEntries.isNotEmpty) ...[
+            NoteReferencesSection.referencedBy(
+              references: replyEntries,
+              badge: '${replyEntries.length} REPLIES',
+            ),
+            const SizedBox(height: 28),
+          ],
+
+          if (state.replies.isNotEmpty)
+            NoteThreadSection(
+              continuationText: state.replies.first.content.length > 100
+                  ? '${state.replies.first.content.substring(0, 100)}…'
+                  : state.replies.first.content,
+              replyCount: state.replies.length,
+              lastUpdated: _timeAgo(state.replies.first.created),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Bottom action bar ─────────────────────────────────────────────────────────
+
+class _BottomActionBar extends StatelessWidget {
+  const _BottomActionBar({
+    required this.onViewThread,
+    required this.onAddComment,
+  });
+
+  final VoidCallback onViewThread;
+  final VoidCallback onAddComment;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomPad),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.surfaceContainerLow.withValues(alpha: 0),
+            AppColors.surfaceContainerLow.withValues(alpha: 0.96),
+            AppColors.surfaceContainerLow,
+          ],
+          stops: const [0, 0.3, 0.7],
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: onViewThread,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.primaryContainer],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.hub_rounded,
+                        color: AppColors.onPrimary, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      'View Thread',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onAddComment,
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.onSurface.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.add_comment_rounded,
+                color: AppColors.onSurface,
+                size: 22,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-// ── Placeholder data for now ───────────────────────────────────────────────────
-
-class _PlaceholderNoteData {
-  final String authorName = 'Elena Vance';
-  final String authorPubkey =
-      'npub1vance000000000000000000000000000000000000000000000';
-  final String? avatarUrl = null;
-  final String content =
-      'The intersection of distributed systems and decentralized systems replaces 65% of direct control structures with emergent coordination patterns.';
-  final List<String> hashtags = ['Quantum-Computing', 'Systems-Design'];
-  final DateTime timestamp = DateTime.now().subtract(const Duration(hours: 2));
-  final List<String> references = [
-    'Byzantine Fault Tolerance in Asynchronous Networks (Lamport, 1982)',
-    'Self-Organizing Systems and Emergence (Holland, 1995)',
-    'Consensus Mechanisms in Distributed Ledgers (Nakamoto, 2008)',
-  ];
-  final List<String> relatedConnections = [
-    'Your recent note on "Graph Theory Applications"',
-    'Marcus Thorne\'s work on "Complexity and Emergence"',
-    'Community discussion thread: "Protocol Design Patterns"',
-  ];
-  final int replyCount = 4;
 }

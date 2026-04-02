@@ -30,7 +30,6 @@ class _SettingsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      extendBodyBehindAppBar: true,
       appBar: const SettingsAppBar(title: 'Settings'),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
@@ -39,10 +38,9 @@ class _SettingsContent extends StatelessWidget {
               child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
-          final topPad = MediaQuery.of(context).padding.top + 64;
           return ListView(
-            padding: EdgeInsets.only(
-              top: topPad,
+            padding: const EdgeInsets.only(
+              top: 16,
               left: 20,
               right: 20,
               bottom: 48,

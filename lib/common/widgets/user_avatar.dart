@@ -1,9 +1,9 @@
+import 'dart:io';
+
 import 'package:avatar_plus/avatar_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-// Avatar URLs come exclusively from Blossom (HTTP/HTTPS) or are generated
-// from the pubkey via avatar_plus. Local file paths are never stored.
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
@@ -24,9 +24,12 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = borderRadius ?? size / 2;
     final effectiveSeed = seed.isEmpty ? 'uniun' : seed;
-    final hasPhoto = photoUrl != null &&
+    final isNetwork = photoUrl != null &&
         photoUrl!.isNotEmpty &&
         (photoUrl!.startsWith('http://') || photoUrl!.startsWith('https://'));
+    final isLocalFile =
+        photoUrl != null && photoUrl!.isNotEmpty && !isNetwork;
+    final hasPhoto = isNetwork || isLocalFile;
 
     return Container(
       width: size,
@@ -43,13 +46,21 @@ class UserAvatar extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasPhoto
-          ? Image.network(
-              photoUrl!,
-              fit: BoxFit.cover,
-              width: size,
-              height: size,
-              errorBuilder: (_, __, ___) => _generated(effectiveSeed),
-            )
+          ? (isLocalFile
+              ? Image.file(
+                  File(photoUrl!),
+                  fit: BoxFit.cover,
+                  width: size,
+                  height: size,
+                  errorBuilder: (_, __, ___) => _generated(effectiveSeed),
+                )
+              : Image.network(
+                  photoUrl!,
+                  fit: BoxFit.cover,
+                  width: size,
+                  height: size,
+                  errorBuilder: (_, __, ___) => _generated(effectiveSeed),
+                ))
           : _generated(effectiveSeed),
     );
   }

@@ -102,7 +102,6 @@ class _EditProfileContentState extends State<_EditProfileContent> {
 
         return Scaffold(
           backgroundColor: AppColors.surface,
-          extendBodyBehindAppBar: true,
           resizeToAvoidBottomInset: true,
           appBar: _buildAppBar(context, isSaving, cubit),
           body: GestureDetector(
@@ -110,7 +109,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
             behavior: HitTestBehavior.opaque,
             child: ListView(
             padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 64 + 12,
+                top: 16,
                 left: 20, right: 20,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 48),
             children: [
@@ -190,7 +189,6 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                 hint: 'you@yourdomain.com',
                 onChanged: cubit.updateNip05,
               ),
-
               const SizedBox(height: 32),
 
               // ── Save button ───────────────────────────────────────────
@@ -234,8 +232,10 @@ class _EditProfileContentState extends State<_EditProfileContent> {
     bool isSaving,
     EditProfileCubit cubit,
   ) {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final statusBarH = view.padding.top / view.devicePixelRatio;
     return PreferredSize(
-      preferredSize: const Size.fromHeight(64),
+      preferredSize: Size.fromHeight(64 + statusBarH),
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),

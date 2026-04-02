@@ -1,40 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-class NoteThreadButton extends StatelessWidget {
-  const NoteThreadButton({
+/// Timeline-style thread continuation section shown on the NoteIntelligencePage.
+class NoteThreadSection extends StatelessWidget {
+  const NoteThreadSection({
     super.key,
+    required this.continuationText,
     required this.replyCount,
-    required this.onPressed,
+    required this.lastUpdated,
   });
 
+  final String continuationText;
   final int replyCount;
-  final VoidCallback onPressed;
+  final String lastUpdated;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        icon: const Icon(Icons.forum_rounded, size: 18),
-        label: Text(
-          'View Thread ($replyCount replies)',
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Section header ─────────────────────────────────────────────────
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'THREAD CONTINUATION',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.8,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+
+        // ── Timeline item ──────────────────────────────────────────────────
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Timeline line + dot
+            SizedBox(
+              width: 24,
+              child: Column(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    margin: const EdgeInsets.only(top: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.surfaceContainerLow,
+                        width: 3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Content card
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      continuationText,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.onSurface,
+                        height: 1.55,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          '$replyCount Replies'.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          'Updated: $lastUpdated'.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurfaceVariant,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

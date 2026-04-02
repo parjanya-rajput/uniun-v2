@@ -5,9 +5,8 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/home/pages/home_page.dart';
 import 'package:uniun/onboarding/pages/about_you_page.dart';
-import 'package:uniun/followed_notes/pages/followed_note_feed_page.dart';
-import 'package:uniun/followed_notes/pages/followed_notes_page.dart';
 import 'package:uniun/followed_notes/note_intelligence_detail/pages/note_intelligence_page.dart';
+import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/settings/pages/edit_profile_page.dart';
 import 'package:uniun/settings/pages/privacy_policy_page.dart';
 import 'package:uniun/settings/pages/settings_page.dart';
@@ -55,12 +54,11 @@ class UniunApp extends StatelessWidget {
         AppRoutes.settings: (_) => const SettingsPage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
-        AppRoutes.followedNotes: (_) => const FollowedNotesPage(),
-        AppRoutes.followedNoteFeed: (ctx) => FollowedNoteFeedPage(
-              eventId: ModalRoute.of(ctx)!.settings.arguments as String,
-            ),
         AppRoutes.noteIntelligence: (ctx) => NoteIntelligencePage(
-              noteId: ModalRoute.of(ctx)!.settings.arguments as String?,
+              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
+            ),
+        AppRoutes.thread: (ctx) => ThreadPage(
+              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
             ),
       },
     );

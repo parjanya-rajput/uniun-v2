@@ -12,6 +12,7 @@
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
+import 'package:uniun/brahma/bloc/brahma_create_bloc.dart' as _i787;
 import 'package:uniun/core/isolate/embedded_server_bridge.dart' as _i717;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
@@ -20,6 +21,8 @@ import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
 import 'package:uniun/data/repositories/outbound_event_repository_impl.dart'
     as _i694;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
+import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
+    as _i669;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
     as _i836;
@@ -27,6 +30,7 @@ import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
 import 'package:uniun/domain/repositories/outbound_event_repository.dart'
     as _i218;
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
+import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
 import 'package:uniun/domain/usecases/get_feed_usecase.dart' as _i666;
 import 'package:uniun/domain/usecases/get_note_by_id_usecase.dart' as _i1024;
@@ -35,8 +39,11 @@ import 'package:uniun/domain/usecases/get_thread_usecase.dart' as _i435;
 import 'package:uniun/domain/usecases/mark_seen_usecase.dart' as _i871;
 import 'package:uniun/domain/usecases/publish_note_usecase.dart' as _i997;
 import 'package:uniun/domain/usecases/save_note_usecase.dart' as _i955;
+import 'package:uniun/domain/usecases/toggle_save_usecase.dart' as _i543;
 import 'package:uniun/drawer/bloc/drawer_bloc.dart' as _i987;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
+import 'package:uniun/thread/bloc/thread_bloc.dart' as _i118;
+import 'package:uniun/vishnu/bloc/vishnu_feed_bloc.dart' as _i558;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -63,6 +70,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i218.OutboundEventRepository>(
       () => _i694.OutboundEventRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i43.SavedNoteRepository>(
+      () => _i669.SavedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -78,6 +88,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i103.UserRepository>(
       () => _i582.UserRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.lazySingleton<_i543.ToggleSaveUseCase>(
+      () => _i543.ToggleSaveUseCase(gh<_i43.SavedNoteRepository>()),
     );
     gh.lazySingleton<_i666.GetFeedUseCase>(
       () => _i666.GetFeedUseCase(gh<_i47.NoteRepository>()),
@@ -96,6 +109,31 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i955.SaveNoteUseCase>(
       () => _i955.SaveNoteUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.factory<_i558.VishnuFeedBloc>(
+      () => _i558.VishnuFeedBloc(
+        gh<_i666.GetFeedUseCase>(),
+        gh<_i967.ProfileRepository>(),
+        gh<_i47.NoteRepository>(),
+        gh<_i43.SavedNoteRepository>(),
+        gh<_i543.ToggleSaveUseCase>(),
+      ),
+    );
+    gh.factory<_i118.ThreadBloc>(
+      () => _i118.ThreadBloc(
+        gh<_i1024.GetNoteByIdUseCase>(),
+        gh<_i22.GetRepliesUseCase>(),
+        gh<_i997.PublishNoteUseCase>(),
+        gh<_i967.ProfileRepository>(),
+        gh<_i47.NoteRepository>(),
+        gh<_i103.UserRepository>(),
+      ),
+    );
+    gh.factory<_i787.BrahmaCreateBloc>(
+      () => _i787.BrahmaCreateBloc(
+        gh<_i103.UserRepository>(),
+        gh<_i997.PublishNoteUseCase>(),
+      ),
     );
     return this;
   }

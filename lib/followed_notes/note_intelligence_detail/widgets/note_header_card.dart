@@ -11,6 +11,7 @@ class NoteHeaderCard extends StatelessWidget {
     required this.content,
     required this.hashtags,
     required this.timestamp,
+    this.commentCount = 0,
   });
 
   final String authorName;
@@ -19,29 +20,58 @@ class NoteHeaderCard extends StatelessWidget {
   final String content;
   final List<String> hashtags;
   final DateTime timestamp;
+  final int commentCount;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Author info ───────────────────────────────────────────────
+          // ── Author row ───────────────────────────────────────────────────
           Row(
             children: [
-              UserAvatar(
-                seed: authorPubkey,
-                photoUrl: avatarUrl,
-                size: 40,
-                borderRadius: 10,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  UserAvatar(
+                    seed: authorPubkey,
+                    photoUrl: avatarUrl,
+                    size: 48,
+                    borderRadius: 14,
+                  ),
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: AppColors.surface, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.verified_rounded,
+                        size: 10,
+                        color: AppColors.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -57,101 +87,145 @@ class NoteHeaderCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '@${authorPubkey.substring(0, 12)}...',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.outline,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          _formatTime(timestamp),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.outlineVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.language_rounded,
+                          size: 12,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 3),
+                        const Flexible(
+                          child: Text(
+                            'Research Node',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
                   'Following',
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // ── Content ────────────────────────────────────────────────────
+          // ── Content ──────────────────────────────────────────────────────
           Text(
             content,
             style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontSize: 17,
+              fontWeight: FontWeight.w300,
               color: AppColors.onSurface,
-              height: 1.6,
+              height: 1.65,
             ),
           ),
           const SizedBox(height: 16),
 
-          // ── Hashtags ───────────────────────────────────────────────────
-          if (hashtags.isNotEmpty)
+          // ── Hashtags ─────────────────────────────────────────────────────
+          if (hashtags.isNotEmpty) ...[
             Wrap(
               spacing: 6,
-              runSpacing: 8,
+              runSpacing: 6,
               children: hashtags
                   .map(
                     (tag) => Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '#$tag',
+                        '#${tag.toUpperCase()}',
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: AppColors.secondary,
                         ),
                       ),
                     ),
                   )
                   .toList(),
             ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
-          // ── Footer: timestamp + actions ────────────────────────────────
+          // ── Footer: reactions + bookmark ──────────────────────────────────
           Container(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 16),
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                  color: AppColors.outlineVariant.withValues(alpha: 0.25),
                 ),
               ),
             ),
             child: Row(
               children: [
-                Text(
-                  _formatTime(timestamp),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.outline,
-                  ),
+                _ActionButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  count: commentCount,
                 ),
                 const Spacer(),
-                const Icon(Icons.favorite_border, size: 16, color: AppColors.outline),
-                const SizedBox(width: 12),
-                const Icon(Icons.mode_comment_outlined, size: 16, color: AppColors.outline),
-                const SizedBox(width: 12),
-                const Icon(Icons.share_outlined, size: 16, color: AppColors.outline),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.bookmark_rounded,
+                    color: AppColors.onPrimary,
+                    size: 20,
+                  ),
+                ),
               ],
             ),
           ),
@@ -166,5 +240,34 @@ class NoteHeaderCard extends StatelessWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${dt.day}/${dt.month}/${dt.year}';
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.icon, required this.count});
+  final IconData icon;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.onSurfaceVariant),
+        const SizedBox(width: 5),
+        Text(
+          _formatCount(count),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatCount(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return '$n';
   }
 }

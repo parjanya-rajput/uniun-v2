@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/domain/repositories/followed_note_repository.dart';
 import 'package:uniun/domain/repositories/profile_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 
@@ -44,7 +45,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       }
 
       // Placeholder — replaced with live Isar queries once ChannelRepository
-      // (Kind 40/42), DMRepository (Kind 14), and FollowedNoteRepository are built.
+      // (Kind 40/42) and DMRepository (Kind 14) are built.
       const channels = <DrawerChannelItem>[
         DrawerChannelItem(id: 'ch_general', name: 'general', hasUnread: true),
         DrawerChannelItem(id: 'ch_nostr', name: 'nostr-dev'),
@@ -54,7 +55,20 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         DrawerDmItem(pubkey: 'dm1', name: 'Alice', unreadCount: 3),
         DrawerDmItem(pubkey: 'dm2', name: 'Bob'),
       ];
-      const followedNotes = <DrawerFollowedNoteItem>[];
+
+      // Load real followed notes from Isar
+      final followedResult =
+          await getIt<FollowedNoteRepository>().getAll();
+      final followedNotes = followedResult.fold(
+        (_) => <DrawerFollowedNoteItem>[],
+        (list) => list
+            .map((e) => DrawerFollowedNoteItem(
+                  eventId: e.eventId,
+                  contentPreview: e.contentPreview,
+                  newReferenceCount: e.newReferenceCount,
+                ))
+            .toList(),
+      );
 
       emit(DrawerLoaded(
         userName: displayName,

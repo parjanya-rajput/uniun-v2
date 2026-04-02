@@ -61,37 +61,22 @@ class VishnuDrawer extends StatelessWidget {
                         _showComingSoon(context, 'Saved Notes');
                       },
                     ),
-                    _NavItem(
-                      icon: Icons.link_rounded,
-                      label: 'Followed Notes',
-                      onTap: () {
-                        _close(context);
-                        Navigator.pushNamed(context, AppRoutes.followedNotes);
-                      },
-                    ),
 
                     const SizedBox(height: 16),
 
-                    // ── Followed Notes ────────────────────────────────────
-                    _SectionHeader(
-                      label: 'Following',
+                    // ── Following Notes (collapsible) ─────────────────────
+                    _CollapsibleFollowingSection(
+                      items: loaded?.followedNotes ?? [],
                       onAdd: () => _showComingSoon(context, 'Follow a Note'),
+                      onItemTap: (eventId) {
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.noteIntelligence,
+                          arguments: eventId,
+                        );
+                      },
                     ),
-                    const SizedBox(height: 4),
-                    if ((loaded?.followedNotes ?? []).isEmpty)
-                      const _EmptyHint('No followed notes yet')
-                    else
-                      ...loaded!.followedNotes.map((n) => _FollowedNoteRow(
-                            item: n,
-                            onTap: () {
-                              _close(context);
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.followedNoteFeed,
-                                arguments: n.eventId,
-                              );
-                            },
-                          )),
 
                     const SizedBox(height: 16),
 
@@ -450,6 +435,95 @@ class _FollowedNoteRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Collapsible following section ─────────────────────────────────────────────
+
+class _CollapsibleFollowingSection extends StatefulWidget {
+  const _CollapsibleFollowingSection({
+    required this.items,
+    required this.onAdd,
+    required this.onItemTap,
+  });
+
+  final List<app_drawer.DrawerFollowedNoteItem> items;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onItemTap;
+
+  @override
+  State<_CollapsibleFollowingSection> createState() =>
+      _CollapsibleFollowingSectionState();
+}
+
+class _CollapsibleFollowingSectionState
+    extends State<_CollapsibleFollowingSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Section header with toggle ───────────────────────────────────
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'FOLLOWING NOTES',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: widget.onAdd,
+                  child: const Icon(Icons.add_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // ── Expandable list ───────────────────────────────────────────────
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState: _expanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: Column(
+            children: [
+              const SizedBox(height: 4),
+              if (widget.items.isEmpty)
+                const _EmptyHint('No followed notes yet')
+              else
+                ...widget.items.map(
+                  (n) => _FollowedNoteRow(
+                    item: n,
+                    onTap: () => widget.onItemTap(n.eventId),
+                  ),
+                ),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }

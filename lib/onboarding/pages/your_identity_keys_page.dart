@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/repositories/profile_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/onboarding/widgets/key_card.dart';
 import 'package:uniun/onboarding/widgets/onboarding_app_bar.dart';
@@ -29,18 +31,35 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   bool _privKeyCopied = false;
   bool _nsecVisible = false;
 
-  Future<void> _saveAndContinue(String nsec) async {
+  Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
     final result = await getIt<UserRepository>().importKey(nsec);
     if (!mounted) return;
-    result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save keys: \${failure.toString()}')),
+    await result.fold(
+      (failure) async => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save keys: ${failure.toString()}')),
       ),
-      (_) => Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.home,
-        (r) => false,
-      ),
+      (user) async {
+        // Save profile data collected in AboutYouPage
+        final displayName = args['displayName'] as String? ?? '';
+        final username = args['username'] as String? ?? '';
+        final bio = args['bio'] as String? ?? '';
+        if (displayName.isNotEmpty || username.isNotEmpty) {
+          await getIt<ProfileRepository>().saveProfile(ProfileEntity(
+            pubkey: user.pubkeyHex,
+            name: displayName.isEmpty ? null : displayName,
+            username: username.isEmpty ? null : username,
+            about: bio.isEmpty ? null : bio,
+            updatedAt: DateTime.now(),
+            lastSeenAt: DateTime(3000, 6, 1),
+          ));
+        }
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.home,
+          (r) => false,
+        );
+      },
     );
   }
 
@@ -184,8 +203,9 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                         const Spacer(),
 
                         GestureDetector(
-                          onTap:
-                              canContinue ? () => _saveAndContinue(nsec) : null,
+                          onTap: canContinue
+                              ? () => _saveAndContinue(context, args, nsec)
+                              : null,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             width: double.infinity,
