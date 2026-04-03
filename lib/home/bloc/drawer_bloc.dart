@@ -1,17 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/common/locator.dart';
-import 'package:uniun/domain/repositories/followed_note_repository.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'drawer_event.dart';
 part 'drawer_state.dart';
 
 @injectable
 class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
-  DrawerBloc() : super(DrawerInitial()) {
+  final GetActiveUserUseCase _getActiveUser;
+  final GetOwnProfileUseCase _getOwnProfile;
+  final GetAllFollowedNotesUseCase _getAllFollowedNotes;
+
+  DrawerBloc(
+    this._getActiveUser,
+    this._getOwnProfile,
+    this._getAllFollowedNotes,
+  ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
   }
 
@@ -22,7 +29,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     emit(DrawerLoading());
 
     try {
-      final userResult = await getIt<UserRepository>().getActiveUser();
+      final userResult = await _getActiveUser.call();
       final user = userResult.fold((_) => null, (u) => u);
 
       String displayName = 'Anonymous';
@@ -34,8 +41,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
             ? '${user.npub.substring(0, 12)}...'
             : user.npub;
 
-        final profileResult =
-            await getIt<ProfileRepository>().getOwnProfile(user.pubkeyHex);
+        final profileResult = await _getOwnProfile.call(user.pubkeyHex);
         final profile = profileResult.fold((_) => null, (p) => p);
 
         if (profile != null) {
@@ -56,9 +62,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         DrawerDmItem(pubkey: 'dm2', name: 'Bob'),
       ];
 
-      // Load real followed notes from Isar
-      final followedResult =
-          await getIt<FollowedNoteRepository>().getAll();
+      final followedResult = await _getAllFollowedNotes.call();
       final followedNotes = followedResult.fold(
         (_) => <DrawerFollowedNoteItem>[],
         (list) => list

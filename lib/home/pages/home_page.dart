@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/brahma/pages/brahma_create_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/drawer/bloc/drawer_bloc.dart' as app_drawer;
-import 'package:uniun/drawer/widgets/vishnu_drawer.dart';
+import 'package:uniun/home/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/home/widgets/vishnu_drawer.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/home/widgets/floating_nav.dart';
 import 'package:uniun/vishnu/bloc/vishnu_feed_bloc.dart';
@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _drawerBloc = app_drawer.DrawerBloc()..add(app_drawer.DrawerLoadEvent());
+    _drawerBloc = getIt<app_drawer.DrawerBloc>()..add(app_drawer.DrawerLoadEvent());
     // Create once here so we can refresh it when switching back to tab 0
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const LoadFeedEvent());
     _followedNotesCubit = getIt<FollowedNotesCubit>()..load();

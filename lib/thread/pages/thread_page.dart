@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/thread/bloc/thread_bloc.dart';
 import 'package:uniun/thread/widgets/thread_app_bar.dart';
@@ -54,12 +54,12 @@ class _ThreadViewState extends State<_ThreadView> {
   }
 
   Future<void> _loadUserProfile() async {
-    final userResult = await getIt<UserRepository>().getActiveUser();
+    final userResult = await getIt<GetActiveUserUseCase>().call();
     final user = userResult.fold((_) => null, (u) => u);
     if (user == null || !mounted) return;
     if (mounted) setState(() => _pubkeySeed = user.pubkeyHex);
     final profileResult =
-        await getIt<ProfileRepository>().getOwnProfile(user.pubkeyHex);
+        await getIt<GetOwnProfileUseCase>().call(user.pubkeyHex);
     final profile = profileResult.fold((_) => null, (p) => p);
     if (mounted) setState(() => _avatarUrl = profile?.avatarUrl);
   }

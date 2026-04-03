@@ -4,7 +4,7 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/onboarding/widgets/onboarding_app_bar.dart';
 
 /// Login screen — "I Already Have a Key".
@@ -57,7 +57,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
         throw Exception('Unrecognised key format');
       }
 
-      final result = await getIt<UserRepository>().importKey(input);
+      final result = await getIt<ImportKeyUseCase>().call(input);
       if (!mounted) return;
       result.fold(
         (failure) => _showError('Failed to import key. Please try again.'),

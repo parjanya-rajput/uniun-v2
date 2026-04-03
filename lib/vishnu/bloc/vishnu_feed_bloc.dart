@@ -1,15 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
-import 'package:uniun/domain/repositories/note_repository.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/repositories/saved_note_repository.dart';
-import 'package:uniun/domain/usecases/get_feed_usecase.dart';
-import 'package:uniun/domain/usecases/toggle_save_usecase.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 
 part 'vishnu_feed_event.dart';
 part 'vishnu_feed_state.dart';
@@ -18,17 +15,17 @@ const _pageSize = 20;
 
 @injectable
 class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
-  final GetFeedUseCase _getFeedUseCase;
-  final ProfileRepository _profileRepository;
-  final NoteRepository _noteRepository;
-  final SavedNoteRepository _savedNoteRepository;
+  final GetFeedUseCase _getFeed;
+  final GetProfileUseCase _getProfile;
+  final GetThreadReplyCountUseCase _getThreadReplyCount;
+  final GetAllSavedNotesUseCase _getAllSavedNotes;
   final ToggleSaveUseCase _toggleSave;
 
   VishnuFeedBloc(
-    this._getFeedUseCase,
-    this._profileRepository,
-    this._noteRepository,
-    this._savedNoteRepository,
+    this._getFeed,
+    this._getProfile,
+    this._getThreadReplyCount,
+    this._getAllSavedNotes,
     this._toggleSave,
   ) : super(const VishnuFeedState()) {
     on<LoadFeedEvent>(_onLoad, transformer: droppable());
@@ -108,14 +105,14 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     required DateTime? before,
     required bool append,
   }) async {
-    final result = await _getFeedUseCase.call(
+    final result = await _getFeed.call(
       GetFeedInput(limit: _pageSize, before: before),
     );
 
     await result.fold(
       (failure) async => emit(state.copyWith(
         status: VishnuFeedStatus.error,
-        errorMessage: _msg(failure),
+        errorMessage: failure.toMessage(),
       )),
       (newNotes) async {
         final combined = append ? [...state.notes, ...newNotes] : newNotes;
@@ -127,7 +124,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
             .toSet()
             .where((k) => !profiles.containsKey(k));
         for (final pubkey in newPubkeys) {
-          final r = await _profileRepository.getProfile(pubkey);
+          final r = await _getProfile.call(pubkey);
           r.fold((_) {}, (p) => profiles[pubkey] = p);
         }
 
@@ -135,13 +132,13 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
         final counts = Map<String, int>.from(state.replyCounts);
         for (final note in newNotes) {
           if (!counts.containsKey(note.id)) {
-            final r = await _noteRepository.getThreadReplyCount(note.id);
+            final r = await _getThreadReplyCount.call(note.id);
             r.fold((_) {}, (c) => counts[note.id] = c);
           }
         }
 
         // Saved IDs — refresh the full set from Isar each page load
-        final savedResult = await _savedNoteRepository.getAll();
+        final savedResult = await _getAllSavedNotes.call();
         final savedIds = savedResult.fold(
           (_) => state.savedIds,
           (list) => list.map((e) => e.eventId).toSet(),
@@ -158,10 +155,4 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
       },
     );
   }
-
-  String _msg(Failure f) => f.when(
-        failure: (m) => m,
-        notFoundFailure: (m) => m,
-        errorFailure: (m) => m,
-      );
 }

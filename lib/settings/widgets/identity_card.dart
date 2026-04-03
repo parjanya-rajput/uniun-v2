@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/settings/cubit/settings_cubit.dart';
 
 class IdentityCard extends StatelessWidget {
@@ -109,7 +109,7 @@ class _KeysSheetState extends State<_KeysSheet> {
     }
     setState(() => _nsecLoading = true);
     try {
-      final result = await getIt<UserRepository>().getActiveUser();
+      final result = await getIt<GetActiveUserUseCase>().call();
       final nsec = result.fold((_) => null, (u) => u.nsec);
       if (mounted) setState(() {
         _nsec = nsec;

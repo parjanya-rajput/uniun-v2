@@ -5,7 +5,7 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/home/pages/home_page.dart';
 import 'package:uniun/onboarding/pages/about_you_page.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/pages/note_intelligence_page.dart';
+import 'package:uniun/followed_notes/followed_note_detail/pages/followed_note_detail_page.dart';
 import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/settings/pages/edit_profile_page.dart';
 import 'package:uniun/settings/pages/privacy_policy_page.dart';
@@ -54,7 +54,7 @@ class UniunApp extends StatelessWidget {
         AppRoutes.settings: (_) => const SettingsPage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
-        AppRoutes.noteIntelligence: (ctx) => NoteIntelligencePage(
+        AppRoutes.followedNoteDetail: (ctx) => FollowedNoteDetailPage(
               noteId: ModalRoute.of(ctx)!.settings.arguments as String,
             ),
         AppRoutes.thread: (ctx) => ThreadPage(

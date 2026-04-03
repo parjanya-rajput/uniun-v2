@@ -3,15 +3,11 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
-import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/domain/repositories/note_repository.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
-import 'package:uniun/domain/usecases/get_replies_usecase.dart';
-import 'package:uniun/domain/usecases/get_note_by_id_usecase.dart';
-import 'package:uniun/domain/usecases/publish_note_usecase.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'thread_event.dart';
 part 'thread_state.dart';
@@ -21,17 +17,17 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final GetNoteByIdUseCase _getNoteById;
   final GetRepliesUseCase _getReplies;
   final PublishNoteUseCase _publishNote;
-  final ProfileRepository _profileRepository;
-  final NoteRepository _noteRepository;
-  final UserRepository _userRepository;
+  final GetProfileUseCase _getProfile;
+  final GetReplyCountUseCase _getReplyCount;
+  final GetActiveUserKeysUseCase _getActiveUserKeys;
 
   ThreadBloc(
     this._getNoteById,
     this._getReplies,
     this._publishNote,
-    this._profileRepository,
-    this._noteRepository,
-    this._userRepository,
+    this._getProfile,
+    this._getReplyCount,
+    this._getActiveUserKeys,
   ) : super(const ThreadState()) {
     on<LoadThreadEvent>(_onLoad, transformer: droppable());
     on<UpdateReplyTextEvent>(_onUpdateText);
@@ -53,7 +49,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     if (rootResult.isLeft()) {
       emit(state.copyWith(
         status: ThreadStatus.error,
-        errorMessage: rootResult.fold((f) => _msg(f), (_) => ''),
+        errorMessage: rootResult.fold((f) => f.toMessage(), (_) => ''),
       ));
       return;
     }
@@ -61,7 +57,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
 
     // 2. Fetch root author profile
     final profiles = <String, ProfileEntity>{};
-    _profileRepository.getProfile(rootNote.authorPubkey).then(
+    _getProfile.call(rootNote.authorPubkey).then(
           (r) => r.fold((_) {}, (p) => profiles[p.pubkey] = p),
         );
 
@@ -69,14 +65,13 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     final repliesResult = await _getReplies.call(event.noteId);
     final replies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
 
-    // 4. Fetch profiles + reply counts + nested replies for each reply
+    // 4. Fetch profiles for root note + all replies
     final replyCounts = <String, int>{};
     final nestedReplies = <String, List<NoteEntity>>{};
     final allNotes = [rootNote, ...replies];
 
     for (final note in allNotes) {
-      // Profile
-      final pr = await _profileRepository.getProfile(note.authorPubkey);
+      final pr = await _getProfile.call(note.authorPubkey);
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
     }
 
@@ -87,7 +82,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     while (bfsQueue.isNotEmpty && bfsLimit-- > 0) {
       final current = bfsQueue.removeAt(0);
       // Reply count badge
-      final cr = await _noteRepository.getReplyCount(current.id);
+      final cr = await _getReplyCount.call(current.id);
       cr.fold((_) {}, (c) => replyCounts[current.id] = c);
       // Nested children
       final nr = await _getReplies.call(current.id);
@@ -98,8 +93,8 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
             if (!visited.contains(n.id)) {
               visited.add(n.id);
               bfsQueue.add(n);
-              _profileRepository
-                  .getProfile(n.authorPubkey)
+              _getProfile
+                  .call(n.authorPubkey)
                   .then((r) => r.fold((_) {}, (p) => profiles[p.pubkey] = p));
             }
           }
@@ -137,25 +132,16 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     if (!state.canPost || state.rootNote == null) return;
     emit(state.copyWith(postStatus: ThreadPostStatus.posting));
 
-    // Get user key
-    final userResult = await _userRepository.getActiveUser();
-    String privkeyHex = '';
-    String pubkeyHex = '';
-    final err = userResult.fold<Failure?>(
-      (f) => f,
-      (u) {
-        privkeyHex = Nip19.decodePrivkey(u.nsec);
-        pubkeyHex = u.pubkeyHex;
-        return null;
-      },
-    );
-    if (err != null) {
+    // Get signing keys
+    final keysResult = await _getActiveUserKeys.call();
+    if (keysResult.isLeft()) {
       emit(state.copyWith(
         postStatus: ThreadPostStatus.error,
-        errorMessage: _msg(err),
+        errorMessage: keysResult.fold((f) => f.toMessage(), (_) => ''),
       ));
       return;
     }
+    final keys = keysResult.getOrElse(() => throw StateError('unreachable'));
 
     final rootId = state.rootNote!.id;
     final replyToId = state.replyingToId ?? rootId;
@@ -172,7 +158,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
         kind: 1,
         tags: tags,
         content: state.replyText.trim(),
-        privkey: privkeyHex,
+        privkey: keys.privkeyHex,
       );
     } catch (e) {
       emit(state.copyWith(
@@ -185,7 +171,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     final note = NoteEntity(
       id: signed.id,
       sig: signed.sig,
-      authorPubkey: pubkeyHex,
+      authorPubkey: keys.pubkeyHex,
       content: signed.content,
       type: NoteType.text,
       eTagRefs: [rootId, if (replyToId != rootId) replyToId],
@@ -201,17 +187,15 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     result.fold(
       (f) => emit(state.copyWith(
         postStatus: ThreadPostStatus.error,
-        errorMessage: _msg(f),
+        errorMessage: f.toMessage(),
       )),
       (published) {
-        // Optimistically add to the correct list
         final updatedState = state.copyWith(
           replyText: '',
           replyingToId: null,
           replyingToName: null,
           postStatus: ThreadPostStatus.posted,
         );
-        // Insert the new reply into the correct list and update counts
         if (replyToId == rootId) {
           emit(updatedState.copyWith(
             replies: [...state.replies, published],
@@ -223,7 +207,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
             ...(updatedNested[replyToId] ?? []),
             published,
           ];
-          // Bump the reply count badge on the parent reply item
           final updatedCounts = Map<String, int>.from(state.replyCounts);
           updatedCounts[replyToId] = (updatedCounts[replyToId] ?? 0) + 1;
           emit(updatedState.copyWith(
@@ -238,10 +221,4 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   void _onSwitchTab(SwitchTabEvent event, Emitter<ThreadState> emit) {
     emit(state.copyWith(activeTab: event.index));
   }
-
-  String _msg(Failure f) => f.when(
-        failure: (m) => m,
-        notFoundFailure: (m) => m,
-        errorFailure: (m) => m,
-      );
 }

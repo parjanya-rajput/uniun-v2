@@ -1,10 +1,10 @@
-part of 'note_intelligence_cubit.dart';
+part of 'followed_note_detail_cubit.dart';
 
-enum NoteIntelligenceStatus { initial, loading, loaded, error }
+enum FollowedNoteDetailStatus { initial, loading, loaded, error }
 
-class NoteIntelligenceState {
-  const NoteIntelligenceState({
-    this.status = NoteIntelligenceStatus.initial,
+class FollowedNoteDetailState {
+  const FollowedNoteDetailState({
+    this.status = FollowedNoteDetailStatus.initial,
     this.note,
     this.profile,
     this.replies = const [],
@@ -13,7 +13,7 @@ class NoteIntelligenceState {
     this.errorMessage,
   });
 
-  final NoteIntelligenceStatus status;
+  final FollowedNoteDetailStatus status;
   final NoteEntity? note;
   final ProfileEntity? profile;
   final List<NoteEntity> replies;
@@ -21,8 +21,8 @@ class NoteIntelligenceState {
   final List<NoteEntity> referencedNotes;
   final String? errorMessage;
 
-  NoteIntelligenceState copyWith({
-    NoteIntelligenceStatus? status,
+  FollowedNoteDetailState copyWith({
+    FollowedNoteDetailStatus? status,
     NoteEntity? note,
     ProfileEntity? profile,
     List<NoteEntity>? replies,
@@ -30,7 +30,7 @@ class NoteIntelligenceState {
     List<NoteEntity>? referencedNotes,
     String? errorMessage,
   }) {
-    return NoteIntelligenceState(
+    return FollowedNoteDetailState(
       status: status ?? this.status,
       note: note ?? this.note,
       profile: profile ?? this.profile,

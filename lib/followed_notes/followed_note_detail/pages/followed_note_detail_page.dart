@@ -4,52 +4,42 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/domain/repositories/note_repository.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/usecases/get_note_by_id_usecase.dart';
-import 'package:uniun/domain/usecases/get_replies_usecase.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/cubit/note_intelligence_cubit.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_header_card.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_intelligence_app_bar.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_references_section.dart';
-import 'package:uniun/followed_notes/note_intelligence_detail/widgets/note_thread_button.dart';
+import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_header_card.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/followed_note_app_bar.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_references_section.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_thread_button.dart';
 
-class NoteIntelligencePage extends StatelessWidget {
-  const NoteIntelligencePage({super.key, required this.noteId});
+class FollowedNoteDetailPage extends StatelessWidget {
+  const FollowedNoteDetailPage({super.key, required this.noteId});
   final String noteId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => NoteIntelligenceCubit(
-        getNoteById: getIt<GetNoteByIdUseCase>(),
-        getReplies: getIt<GetRepliesUseCase>(),
-        profileRepository: getIt<ProfileRepository>(),
-        noteRepository: getIt<NoteRepository>(),
-      )..load(noteId),
-      child: const _NoteIntelligenceView(),
+      create: (_) => getIt<FollowedNoteDetailCubit>()..load(noteId),
+      child: const _FollowedNoteDetailView(),
     );
   }
 }
 
 // ── View ──────────────────────────────────────────────────────────────────────
 
-class _NoteIntelligenceView extends StatelessWidget {
-  const _NoteIntelligenceView();
+class _FollowedNoteDetailView extends StatelessWidget {
+  const _FollowedNoteDetailView();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLow,
-      body: BlocBuilder<NoteIntelligenceCubit, NoteIntelligenceState>(
+      body: BlocBuilder<FollowedNoteDetailCubit, FollowedNoteDetailState>(
         builder: (context, state) {
           return Stack(
             children: [
               CustomScrollView(
                 slivers: [
-                  NoteIntelligenceAppBar(
-                      onBack: () => Navigator.pop(context)),
-                  if (state.status == NoteIntelligenceStatus.loading)
+                  FollowedNoteAppBar(onBack: () => Navigator.pop(context)),
+                  if (state.status == FollowedNoteDetailStatus.loading)
                     const SliverFillRemaining(
                       hasScrollBody: false,
                       child: Center(
@@ -57,7 +47,7 @@ class _NoteIntelligenceView extends StatelessWidget {
                             color: AppColors.primary, strokeWidth: 2),
                       ),
                     )
-                  else if (state.status == NoteIntelligenceStatus.error)
+                  else if (state.status == FollowedNoteDetailStatus.error)
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: Center(
@@ -102,7 +92,7 @@ class _NoteIntelligenceView extends StatelessWidget {
 
 class _NoteContent extends StatelessWidget {
   const _NoteContent({required this.state});
-  final NoteIntelligenceState state;
+  final FollowedNoteDetailState state;
 
   String _displayName(String pubkey, Map<String, ProfileEntity> profiles) {
     final p = profiles[pubkey];
@@ -124,7 +114,6 @@ class _NoteContent extends StatelessWidget {
         profile?.username ??
         '${note.authorPubkey.substring(0, 8)}…';
 
-    // Combine replies + referenced notes into one "Replies" list
     final allProfiles = {
       if (profile != null) note.authorPubkey: profile,
       ...state.replyProfiles,

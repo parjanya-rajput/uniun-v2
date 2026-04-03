@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-class NoteIntelligenceAppBar extends StatelessWidget {
-  const NoteIntelligenceAppBar({super.key, required this.onBack});
+class FollowedNoteAppBar extends StatelessWidget {
+  const FollowedNoteAppBar({super.key, required this.onBack});
   final VoidCallback onBack;
 
   @override

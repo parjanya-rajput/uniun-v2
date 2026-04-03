@@ -3,20 +3,19 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
-import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
-import 'package:uniun/domain/usecases/publish_note_usecase.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'brahma_create_event.dart';
 part 'brahma_create_state.dart';
 
 @injectable
 class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
-  final UserRepository _userRepository;
+  final GetActiveUserKeysUseCase _getActiveUserKeys;
   final PublishNoteUseCase _publishUseCase;
 
-  BrahmaCreateBloc(this._userRepository, this._publishUseCase)
+  BrahmaCreateBloc(this._getActiveUserKeys, this._publishUseCase)
       : super(const BrahmaCreateState()) {
     on<UpdateContentEvent>(_onUpdateContent);
     on<SubmitNoteEvent>(_onSubmitNote, transformer: droppable());
@@ -38,26 +37,18 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     if (!state.canSubmit) return;
     emit(state.copyWith(status: BrahmaCreateStatus.submitting));
 
-    // 1. Get signing key
-    final userResult = await _userRepository.getActiveUser();
-    String privkeyHex = '';
-    String pubkeyHex = '';
-
-    final userError = userResult.fold<Failure?>(
-      (f) => f,
-      (user) {
-        privkeyHex = Nip19.decodePrivkey(user.nsec);
-        pubkeyHex = user.pubkeyHex;
-        return null;
-      },
-    );
-    if (userError != null) {
+    // 1. Get signing keys
+    final keysResult = await _getActiveUserKeys.call();
+    if (keysResult.isLeft()) {
       emit(state.copyWith(
         status: BrahmaCreateStatus.error,
-        errorMessage: _msg(userError),
+        errorMessage: keysResult.fold((f) => f.toMessage(), (_) => ''),
       ));
       return;
     }
+    final keys = keysResult.getOrElse(() => throw StateError('unreachable'));
+    final privkeyHex = keys.privkeyHex;
+    final pubkeyHex = keys.pubkeyHex;
 
     // 2. Build NIP-10 tags + hashtags
     final tags = <List<String>>[];
@@ -114,7 +105,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     result.fold(
       (f) => emit(state.copyWith(
         status: BrahmaCreateStatus.error,
-        errorMessage: _msg(f),
+        errorMessage: f.toMessage(),
       )),
       (published) => emit(state.copyWith(
         status: BrahmaCreateStatus.success,
@@ -137,10 +128,4 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         .toSet()
         .toList();
   }
-
-  String _msg(Failure f) => f.when(
-        failure: (m) => m,
-        notFoundFailure: (m) => m,
-        errorFailure: (m) => m,
-      );
 }

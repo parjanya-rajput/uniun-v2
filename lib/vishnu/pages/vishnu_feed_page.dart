@@ -3,10 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/drawer/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/home/bloc/drawer_bloc.dart' as app_drawer;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/vishnu/bloc/vishnu_feed_bloc.dart';
-import 'package:uniun/vishnu/widgets/feed_filter_chips.dart';
 import 'package:uniun/vishnu/widgets/note_card.dart';
 
 class VishnuFeedPage extends StatelessWidget {
@@ -86,18 +85,6 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
         children: [
           // ── Header ──────────────────────────────────────────────────
           _FeedHeader(onOpenDrawer: widget.onOpenDrawer),
-
-          // ── Hashtag filter chips ─────────────────────────────────────
-          BlocBuilder<VishnuFeedBloc, VishnuFeedState>(
-            builder: (context, state) {
-              final allTags =
-                  state.notes.expand((n) => n.tTags).toSet().toList();
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: FeedFilterChips(tags: allTags),
-              );
-            },
-          ),
 
           // ── Feed list ────────────────────────────────────────────────
           Expanded(

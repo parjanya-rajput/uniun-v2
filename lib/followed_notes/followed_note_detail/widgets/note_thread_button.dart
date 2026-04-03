@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-/// Timeline-style thread continuation section shown on the NoteIntelligencePage.
+/// Timeline-style thread continuation section shown on the FollowedNoteDetailPage.
 class NoteThreadSection extends StatelessWidget {
   const NoteThreadSection({
     super.key,

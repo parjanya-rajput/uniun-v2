@@ -7,8 +7,8 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/domain/repositories/profile_repository.dart';
-import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/onboarding/widgets/key_card.dart';
 import 'package:uniun/onboarding/widgets/onboarding_app_bar.dart';
 
@@ -32,11 +32,11 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   bool _nsecVisible = false;
 
   Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
-    final result = await getIt<UserRepository>().importKey(nsec);
+    final result = await getIt<ImportKeyUseCase>().call(nsec);
     if (!mounted) return;
     await result.fold(
       (failure) async => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save keys: ${failure.toString()}')),
+        SnackBar(content: Text('Failed to save keys: ${failure.toMessage()}')),
       ),
       (user) async {
         // Save profile data collected in AboutYouPage
@@ -44,7 +44,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
         final username = args['username'] as String? ?? '';
         final bio = args['bio'] as String? ?? '';
         if (displayName.isNotEmpty || username.isNotEmpty) {
-          await getIt<ProfileRepository>().saveProfile(ProfileEntity(
+          await getIt<SaveProfileUseCase>().call(ProfileEntity(
             pubkey: user.pubkeyHex,
             name: displayName.isEmpty ? null : displayName,
             username: username.isEmpty ? null : username,

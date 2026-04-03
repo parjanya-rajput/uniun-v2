@@ -5,8 +5,7 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/domain/repositories/saved_note_repository.dart';
-import 'package:uniun/domain/usecases/toggle_save_usecase.dart';
+import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/thread/bloc/thread_bloc.dart';
 import 'package:uniun/thread/utils/thread_formatters.dart';
 import 'package:uniun/thread/widgets/thread_nested_reply_item.dart';
@@ -44,8 +43,8 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
   @override
   void initState() {
     super.initState();
-    getIt<SavedNoteRepository>()
-        .isSaved(widget.reply.id)
+    getIt<IsSavedNoteUseCase>()
+        .call(widget.reply.id)
         .then((r) => r.fold((_) {}, (v) {
               if (mounted) setState(() => _isSaved = v);
             }));

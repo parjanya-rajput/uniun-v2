@@ -428,8 +428,8 @@ Subscribing to a note's reference graph — distinct from saved notes (which are
 - EmbeddedServer opens `{"kinds":[1],"#e":["followedNoteId"]}` per followed note.
 - `newReferenceCount` incremented by SyncEngine on each new match.
 - **Cubit**: `FollowedNotesCubit` — `load()`, `followNote()`, `unfollowNote()`, `clearNewReferences()`
-- **Pages**: `FollowedNotesPage` (list + badges), `FollowedNoteFeedPage` (reference feed)
-- **Drawer**: "Followed Notes" nav item and section list both navigate to these pages.
+- **UX**: The drawer contains a collapsible "Followed Notes" section listing all followed notes with unread badges. Tapping a followed note directly opens `FollowedNoteDetailPage` (no separate list page). There is NO standalone `FollowedNotesPage` or `FollowedNoteFeedPage`.
+- **Detail view**: `followed_notes/followed_note_detail/` — cubit (`FollowedNoteDetailCubit`) + page (`FollowedNoteDetailPage`) showing the original note and its incoming references.
 
 ---
 
@@ -658,9 +658,8 @@ UNIUN does **not** implement a people-following / social graph in v1. There is n
 | `lib/domain/repositories/followed_note_repository.dart` | `FollowedNoteRepository` interface |
 | `lib/data/repositories/followed_note_repository_impl.dart` | Full Isar CRUD for followed notes |
 | `lib/followed_notes/cubit/followed_notes_cubit.dart` | `FollowedNotesCubit` — load/follow/unfollow/clearNewReferences |
-| `lib/followed_notes/pages/followed_notes_page.dart` | List of followed notes with badges |
-| `lib/followed_notes/pages/followed_note_feed_page.dart` | Reference feed for a single followed note (placeholder) |
-| `lib/followed_notes/widgets/followed_note_tile.dart` | Tile widget with badge + unfollow |
+| `lib/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart` | `FollowedNoteDetailCubit` — loads note + incoming references |
+| `lib/followed_notes/followed_note_detail/pages/followed_note_detail_page.dart` | Detail view opened directly from drawer tap |
 | `lib/domain/entities/user_key/user_key_entity.dart` | `UserKeyEntity` — pubkeyHex + npub + nsec (runtime only) |
 | `lib/domain/repositories/note_repository.dart` | `NoteRepository` interface |
 | `lib/domain/repositories/profile_repository.dart` | `ProfileRepository` interface |
@@ -703,8 +702,8 @@ UNIUN does **not** implement a people-following / social graph in v1. There is n
 **Shiv AI**
 - `EmbeddingService`, `VectorSearchService`, `ShivAIBloc`, `flutter_gemma` integration
 
-**Followed Note Feed (live)**
-- Wire `FollowedNoteFeedPage` to Isar once EmbeddedServer opens `{"kinds":[1],"#e":["id"]}` subscriptions
+**Followed Note Detail (live references)**
+- Wire `FollowedNoteDetailPage` to Isar once EmbeddedServer opens `{"kinds":[1],"#e":["id"]}` subscriptions
 
 ---
 

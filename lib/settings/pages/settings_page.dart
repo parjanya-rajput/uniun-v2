@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/settings/cubit/settings_cubit.dart';
 import 'package:uniun/settings/widgets/ai_card.dart';
@@ -17,7 +18,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SettingsCubit(),
+      create: (_) => getIt<SettingsCubit>(),
       child: const _SettingsContent(),
     );
   }
@@ -69,7 +70,7 @@ class _SettingsContent extends StatelessWidget {
                 icon: Icons.smart_toy_outlined,
               ),
               const SizedBox(height: 12),
-              AICard(state: state),
+              const AICard(),
 
               const SizedBox(height: 16),
 

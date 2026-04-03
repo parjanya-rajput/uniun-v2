@@ -5,7 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/drawer/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/home/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
   const VishnuDrawer({super.key, required this.onSwitchTab});
@@ -72,7 +72,7 @@ class VishnuDrawer extends StatelessWidget {
                         _close(context);
                         Navigator.pushNamed(
                           context,
-                          AppRoutes.noteIntelligence,
+                          AppRoutes.followedNoteDetail,
                           arguments: eventId,
                         );
                       },
