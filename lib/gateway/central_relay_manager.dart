@@ -2,16 +2,14 @@ import 'dart:async';
 
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/gateway/websocket_service.dart';
 
 /// Orchestrates all relay connections inside the Gateway isolate.
 ///
 /// Responsibilities:
-///  1. **Isar watcher on [NoteModel]** — when a new note authored by
-///     [_myPubkey] appears, enqueue it in [EventQueueModel] and notify
-///     all [WebSocketService]s.
+///  1. **Isar watcher on [EventQueueModel]** — when a new queue row appears,
+///     notify all [WebSocketService]s so they can send immediately.
 ///  2. **Isar watcher on [RelayModel]** — when Isolate 1 adds or removes a
 ///     relay at runtime, sync the [_services] map accordingly.
 ///  3. **Dequeue timer** — every 5 minutes, delete queue entries that have
@@ -21,18 +19,15 @@ import 'package:uniun/gateway/websocket_service.dart';
 /// active timers and stream subscriptions.
 class CentralRelayManager {
   final Isar _isar;
-  final String _myPubkey;
 
   /// One [WebSocketService] per relay URL.
   final Map<String, WebSocketService> _services = {};
 
   Timer? _dequeueTimer;
-  StreamSubscription<void>? _noteWatcher;
+  StreamSubscription<void>? _queueWatcher;
   StreamSubscription<void>? _relayWatcher;
 
-  CentralRelayManager({required Isar isar, required String myPubkey})
-      : _isar = isar,
-        _myPubkey = myPubkey;
+  CentralRelayManager({required Isar isar}) : _isar = isar;
 
   // ── Startup ────────────────────────────────────────────────────────────────
 
@@ -43,10 +38,11 @@ class CentralRelayManager {
       _addService(relay.url, read: relay.read, write: relay.write, fromTail: false);
     }
 
-    // 2. Watch NoteModel for new user-authored notes (lazy — no payload needed,
-    //    we query fresh from Isar on each fire to stay consistent).
-    _noteWatcher = _isar.noteModels.watchLazy().listen((_) {
-      _enqueueNewUserNotes();
+    // 2. Watch EventQueueModel so services send new items immediately.
+    _queueWatcher = _isar.eventQueueModels.watchLazy().listen((_) {
+      for (final svc in _services.values) {
+        svc.onNewQueueItem();
+      }
     });
 
     // 3. Watch RelayModel for runtime add/remove from Isolate 1.
@@ -58,38 +54,6 @@ class CentralRelayManager {
     _dequeueTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _runDequeuePass();
     });
-  }
-
-  // ── Enqueue (NoteModel watcher callback) ──────────────────────────────────
-
-  /// Finds user-authored notes not yet in [EventQueueModel] and enqueues them.
-  Future<void> _enqueueNewUserNotes() async {
-    final userNotes = await _isar.noteModels
-        .filter()
-        .authorPubkeyEqualTo(_myPubkey)
-        .findAll();
-
-    for (final note in userNotes) {
-      // Only enqueue notes that have a valid sig (signed events).
-      if (note.sig.isEmpty) continue;
-
-      final alreadyQueued = await _isar.eventQueueModels
-          .where()
-          .eventIdEqualTo(note.eventId)
-          .findFirst();
-      if (alreadyQueued != null) continue;
-
-      await _isar.writeTxn(() async {
-        await _isar.eventQueueModels.put(
-          EventQueueModel().populateFromNote(note),
-        );
-      });
-
-      // Notify all write services that a new item is ready.
-      for (final svc in _services.values) {
-        svc.onNewQueueItem();
-      }
-    }
   }
 
   // ── Dequeue (timer callback) ───────────────────────────────────────────────
@@ -170,7 +134,7 @@ class CentralRelayManager {
   // ── Shutdown ───────────────────────────────────────────────────────────────
 
   void stop() {
-    _noteWatcher?.cancel();
+    _queueWatcher?.cancel();
     _relayWatcher?.cancel();
     _dequeueTimer?.cancel();
     for (final svc in _services.values) {

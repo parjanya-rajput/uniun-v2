@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'event_queue_model.g.dart';
 
@@ -24,22 +25,27 @@ class EventQueueModel {
   @Index(unique: true)
   late String eventId;
 
-  /// The complete, ready-to-send relay wire message:
-  /// '["EVENT", {"id":..., "pubkey":..., "sig":..., ...}]'
-  /// Sent verbatim by WebSocketService — no re-encoding.
-  late String serializedRelayMessage;
+  /// Signed event payload stored in structured form.
+  /// WebSocketService serializes this to the relay wire format at send time.
+  late String authorPubkey;
+  late String sig;
+  late String content;
+  late int kind;
+  late List<String> eTagRefs;
+  String? rootEventId;
+  String? replyToEventId;
+  late List<String> pTagRefs;
+  late List<String> tTags;
+  late DateTime created;
 
   /// Number of write-relay connections that have received ["OK", id, true].
   /// Incremented atomically by each WebSocketService on successful ACK.
-  late int sentCount;
+  late int sentCount = 0;
 
   /// When this event was enqueued. Used for the 30-minute dequeue gate.
   late DateTime enqueuedAt;
 }
 
-/// Serialization owned by [EventQueueModel] — it is the queue's responsibility
-/// to know how to turn a [NoteModel] into a relay wire message.
-///
 /// Tag reconstruction order (must match [PublishNoteUseCase._buildTags]):
 ///   1. root e-tag (NIP-10)
 ///   2. reply e-tag (NIP-10)
@@ -47,33 +53,68 @@ class EventQueueModel {
 ///   4. p-tags
 ///   5. t-tags
 extension EventQueueModelExtension on EventQueueModel {
-  /// Populates this instance from [note] and returns [this] for chaining.
-  EventQueueModel populateFromNote(NoteModel note) {
-    final tags = <List<String>>[
-      if (note.rootEventId != null) ['e', note.rootEventId!, '', 'root'],
-      if (note.replyToEventId != null) ['e', note.replyToEventId!, '', 'reply'],
-      for (final ref in note.eTagRefs)
-        if (ref != note.rootEventId && ref != note.replyToEventId)
-          ['e', ref, '', 'mention'],
-      for (final p in note.pTagRefs) ['p', p],
-      for (final t in note.tTags) ['t', t],
-    ];
-
+  /// Populates this queue row from a data-layer [NoteModel].
+  EventQueueModel populateFromNoteModel(NoteModel note) {
     eventId = note.eventId;
-    serializedRelayMessage = jsonEncode([
-      'EVENT',
-      <String, dynamic>{
-        'id': note.eventId,
-        'pubkey': note.authorPubkey,
-        'created_at': note.created.millisecondsSinceEpoch ~/ 1000,
-        'kind': 1,
-        'tags': tags,
-        'content': note.content,
-        'sig': note.sig,
-      },
-    ]);
+    authorPubkey = note.authorPubkey;
+    sig = note.sig;
+    content = note.content;
+    kind = 1;
+    eTagRefs = List<String>.from(note.eTagRefs);
+    rootEventId = note.rootEventId;
+    replyToEventId = note.replyToEventId;
+    pTagRefs = List<String>.from(note.pTagRefs);
+    tTags = List<String>.from(note.tTags);
+    created = note.created;
     sentCount = 0;
     enqueuedAt = DateTime.now();
     return this;
+  }
+
+  /// Populates this queue row from a domain-layer [NoteEntity].
+  ///
+  /// NoteEntity does not carry root/reply threading markers, so those remain
+  /// null and all eTagRefs are emitted as mention tags.
+  EventQueueModel populateFromNoteEntity(NoteEntity note) {
+    eventId = note.id;
+    authorPubkey = note.authorPubkey;
+    sig = note.sig;
+    content = note.content;
+    kind = 1;
+    eTagRefs = List<String>.from(note.eTagRefs);
+    rootEventId = null;
+    replyToEventId = null;
+    pTagRefs = List<String>.from(note.pTagRefs);
+    tTags = List<String>.from(note.tTags);
+    created = note.created;
+    sentCount = 0;
+    enqueuedAt = DateTime.now();
+    return this;
+  }
+
+  /// Relay wire message: ["EVENT", {signed-event-json}]
+  String toSerializedRelayMessage() {
+    final tags = <List<String>>[
+      if (rootEventId != null) ['e', rootEventId!, '', 'root'],
+      if (replyToEventId != null) ['e', replyToEventId!, '', 'reply'],
+      for (final ref in eTagRefs)
+        if (ref != rootEventId && ref != replyToEventId)
+          ['e', ref, '', 'mention'],
+      for (final p in pTagRefs) ['p', p],
+      for (final t in tTags) ['t', t],
+    ];
+
+    return jsonEncode([
+      'EVENT',
+      <String, dynamic>{
+        'id': eventId,
+        'pubkey': authorPubkey,
+        'created_at': created.millisecondsSinceEpoch ~/ 1000,
+        'kind': kind,
+        'tags': tags,
+        'content': content,
+        'sig': sig,
+      },
+    ]);
   }
 }

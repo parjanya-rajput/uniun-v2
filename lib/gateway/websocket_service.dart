@@ -117,7 +117,7 @@ class WebSocketService {
 
     _pendingEventId = next.eventId;
     _pendingQueueId = next.id;
-    _socket!.sink.add(next.serializedRelayMessage);
+    _socket!.sink.add(next.toSerializedRelayMessage());
   }
 
   // ── Inbound — relay messages ───────────────────────────────────────────────
@@ -245,7 +245,6 @@ class WebSocketService {
       replyToEventId: replyToEventId,
       pTagRefs: pTagRefs,
       tTags: tTags,
-      cachedReactionCount: 0,
       created: DateTime.fromMillisecondsSinceEpoch(createdAtSec * 1000),
       isSeen: false,
     );

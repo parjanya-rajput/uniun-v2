@@ -8,13 +8,7 @@ class GatewayInitMessage {
   /// passed here so the Gateway isolate never needs Flutter plugins.
   final String isarDirectory;
 
-  /// The local user's secp256k1 public key (hex string).
-  /// Used by [CentralRelayManager] to filter [NoteModel] rows that belong
-  /// to the user and need to be published.
-  final String myPubkey;
-
   const GatewayInitMessage({
     required this.isarDirectory,
-    required this.myPubkey,
   });
 }
