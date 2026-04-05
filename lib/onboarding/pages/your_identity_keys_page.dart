@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -32,11 +33,12 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   bool _nsecVisible = false;
 
   Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await getIt<ImportKeyUseCase>().call(nsec);
     if (!mounted) return;
     await result.fold(
       (failure) async => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save keys: ${failure.toMessage()}')),
+        SnackBar(content: Text(l10n.keysFailedToSave(failure.toMessage()))),
       ),
       (user) async {
         // Save profile data collected in AboutYouPage
@@ -64,23 +66,25 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   }
 
   void _copyPub(String value) {
+    final l10n = AppLocalizations.of(context)!;
     Clipboard.setData(ClipboardData(text: value));
     setState(() => _pubKeyCopied = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Public key copied — now reveal your private key'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.keysPublicCopied),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
   void _copyPriv(String value) {
+    final l10n = AppLocalizations.of(context)!;
     Clipboard.setData(ClipboardData(text: value));
     setState(() => _privKeyCopied = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Private key copied — store it somewhere safe!'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.keysPrivateCopied),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -98,13 +102,16 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
         'Lose this file = lose access to your account forever.\n',
       );
       if (!mounted) return;
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup saved to ${file.path}')),
+        SnackBar(content: Text(l10n.keysBackupSaved(file.path))),
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save backup')),
+        SnackBar(content: Text(l10n.keysBackupFailed)),
       );
     }
   }
@@ -116,6 +123,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
     final npub = args['npub'] as String? ?? 'npub1...';
     final nsec = args['nsec'] as String? ?? 'nsec1...';
     final canContinue = _pubKeyCopied && _privKeyCopied;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -139,9 +147,9 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                       children: [
                         SizedBox(height: topGap),
 
-                        const Text(
-                          'Your Identity Keys',
-                          style: TextStyle(
+                        Text(
+                          l10n.keysTitle,
+                          style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.6,
@@ -149,9 +157,9 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'One is for sharing. One is for your eyes only.',
-                          style: TextStyle(
+                        Text(
+                          l10n.keysSubtitle,
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.onSurfaceVariant,
                           ),
@@ -160,8 +168,8 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                         SizedBox(height: midGap + 4),
 
                         KeyCard(
-                          title: 'Public Key',
-                          subtitle: 'Share with others to receive messages.',
+                          title: l10n.keysPublicKeyTitle,
+                          subtitle: l10n.keysPublicKeySubtitle,
                           keyValue: npub,
                           icon: Icons.share_rounded,
                           iconColor: AppColors.primary,
@@ -180,9 +188,8 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                           child: _pubKeyCopied
                               ? KeyCard(
                                   key: const ValueKey('priv'),
-                                  title: 'Private Key',
-                                  subtitle:
-                                      'Never share this. Total access to your identity.',
+                                  title: l10n.keysPrivateKeyTitle,
+                                  subtitle: l10n.keysPrivateKeySubtitle,
                                   keyValue: nsec,
                                   icon: Icons.lock_rounded,
                                   iconColor: AppColors.error,
@@ -194,8 +201,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                                       () => _nsecVisible = !_nsecVisible),
                                   isCopied: _privKeyCopied,
                                   onCopy: () => _copyPriv(nsec),
-                                  warning:
-                                      'Lose this key = lose your account forever.',
+                                  warning: l10n.keysPrivateKeyWarning,
                                 )
                               : const PrivKeyHint(key: ValueKey('hint')),
                         ),
@@ -228,7 +234,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             ),
                             child: Center(
                               child: Text(
-                                'Save & Continue',
+                                l10n.keysSaveAndContinue,
                                 style: TextStyle(
                                   color: canContinue
                                       ? AppColors.onPrimary
@@ -248,22 +254,22 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                           children: [
                             TextButton(
                               onPressed: () => _downloadBackup(npub, nsec),
-                              child: const Text(
-                                'Download Backup',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.keysDownloadBackup,
+                                style: const TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12),
                               ),
                             ),
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.verified_user_rounded,
+                                const Icon(Icons.verified_user_rounded,
                                     size: 11, color: AppColors.outline),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'E2E ENCRYPTED',
-                                  style: TextStyle(
+                                  l10n.keysE2eEncrypted,
+                                  style: const TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 1,

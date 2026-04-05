@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
@@ -24,6 +25,7 @@ class NoteHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -112,10 +114,10 @@ class NoteHeaderCard extends StatelessWidget {
                           color: AppColors.onSurfaceVariant,
                         ),
                         const SizedBox(width: 3),
-                        const Flexible(
+                        Flexible(
                           child: Text(
-                            'Research Node',
-                            style: TextStyle(
+                            l10n.followedNoteResearchNode,
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.onSurfaceVariant,
                             ),
@@ -134,9 +136,9 @@ class NoteHeaderCard extends StatelessWidget {
                   color: AppColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Following',
-                  style: TextStyle(
+                child: Text(
+                  l10n.followedNoteFollowing,
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,

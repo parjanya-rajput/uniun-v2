@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class ThreadEmptyReplies extends StatelessWidget {
@@ -6,24 +7,25 @@ class ThreadEmptyReplies extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.chat_bubble_outline_rounded,
             size: 52, color: AppColors.outlineVariant),
         const SizedBox(height: 16),
-        const Text(
-          'No replies yet',
-          style: TextStyle(
+        Text(
+          l10n.threadNoReplies,
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: AppColors.onSurface,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Be the first to reply.',
-          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+        Text(
+          l10n.threadBeFirstToReply,
+          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
         ),
       ],
     );
@@ -35,24 +37,25 @@ class ThreadNoReferences extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.account_tree_outlined,
             size: 52, color: AppColors.outlineVariant),
         const SizedBox(height: 16),
-        const Text(
-          'No references',
-          style: TextStyle(
+        Text(
+          l10n.threadNoReferences,
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: AppColors.onSurface,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'No notes reference this one yet.',
-          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+        Text(
+          l10n.threadNoReferencesDetail,
+          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       ],

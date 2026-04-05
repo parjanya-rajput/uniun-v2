@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/brahma/pages/brahma_create_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -104,26 +105,27 @@ class _ShivPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.content_cut_rounded,
+            const Icon(Icons.content_cut_rounded,
                 size: 48, color: AppColors.outlineVariant),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Shiv — AI Assistant',
-              style: TextStyle(
+              l10n.homeShivTitle,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColors.onSurface,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'On-device AI coming soon.',
-              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+              l10n.homeShivComingSoon,
+              style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
           ],
         ),

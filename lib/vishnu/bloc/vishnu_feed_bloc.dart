@@ -4,7 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
-import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart' hide SaveNoteUseCase;
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 
@@ -19,19 +19,22 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final GetProfileUseCase _getProfile;
   final GetThreadReplyCountUseCase _getThreadReplyCount;
   final GetAllSavedNotesUseCase _getAllSavedNotes;
-  final ToggleSaveUseCase _toggleSave;
+  final SaveNoteUseCase _saveNote;
+  final UnsaveNoteUseCase _unsaveNote;
 
   VishnuFeedBloc(
     this._getFeed,
     this._getProfile,
     this._getThreadReplyCount,
     this._getAllSavedNotes,
-    this._toggleSave,
+    this._saveNote,
+    this._unsaveNote,
   ) : super(const VishnuFeedState()) {
     on<LoadFeedEvent>(_onLoad, transformer: droppable());
     on<RefreshFeedEvent>(_onRefresh, transformer: droppable());
     on<LoadMoreFeedEvent>(_onLoadMore, transformer: droppable());
-    on<ToggleSaveFeedEvent>(_onToggleSave, transformer: sequential());
+    on<SaveFeedNoteEvent>(_onSave, transformer: sequential());
+    on<UnsaveFeedNoteEvent>(_onUnsave, transformer: sequential());
   }
 
   Future<void> _onLoad(
@@ -64,39 +67,39 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     await _fetchPage(emit, before: cursor, append: true);
   }
 
-  Future<void> _onToggleSave(
-    ToggleSaveFeedEvent event,
+  Future<void> _onSave(
+    SaveFeedNoteEvent event,
     Emitter<VishnuFeedState> emit,
   ) async {
-    final currentlySaved = state.savedIds.contains(event.noteId);
-    // Optimistic update
-    final optimistic = Set<String>.from(state.savedIds);
-    if (currentlySaved) {
-      optimistic.remove(event.noteId);
-    } else {
-      optimistic.add(event.noteId);
-    }
-    emit(state.copyWith(savedIds: optimistic));
+    // Optimistic
+    emit(state.copyWith(savedIds: {...state.savedIds, event.note.id}));
 
-    // Persist
-    final result = await _toggleSave.call(ToggleSaveInput(
-      eventId: event.noteId,
-      contentPreview: event.contentPreview,
-      isSaved: currentlySaved,
-    ));
-
+    final result = await _saveNote.call(event.note);
     result.fold(
-      // Rollback on failure
       (_) {
-        final rollback = Set<String>.from(state.savedIds);
-        if (currentlySaved) {
-          rollback.add(event.noteId);
-        } else {
-          rollback.remove(event.noteId);
-        }
+        // Rollback
+        final rollback = Set<String>.from(state.savedIds)..remove(event.note.id);
         emit(state.copyWith(savedIds: rollback));
       },
-      (_) {}, // optimistic already correct
+      (_) {},
+    );
+  }
+
+  Future<void> _onUnsave(
+    UnsaveFeedNoteEvent event,
+    Emitter<VishnuFeedState> emit,
+  ) async {
+    // Optimistic
+    final optimistic = Set<String>.from(state.savedIds)..remove(event.noteId);
+    emit(state.copyWith(savedIds: optimistic));
+
+    final result = await _unsaveNote.call(event.noteId);
+    result.fold(
+      (_) {
+        // Rollback
+        emit(state.copyWith(savedIds: {...state.savedIds, event.noteId}));
+      },
+      (_) {},
     );
   }
 
@@ -137,7 +140,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
           }
         }
 
-        // Saved IDs — refresh the full set from Isar each page load
+        // Saved IDs
         final savedResult = await _getAllSavedNotes.call();
         final savedIds = savedResult.fold(
           (_) => state.savedIds,

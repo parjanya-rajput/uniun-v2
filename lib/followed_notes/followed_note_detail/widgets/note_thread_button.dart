@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Timeline-style thread continuation section shown on the FollowedNoteDetailPage.
@@ -16,15 +17,16 @@ class NoteThreadSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Section header ─────────────────────────────────────────────────
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'THREAD CONTINUATION',
-            style: TextStyle(
+            l10n.threadContinuation,
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.8,
@@ -84,7 +86,7 @@ class NoteThreadSection extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '$replyCount Replies'.toUpperCase(),
+                          l10n.threadNReplies(replyCount).toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -94,7 +96,7 @@ class NoteThreadSection extends StatelessWidget {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Updated: $lastUpdated'.toUpperCase(),
+                          l10n.threadUpdated(lastUpdated).toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,

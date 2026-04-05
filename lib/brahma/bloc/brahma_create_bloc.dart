@@ -17,24 +17,16 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
 
   BrahmaCreateBloc(this._getActiveUserKeys, this._publishUseCase)
       : super(const BrahmaCreateState()) {
-    on<UpdateContentEvent>(_onUpdateContent);
     on<SubmitNoteEvent>(_onSubmitNote, transformer: droppable());
     on<ResetBrahmaEvent>(_onReset);
-  }
-
-  void _onUpdateContent(
-    UpdateContentEvent event,
-    Emitter<BrahmaCreateState> emit,
-  ) {
-    final tags = _extractHashtags(event.content);
-    emit(state.copyWith(content: event.content, extractedTags: tags));
   }
 
   Future<void> _onSubmitNote(
     SubmitNoteEvent event,
     Emitter<BrahmaCreateState> emit,
   ) async {
-    if (!state.canSubmit) return;
+    final content = event.content.trim();
+    if (content.isEmpty) return;
     emit(state.copyWith(status: BrahmaCreateStatus.submitting));
 
     // 1. Get signing keys
@@ -51,6 +43,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final pubkeyHex = keys.pubkeyHex;
 
     // 2. Build NIP-10 tags + hashtags
+    final extractedTags = _extractHashtags(content);
     final tags = <List<String>>[];
     if (event.rootEventId != null) {
       tags.add(['e', event.rootEventId!, '', 'root']);
@@ -58,7 +51,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     if (event.replyToEventId != null) {
       tags.add(['e', event.replyToEventId!, '', 'reply']);
     }
-    for (final h in state.extractedTags) {
+    for (final h in extractedTags) {
       tags.add(['t', h]);
     }
 
@@ -68,7 +61,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       signedEvent = Event.from(
         kind: 1, // Kind 1 = Short Text Note (NIP-01)
         tags: tags,
-        content: state.content.trim(),
+        content: content,
         privkey: privkeyHex,
       );
     } catch (e) {
@@ -93,7 +86,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       type: NoteType.text,
       eTagRefs: eTagRefs,
       pTagRefs: const [],
-      tTags: state.extractedTags,
+      tTags: extractedTags,
       created: DateTime.fromMillisecondsSinceEpoch(signedEvent.createdAt * 1000),
       isSeen: true,
       rootEventId: event.rootEventId,
@@ -107,10 +100,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         status: BrahmaCreateStatus.error,
         errorMessage: f.toMessage(),
       )),
-      (published) => emit(state.copyWith(
-        status: BrahmaCreateStatus.success,
-        publishedNoteId: published.id,
-      )),
+      (_) => emit(state.copyWith(status: BrahmaCreateStatus.success)),
     );
   }
 

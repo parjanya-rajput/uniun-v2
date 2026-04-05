@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -48,6 +49,7 @@ class _NoteCardState extends State<NoteCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final profile = widget.profile;
     final displayName = profile?.name ??
         profile?.username ??
@@ -156,7 +158,7 @@ class _NoteCardState extends State<NoteCard> {
                         icon: widget.isFollowed
                             ? Icons.link_rounded
                             : Icons.add_link_rounded,
-                        label: widget.isFollowed ? 'Following' : 'Follow',
+                        label: widget.isFollowed ? l10n.actionFollowing : l10n.actionFollow,
                         color: widget.isFollowed
                             ? AppColors.primary
                             : AppColors.onSurfaceVariant,
@@ -178,7 +180,7 @@ class _NoteCardState extends State<NoteCard> {
                         icon: _isSaved
                             ? Icons.bookmark_rounded
                             : Icons.bookmark_border_rounded,
-                        label: _isSaved ? 'Saved' : 'Save',
+                        label: _isSaved ? l10n.actionSaved : l10n.actionSave,
                         color: _isSaved
                             ? AppColors.primary
                             : AppColors.onSurfaceVariant,
@@ -191,14 +193,14 @@ class _NoteCardState extends State<NoteCard> {
                       // Thread indicator
                       if (widget.note.eTagRefs.isNotEmpty) ...[
                         const Spacer(),
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.account_tree_rounded,
+                            const Icon(Icons.account_tree_rounded,
                                 size: 16, color: AppColors.primary),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'THREAD',
-                              style: TextStyle(
+                              l10n.vishnuThread,
+                              style: const TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.primary,

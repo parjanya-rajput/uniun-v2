@@ -1,7 +1,7 @@
-import 'dart:io';
-
 import 'package:avatar_plus/avatar_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class UserAvatar extends StatelessWidget {
@@ -23,13 +23,10 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? size / 2;
-    final effectiveSeed = seed.isEmpty ? 'uniun' : seed;
+    final effectiveSeed = seed.isEmpty ? AppConstants.kAppName : seed;
     final isNetwork = photoUrl != null &&
         photoUrl!.isNotEmpty &&
         (photoUrl!.startsWith('http://') || photoUrl!.startsWith('https://'));
-    final isLocalFile =
-        photoUrl != null && photoUrl!.isNotEmpty && !isNetwork;
-    final hasPhoto = isNetwork || isLocalFile;
 
     return Container(
       width: size,
@@ -45,22 +42,15 @@ class UserAvatar extends StatelessWidget {
         color: AppColors.surfaceContainerLow,
       ),
       clipBehavior: Clip.antiAlias,
-      child: hasPhoto
-          ? (isLocalFile
-              ? Image.file(
-                  File(photoUrl!),
-                  fit: BoxFit.cover,
-                  width: size,
-                  height: size,
-                  errorBuilder: (_, __, ___) => _generated(effectiveSeed),
-                )
-              : Image.network(
-                  photoUrl!,
-                  fit: BoxFit.cover,
-                  width: size,
-                  height: size,
-                  errorBuilder: (_, __, ___) => _generated(effectiveSeed),
-                ))
+      child: isNetwork
+          ? CachedNetworkImage(
+              imageUrl: photoUrl!,
+              fit: BoxFit.cover,
+              width: size,
+              height: size,
+              placeholder: (_, __) => _generated(effectiveSeed),
+              errorWidget: (_, __, ___) => _generated(effectiveSeed),
+            )
           : _generated(effectiveSeed),
     );
   }

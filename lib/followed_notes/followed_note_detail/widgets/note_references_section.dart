@@ -17,21 +17,6 @@ class NoteReferencesSection extends StatelessWidget {
   final ReferenceSectionStyle style;
   final String? badge;
 
-  /// Convenience constructor for "Referenced By" grid layout.
-  const NoteReferencesSection.referencedBy({
-    super.key,
-    required this.references,
-    this.badge,
-  })  : title = 'Referenced By',
-        style = ReferenceSectionStyle.grid;
-
-  /// Convenience constructor for "References" list layout.
-  const NoteReferencesSection.references({
-    super.key,
-    required this.references,
-  })  : title = 'References',
-        style = ReferenceSectionStyle.list,
-        badge = null;
 
   @override
   Widget build(BuildContext context) {

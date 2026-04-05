@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Reference graph preview shown below the compose card.
@@ -13,14 +14,15 @@ class GraphPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Section header ─────────────────────────────────────────────────
         Row(
           children: [
-            const Text(
-              'REFERENCE GRAPH PREVIEW',
+            Text(
+              l10n.brahmaGraphPreviewLabel,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -87,8 +89,8 @@ class GraphPreviewCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Text(
-                      'Interactive Preview',
+                    child: Text(
+                      l10n.brahmaInteractivePreview,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,

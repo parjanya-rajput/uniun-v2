@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -175,12 +176,13 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                               isFollowed,
                             ),
                             onSaveTap: () {
-                              final preview = note.content.length > 80
-                                  ? '${note.content.substring(0, 80)}…'
-                                  : note.content;
-                              context.read<VishnuFeedBloc>().add(
-                                    ToggleSaveFeedEvent(note.id, preview),
-                                  );
+                              final bloc = context.read<VishnuFeedBloc>();
+                              final saved = feedState.savedIds.contains(note.id);
+                              if (saved) {
+                                bloc.add(UnsaveFeedNoteEvent(note.id));
+                              } else {
+                                bloc.add(SaveFeedNoteEvent(note));
+                              }
                             },
                           );
                         },
@@ -281,6 +283,7 @@ class _EmptyFeedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -288,19 +291,19 @@ class _EmptyFeedView extends StatelessWidget {
           Icon(Icons.sticky_note_2_outlined,
               size: 52, color: AppColors.outlineVariant),
           const SizedBox(height: 16),
-          const Text(
-            'No notes yet',
-            style: TextStyle(
+          Text(
+            l10n.vishnuNoNotes,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.onSurface,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Create your first note in Brahma\nor wait for the relay to sync.',
+          Text(
+            l10n.vishnuCreateFirst,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+            style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
           ),
         ],
       ),
@@ -332,7 +335,7 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: 16),
           TextButton(
             onPressed: onRetry,
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context)!.actionRetry),
           ),
         ],
       ),

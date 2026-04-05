@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/thread/bloc/thread_bloc.dart';
@@ -22,6 +23,7 @@ class ThreadReplyComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -46,7 +48,7 @@ class ThreadReplyComposer extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Replying to @${state.replyingToName}',
+                      l10n.threadReplyingTo(state.replyingToName!),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.primary,
@@ -92,8 +94,8 @@ class ThreadReplyComposer extends StatelessWidget {
                         fontSize: 14, color: AppColors.onSurface),
                     decoration: InputDecoration(
                       hintText: state.replyingToName != null
-                          ? 'Reply to @${state.replyingToName}…'
-                          : 'Reply to this note…',
+                          ? l10n.threadReplyTo(state.replyingToName!)
+                          : l10n.threadReplyToThis,
                       hintStyle: const TextStyle(
                           color: AppColors.onSurfaceVariant, fontSize: 14),
                       border: InputBorder.none,
@@ -149,9 +151,9 @@ class ThreadReplyComposer extends StatelessWidget {
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2),
                             )
-                          : const Text(
-                              'Post',
-                              style: TextStyle(
+                          : Text(
+                              l10n.threadPost,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,

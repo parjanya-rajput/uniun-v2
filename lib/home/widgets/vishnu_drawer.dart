@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -17,7 +18,7 @@ class VishnuDrawer extends StatelessWidget {
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
-        content: Text('$feature — coming soon'),
+        content: Text(AppLocalizations.of(context)!.drawerComingSoon(feature)),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -32,6 +33,7 @@ class VishnuDrawer extends StatelessWidget {
       child: BlocBuilder<app_drawer.DrawerBloc, app_drawer.DrawerState>(
         builder: (context, state) {
           final loaded = state is app_drawer.DrawerLoaded ? state : null;
+          final l10n = AppLocalizations.of(context)!;
           return Column(
             children: [
               _DrawerHeader(
@@ -49,16 +51,16 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Main nav ──────────────────────────────────────────
                     _NavItem(
                       icon: Icons.home_rounded,
-                      label: 'Home',
+                      label: l10n.drawerHome,
                       active: true,
                       onTap: () => _close(context),
                     ),
                     _NavItem(
                       icon: Icons.bookmark_rounded,
-                      label: 'Saved Notes',
+                      label: l10n.drawerSavedNotes,
                       onTap: () {
                         _close(context);
-                        _showComingSoon(context, 'Saved Notes');
+                        _showComingSoon(context, l10n.drawerSavedNotes);
                       },
                     ),
 
@@ -67,7 +69,7 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Following Notes (collapsible) ─────────────────────
                     _CollapsibleFollowingSection(
                       items: loaded?.followedNotes ?? [],
-                      onAdd: () => _showComingSoon(context, 'Follow a Note'),
+                      onAdd: () => _showComingSoon(context, l10n.drawerHome),
                       onItemTap: (eventId) {
                         _close(context);
                         Navigator.pushNamed(
@@ -82,12 +84,12 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Channels ──────────────────────────────────────────
                     _SectionHeader(
-                      label: 'Channels',
-                      onAdd: () => _showComingSoon(context, 'Create Channel'),
+                      label: l10n.drawerChannels,
+                      onAdd: () => _showComingSoon(context, l10n.drawerChannels),
                     ),
                     const SizedBox(height: 4),
                     if ((loaded?.channels ?? []).isEmpty)
-                      const _EmptyHint('No channels yet')
+                      _EmptyHint(l10n.drawerNoChannels)
                     else
                       ...loaded!.channels.map((ch) => _ChannelRow(
                             channel: ch,
@@ -101,12 +103,12 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Direct Messages ───────────────────────────────────
                     _SectionHeader(
-                      label: 'Direct Messages',
-                      onAdd: () => _showComingSoon(context, 'New DM'),
+                      label: l10n.drawerDirectMessages,
+                      onAdd: () => _showComingSoon(context, l10n.drawerDirectMessages),
                     ),
                     const SizedBox(height: 4),
                     if ((loaded?.dms ?? []).isEmpty)
-                      const _EmptyHint('No messages yet')
+                      _EmptyHint(l10n.drawerNoMessages)
                     else
                       ...loaded!.dms.map((dm) => _DmRow(
                             dm: dm,
@@ -119,10 +121,10 @@ class VishnuDrawer extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // ── Apps ──────────────────────────────────────────────
-                    const _SectionHeader(label: 'Apps'),
+                    _SectionHeader(label: l10n.drawerApps),
                     const SizedBox(height: 4),
                     _AppRow(
-                      label: 'AI Assistant',
+                      label: l10n.drawerAiAssistant,
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -217,15 +219,15 @@ class _DrawerHeader extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: npub));
                   Navigator.pop(context);
                   ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    const SnackBar(
-                      content: Text('npub copied'),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.drawerNpubCopied),
                       behavior: SnackBarBehavior.floating,
-                      duration: Duration(seconds: 2),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 icon: const Icon(Icons.copy_rounded, size: 16),
-                label: const Text('Copy npub'),
+                label: Text(AppLocalizations.of(context)!.drawerCopyNpub),
               ),
             ],
           ),
@@ -476,7 +478,7 @@ class _CollapsibleFollowingSectionState
               children: [
                 Expanded(
                   child: Text(
-                    'FOLLOWING NOTES',
+                    AppLocalizations.of(context)!.drawerFollowingNotes,
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -511,7 +513,7 @@ class _CollapsibleFollowingSectionState
             children: [
               const SizedBox(height: 4),
               if (widget.items.isEmpty)
-                const _EmptyHint('No followed notes yet')
+                _EmptyHint(AppLocalizations.of(context)!.drawerNoFollowedNotes)
               else
                 ...widget.items.map(
                   (n) => _FollowedNoteRow(
@@ -722,14 +724,14 @@ class _DrawerFooter extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.settings_rounded,
+                const Icon(Icons.settings_rounded,
                     size: 20, color: AppColors.onSurfaceVariant),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Text(
-                  'Settings',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.drawerSettings,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: AppColors.onSurfaceVariant,

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -76,7 +77,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
       listener: (context, state) {
         if (state.status == EditProfileStatus.saved) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile saved')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.editProfileSaved)),
           );
           Navigator.pop(context);
         }
@@ -100,6 +101,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
         _initControllers(state);
         final cubit = context.read<EditProfileCubit>();
         final isSaving = state.status == EditProfileStatus.saving;
+        final l10n = AppLocalizations.of(context)!;
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -155,39 +157,39 @@ class _EditProfileContentState extends State<_EditProfileContent> {
 
               // ── Fields ────────────────────────────────────────────────
               _FieldGroup(
-                label: 'Display Name',
+                label: l10n.editProfileDisplayName,
                 controller: _name,
-                hint: 'e.g. Satoshi',
+                hint: l10n.editProfileDisplayNameHint,
                 onChanged: cubit.updateName,
               ),
               const SizedBox(height: 16),
               _FieldGroup(
-                label: 'Username',
+                label: l10n.editProfileUsername,
                 controller: _username,
-                hint: 'e.g. satoshi',
+                hint: l10n.editProfileUsernameHint,
                 prefix: '@',
                 onChanged: cubit.updateUsername,
               ),
               const SizedBox(height: 16),
               _FieldGroup(
-                label: 'About',
+                label: l10n.editProfileAbout,
                 controller: _about,
-                hint: 'Tell the world who you are…',
+                hint: l10n.editProfileAboutHint,
                 maxLines: 4,
                 onChanged: cubit.updateAbout,
               ),
               const SizedBox(height: 16),
               _FieldGroup(
-                label: 'Avatar URL',
+                label: l10n.editProfileAvatarUrl,
                 controller: _avatarUrl,
-                hint: 'https://…',
+                hint: l10n.editProfileAvatarUrlHint,
                 onChanged: cubit.updateAvatarUrl,
               ),
               const SizedBox(height: 16),
               _FieldGroup(
-                label: 'NIP-05 Identifier',
+                label: l10n.editProfileNip05,
                 controller: _nip05,
-                hint: 'you@yourdomain.com',
+                hint: l10n.editProfileNip05Hint,
                 onChanged: cubit.updateNip05,
               ),
               const SizedBox(height: 32),
@@ -212,9 +214,9 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Save Profile',
-                        style: TextStyle(
+                    : Text(
+                        l10n.editProfileSaveButton,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -254,9 +256,9 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 4),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Edit Profile',
+                        AppLocalizations.of(context)!.editProfileTitle,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class NoteComposeCard extends StatelessWidget {
@@ -19,6 +20,7 @@ class NoteComposeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -70,8 +72,8 @@ class NoteComposeCard extends StatelessWidget {
                       color: AppColors.onSurface,
                       height: 1.55,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: 'Write a new note...',
+                    decoration: InputDecoration(
+                      hintText: l10n.brahmaHintText,
                       hintStyle: TextStyle(
                         color: AppColors.outline,
                         fontSize: 16,
@@ -108,19 +110,19 @@ class NoteComposeCard extends StatelessWidget {
                 // Media action icons
                 _ActionIcon(
                   icon: Icons.image_outlined,
-                  tooltip: 'Add Image',
+                  tooltip: l10n.brahmaAddImage,
                   onTap: () {}, // Blossom upload — future PR
                 ),
                 const SizedBox(width: 4),
                 _ActionIcon(
                   icon: Icons.group_outlined,
-                  tooltip: 'Tag People',
+                  tooltip: l10n.brahmaTagPeople,
                   onTap: () {},
                 ),
                 const SizedBox(width: 4),
                 _ActionIcon(
                   icon: Icons.link_rounded,
-                  tooltip: 'Reference Note',
+                  tooltip: l10n.brahmaReferenceNote,
                   onTap: () {},
                 ),
 
@@ -155,9 +157,9 @@ class NoteComposeCard extends StatelessWidget {
                                 color: AppColors.onPrimary,
                               ),
                             )
-                          : const Text(
-                              'Create Note',
-                              style: TextStyle(
+                          : Text(
+                              l10n.brahmaCreateNote,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.onPrimary,

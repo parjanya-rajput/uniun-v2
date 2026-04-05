@@ -12,23 +12,18 @@
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
-
-// Infrastructure
+import 'package:uniun/brahma/bloc/brahma_create_bloc.dart' as _i787;
 import 'package:uniun/core/isolate/embedded_server_bridge.dart' as _i717;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
-
-// Data repositories
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
     as _i107;
-import 'package:uniun/data/repositories/note_repository_impl.dart' as _i350;
+import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
 import 'package:uniun/data/repositories/outbound_event_repository_impl.dart'
     as _i694;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
-
-// Domain repository interfaces
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
     as _i836;
 import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
@@ -37,21 +32,15 @@ import 'package:uniun/domain/repositories/outbound_event_repository.dart'
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
-
-// Use case modules
-import 'package:uniun/domain/usecases/note_usecases.dart' as _noteUC;
-import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _savedUC;
-import 'package:uniun/domain/usecases/profile_usecases.dart' as _profileUC;
-import 'package:uniun/domain/usecases/user_usecases.dart' as _userUC;
-import 'package:uniun/domain/usecases/followed_note_usecases.dart'
-    as _followedUC;
-
-// BLoC / Cubit
-import 'package:uniun/brahma/bloc/brahma_create_bloc.dart' as _i787;
-import 'package:uniun/home/bloc/drawer_bloc.dart' as _i987;
+import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
+import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
+import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
+import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
+import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
 import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart'
-    as _i928;
+    as _i464;
+import 'package:uniun/home/bloc/drawer_bloc.dart' as _i111;
 import 'package:uniun/settings/cubit/edit_profile_cubit.dart' as _i195;
 import 'package:uniun/settings/cubit/settings_cubit.dart' as _i731;
 import 'package:uniun/thread/bloc/thread_bloc.dart' as _i118;
@@ -65,9 +54,6 @@ extension GetItInjectableX on _i174.GetIt {
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final isarModule = _$IsarModule();
-
-    // ── Singletons ────────────────────────────────────────────────────────────
-
     gh.singleton<_i717.EmbeddedServerBridge>(
       () => _i717.EmbeddedServerBridge(),
     );
@@ -75,11 +61,8 @@ extension GetItInjectableX on _i174.GetIt {
       () => isarModule.createIsar(),
       preResolve: true,
     );
-
-    // ── Repository factories ──────────────────────────────────────────────────
-
     gh.factory<_i47.NoteRepository>(
-      () => _i350.NoteRepositoryImpl(isar: gh<_i214.Isar>()),
+      () => _i348.NoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -93,162 +76,150 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.factory<_i103.UserRepository>(
-      () => _i582.UserRepositoryImpl(isar: gh<_i214.Isar>()),
+    gh.lazySingleton<_i561.GetAllFollowedNotesUseCase>(
+      () =>
+          _i561.GetAllFollowedNotesUseCase(gh<_i836.FollowedNoteRepository>()),
     );
-
-    // ── Note use cases ────────────────────────────────────────────────────────
-
-    gh.lazySingleton<_noteUC.GetFeedUseCase>(
-      () => _noteUC.GetFeedUseCase(gh<_i47.NoteRepository>()),
+    gh.lazySingleton<_i561.FollowNoteUseCase>(
+      () => _i561.FollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
     );
-    gh.lazySingleton<_noteUC.GetNoteByIdUseCase>(
-      () => _noteUC.GetNoteByIdUseCase(gh<_i47.NoteRepository>()),
+    gh.lazySingleton<_i561.UnfollowNoteUseCase>(
+      () => _i561.UnfollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
     );
-    gh.lazySingleton<_noteUC.GetRepliesUseCase>(
-      () => _noteUC.GetRepliesUseCase(gh<_i47.NoteRepository>()),
+    gh.lazySingleton<_i561.ClearNewReferencesUseCase>(
+      () => _i561.ClearNewReferencesUseCase(gh<_i836.FollowedNoteRepository>()),
     );
-    gh.lazySingleton<_noteUC.SaveNoteUseCase>(
-      () => _noteUC.SaveNoteUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_noteUC.MarkSeenUseCase>(
-      () => _noteUC.MarkSeenUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_noteUC.GetThreadUseCase>(
-      () => _noteUC.GetThreadUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_noteUC.GetReplyCountUseCase>(
-      () => _noteUC.GetReplyCountUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_noteUC.GetThreadReplyCountUseCase>(
-      () => _noteUC.GetThreadReplyCountUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_noteUC.PublishNoteUseCase>(
-      () => _noteUC.PublishNoteUseCase(
+    gh.lazySingleton<_i475.PublishNoteUseCase>(
+      () => _i475.PublishNoteUseCase(
         gh<_i47.NoteRepository>(),
         gh<_i218.OutboundEventRepository>(),
         gh<_i717.EmbeddedServerBridge>(),
       ),
     );
-
-    // ── Saved note use cases ──────────────────────────────────────────────────
-
-    gh.lazySingleton<_savedUC.ToggleSaveUseCase>(
-      () => _savedUC.ToggleSaveUseCase(gh<_i43.SavedNoteRepository>()),
+    gh.factory<_i103.UserRepository>(
+      () => _i582.UserRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.lazySingleton<_savedUC.IsSavedNoteUseCase>(
-      () => _savedUC.IsSavedNoteUseCase(gh<_i43.SavedNoteRepository>()),
+    gh.lazySingleton<_i391.GetProfileUseCase>(
+      () => _i391.GetProfileUseCase(gh<_i967.ProfileRepository>()),
     );
-    gh.lazySingleton<_savedUC.GetAllSavedNotesUseCase>(
-      () => _savedUC.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
+    gh.lazySingleton<_i391.GetOwnProfileUseCase>(
+      () => _i391.GetOwnProfileUseCase(gh<_i967.ProfileRepository>()),
     );
-
-    // ── Profile use cases ─────────────────────────────────────────────────────
-
-    gh.lazySingleton<_profileUC.GetProfileUseCase>(
-      () => _profileUC.GetProfileUseCase(gh<_i967.ProfileRepository>()),
+    gh.lazySingleton<_i391.SaveProfileUseCase>(
+      () => _i391.SaveProfileUseCase(gh<_i967.ProfileRepository>()),
     );
-    gh.lazySingleton<_profileUC.GetOwnProfileUseCase>(
-      () => _profileUC.GetOwnProfileUseCase(gh<_i967.ProfileRepository>()),
+    gh.lazySingleton<_i858.SaveNoteUseCase>(
+      () => _i858.SaveNoteUseCase(gh<_i43.SavedNoteRepository>()),
     );
-    gh.lazySingleton<_profileUC.SaveProfileUseCase>(
-      () => _profileUC.SaveProfileUseCase(gh<_i967.ProfileRepository>()),
+    gh.lazySingleton<_i858.UnsaveNoteUseCase>(
+      () => _i858.UnsaveNoteUseCase(gh<_i43.SavedNoteRepository>()),
     );
-
-    // ── User use cases ────────────────────────────────────────────────────────
-
-    gh.lazySingleton<_userUC.GetActiveUserUseCase>(
-      () => _userUC.GetActiveUserUseCase(gh<_i103.UserRepository>()),
+    gh.lazySingleton<_i858.IsSavedNoteUseCase>(
+      () => _i858.IsSavedNoteUseCase(gh<_i43.SavedNoteRepository>()),
     );
-    gh.lazySingleton<_userUC.GetActiveUserKeysUseCase>(
-      () => _userUC.GetActiveUserKeysUseCase(gh<_i103.UserRepository>()),
+    gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
+      () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
     );
-    gh.lazySingleton<_userUC.ImportKeyUseCase>(
-      () => _userUC.ImportKeyUseCase(gh<_i103.UserRepository>()),
+    gh.lazySingleton<_i475.GetFeedUseCase>(
+      () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
     );
-
-    // ── Followed note use cases ───────────────────────────────────────────────
-
-    gh.lazySingleton<_followedUC.GetAllFollowedNotesUseCase>(
-      () => _followedUC.GetAllFollowedNotesUseCase(
-          gh<_i836.FollowedNoteRepository>()),
+    gh.lazySingleton<_i475.GetNoteByIdUseCase>(
+      () => _i475.GetNoteByIdUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.lazySingleton<_followedUC.FollowNoteUseCase>(
-      () =>
-          _followedUC.FollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
+    gh.lazySingleton<_i475.GetRepliesUseCase>(
+      () => _i475.GetRepliesUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.lazySingleton<_followedUC.UnfollowNoteUseCase>(
-      () =>
-          _followedUC.UnfollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
+    gh.lazySingleton<_i475.SaveNoteUseCase>(
+      () => _i475.SaveNoteUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.lazySingleton<_followedUC.ClearNewReferencesUseCase>(
-      () => _followedUC.ClearNewReferencesUseCase(
-          gh<_i836.FollowedNoteRepository>()),
+    gh.lazySingleton<_i475.MarkSeenUseCase>(
+      () => _i475.MarkSeenUseCase(gh<_i47.NoteRepository>()),
     );
-
-    // ── BLoC / Cubit factories ────────────────────────────────────────────────
-
-    gh.factory<_i928.FollowedNoteDetailCubit>(
-      () => _i928.FollowedNoteDetailCubit(
-        gh<_noteUC.GetNoteByIdUseCase>(),
-        gh<_noteUC.GetRepliesUseCase>(),
-        gh<_profileUC.GetProfileUseCase>(),
-      ),
+    gh.lazySingleton<_i475.GetThreadUseCase>(
+      () => _i475.GetThreadUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.factory<_i97.FollowedNotesCubit>(
-      () => _i97.FollowedNotesCubit(
-        gh<_followedUC.GetAllFollowedNotesUseCase>(),
-        gh<_followedUC.FollowNoteUseCase>(),
-        gh<_followedUC.UnfollowNoteUseCase>(),
-        gh<_followedUC.ClearNewReferencesUseCase>(),
-      ),
+    gh.lazySingleton<_i799.GetActiveUserUseCase>(
+      () => _i799.GetActiveUserUseCase(gh<_i103.UserRepository>()),
     );
-    gh.factory<_i987.DrawerBloc>(
-      () => _i987.DrawerBloc(
-        gh<_userUC.GetActiveUserUseCase>(),
-        gh<_profileUC.GetOwnProfileUseCase>(),
-        gh<_followedUC.GetAllFollowedNotesUseCase>(),
-      ),
+    gh.lazySingleton<_i799.GetActiveUserKeysUseCase>(
+      () => _i799.GetActiveUserKeysUseCase(gh<_i103.UserRepository>()),
+    );
+    gh.lazySingleton<_i799.ImportKeyUseCase>(
+      () => _i799.ImportKeyUseCase(gh<_i103.UserRepository>()),
     );
     gh.factory<_i787.BrahmaCreateBloc>(
       () => _i787.BrahmaCreateBloc(
-        gh<_userUC.GetActiveUserKeysUseCase>(),
-        gh<_noteUC.PublishNoteUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
       ),
     );
-    gh.factory<_i118.ThreadBloc>(
-      () => _i118.ThreadBloc(
-        gh<_noteUC.GetNoteByIdUseCase>(),
-        gh<_noteUC.GetRepliesUseCase>(),
-        gh<_noteUC.PublishNoteUseCase>(),
-        gh<_profileUC.GetProfileUseCase>(),
-        gh<_noteUC.GetReplyCountUseCase>(),
-        gh<_userUC.GetActiveUserKeysUseCase>(),
+    gh.factory<_i464.FollowedNoteDetailCubit>(
+      () => _i464.FollowedNoteDetailCubit(
+        gh<_i475.GetNoteByIdUseCase>(),
+        gh<_i475.GetRepliesUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
       ),
     );
-    gh.factory<_i731.SettingsCubit>(
-      () => _i731.SettingsCubit(
-        gh<_userUC.GetActiveUserUseCase>(),
-        gh<_profileUC.GetOwnProfileUseCase>(),
+    gh.lazySingleton<_i475.GetReplyCountUseCase>(
+      () => _i475.GetReplyCountUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetThreadReplyCountUseCase>(
+      () => _i475.GetThreadReplyCountUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.factory<_i97.FollowedNotesCubit>(
+      () => _i97.FollowedNotesCubit(
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i561.FollowNoteUseCase>(),
+        gh<_i561.UnfollowNoteUseCase>(),
+        gh<_i561.ClearNewReferencesUseCase>(),
       ),
     );
     gh.factory<_i195.EditProfileCubit>(
       () => _i195.EditProfileCubit(
-        gh<_userUC.GetActiveUserUseCase>(),
-        gh<_profileUC.GetOwnProfileUseCase>(),
-        gh<_profileUC.SaveProfileUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i391.SaveProfileUseCase>(),
+      ),
+    );
+    gh.factory<_i731.SettingsCubit>(
+      () => _i731.SettingsCubit(
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i799.GetActiveUserProfileUseCase>(
+      () => _i799.GetActiveUserProfileUseCase(
+        gh<_i103.UserRepository>(),
+        gh<_i967.ProfileRepository>(),
+      ),
+    );
+    gh.factory<_i111.DrawerBloc>(
+      () => _i111.DrawerBloc(
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+      ),
+    );
+    gh.factory<_i118.ThreadBloc>(
+      () => _i118.ThreadBloc(
+        gh<_i475.GetNoteByIdUseCase>(),
+        gh<_i475.GetRepliesUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i475.GetReplyCountUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
     gh.factory<_i558.VishnuFeedBloc>(
       () => _i558.VishnuFeedBloc(
-        gh<_noteUC.GetFeedUseCase>(),
-        gh<_profileUC.GetProfileUseCase>(),
-        gh<_noteUC.GetThreadReplyCountUseCase>(),
-        gh<_savedUC.GetAllSavedNotesUseCase>(),
-        gh<_savedUC.ToggleSaveUseCase>(),
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i475.GetThreadReplyCountUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i858.SaveNoteUseCase>(),
+        gh<_i858.UnsaveNoteUseCase>(),
       ),
     );
-
     return this;
   }
 }

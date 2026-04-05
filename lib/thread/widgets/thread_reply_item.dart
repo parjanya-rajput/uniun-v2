@@ -18,6 +18,7 @@ class ThreadReplyItem extends StatefulWidget {
     required this.nestedReplies,
     required this.nestedProfiles,
     required this.allNestedReplies,
+    required this.replyCounts,
     required this.replyCount,
     required this.showThreadLine,
     required this.onReplyTap,
@@ -28,6 +29,7 @@ class ThreadReplyItem extends StatefulWidget {
   final List<NoteEntity> nestedReplies;
   final Map<String, ProfileEntity> nestedProfiles;
   final Map<String, List<NoteEntity>> allNestedReplies;
+  final Map<String, int> replyCounts;
   final int replyCount;
   final bool showThreadLine;
   final VoidCallback onReplyTap;
@@ -59,20 +61,21 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
   }
 
   Future<void> _toggleSave() async {
-    setState(() => _isSaved = !_isSaved);
-    final result = await getIt<ToggleSaveUseCase>().call(ToggleSaveInput(
-      eventId: widget.reply.id,
-      contentPreview: threadContentPreview(widget.reply.content),
-      isSaved: !_isSaved,
-    ));
-    result.fold(
-      (_) {
-        if (mounted) setState(() => _isSaved = !_isSaved);
-      },
-      (v) {
-        if (mounted) setState(() => _isSaved = v);
-      },
-    );
+    final nowSaved = !_isSaved;
+    setState(() => _isSaved = nowSaved);
+    if (nowSaved) {
+      final result = await getIt<SaveNoteUseCase>().call(widget.reply);
+      result.fold(
+        (_) { if (mounted) setState(() => _isSaved = false); },
+        (_) {},
+      );
+    } else {
+      final result = await getIt<UnsaveNoteUseCase>().call(widget.reply.id);
+      result.fold(
+        (_) { if (mounted) setState(() => _isSaved = true); },
+        (_) {},
+      );
+    }
   }
 
   @override
@@ -220,6 +223,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
                           profile: widget.nestedProfiles[nested.authorPubkey],
                           nestedReplies: widget.allNestedReplies,
                           allProfiles: widget.nestedProfiles,
+                          replyCounts: widget.replyCounts,
                           depth: 0,
                           isLastSibling: isLast,
                           onReplyTap: () {

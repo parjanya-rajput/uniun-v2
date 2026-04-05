@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/brahma/widgets/graph_preview_card.dart';
 import 'package:uniun/brahma/widgets/note_compose_card.dart';
@@ -32,6 +33,7 @@ class _BrahmaCreateView extends StatefulWidget {
 class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  List<String> _extractedTags = const [];
 
   @override
   void initState() {
@@ -40,9 +42,16 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
   }
 
   void _onTextChanged() {
-    context.read<BrahmaCreateBloc>().add(
-          UpdateContentEvent(_controller.text),
-        );
+    final tags = RegExp(r'#(\w+)')
+        .allMatches(_controller.text)
+        .map((m) => m.group(1)!)
+        .where((t) => t.isNotEmpty)
+        .toSet()
+        .toList();
+    if (tags.length != _extractedTags.length ||
+        !tags.every(_extractedTags.contains)) {
+      setState(() => _extractedTags = tags);
+    }
   }
 
   @override
@@ -59,13 +68,12 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
       listener: (context, state) {
         if (state.status == BrahmaCreateStatus.success) {
           _controller.clear();
-          context.read<BrahmaCreateBloc>().add(const ResetBrahmaEvent());
           widget.onPublished?.call();
         }
         if (state.status == BrahmaCreateStatus.error) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.errorMessage ?? 'Failed to publish'),
+              content: Text(state.errorMessage ?? AppLocalizations.of(context)!.brahmaFailedToPublish),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.error,
             ),
@@ -120,15 +128,13 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                               color: AppColors.onSurfaceVariant),
                           onPressed: () {
                             _controller.clear();
-                            context
-                                .read<BrahmaCreateBloc>()
-                                .add(const ResetBrahmaEvent());
+                            context.read<BrahmaCreateBloc>().add(const ResetBrahmaEvent());
                           },
                         ),
 
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Brahma',
+                            AppLocalizations.of(context)!.brahmaTitle,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 17,
@@ -158,17 +164,19 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                             focusNode: _focusNode,
                             isSubmitting:
                                 state.status == BrahmaCreateStatus.submitting,
-                            canSubmit: state.canSubmit,
+                            canSubmit: _controller.text.trim().isNotEmpty &&
+                                !state.isSubmitting,
                             onSubmit: () {
-                              context
-                                  .read<BrahmaCreateBloc>()
-                                  .add(const SubmitNoteEvent());
+                              context.read<BrahmaCreateBloc>().add(
+                                    SubmitNoteEvent(
+                                        content: _controller.text),
+                                  );
                             },
                           ),
                           const SizedBox(height: 28),
 
                           // Graph preview (updates as hashtags are typed)
-                          GraphPreviewCard(hashtags: state.extractedTags),
+                          GraphPreviewCard(hashtags: _extractedTags),
                         ],
                       ),
                     ),

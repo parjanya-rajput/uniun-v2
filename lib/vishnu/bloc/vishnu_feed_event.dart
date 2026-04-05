@@ -16,8 +16,12 @@ final class LoadMoreFeedEvent extends VishnuFeedEvent {
   const LoadMoreFeedEvent();
 }
 
-final class ToggleSaveFeedEvent extends VishnuFeedEvent {
-  const ToggleSaveFeedEvent(this.noteId, this.contentPreview);
+final class SaveFeedNoteEvent extends VishnuFeedEvent {
+  const SaveFeedNoteEvent(this.note);
+  final NoteEntity note;
+}
+
+final class UnsaveFeedNoteEvent extends VishnuFeedEvent {
+  const UnsaveFeedNoteEvent(this.noteId);
   final String noteId;
-  final String contentPreview;
 }

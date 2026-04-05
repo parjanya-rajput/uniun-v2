@@ -34,6 +34,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     on<SetReplyTargetEvent>(_onSetTarget);
     on<PostReplyEvent>(_onPost, transformer: droppable());
     on<SwitchTabEvent>(_onSwitchTab);
+    on<ExpandReplyEvent>(_onExpand, transformer: sequential());
   }
 
   // ── Load ────────────────────────────────────────────────────────────────────
@@ -55,61 +56,122 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     }
     final rootNote = rootResult.getOrElse(() => throw StateError(''));
 
-    // 2. Fetch root author profile
+    // 2. Fetch root profile + direct replies in parallel
     final profiles = <String, ProfileEntity>{};
-    _getProfile.call(rootNote.authorPubkey).then(
-          (r) => r.fold((_) {}, (p) => profiles[p.pubkey] = p),
-        );
+    final replyCounts = <String, int>{};
+    final nestedReplies = <String, List<NoteEntity>>{};
 
-    // 3. Fetch direct replies
+    final rootProfileFuture = _getProfile.call(rootNote.authorPubkey);
     final repliesResult = await _getReplies.call(event.noteId);
     final replies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
 
-    // 4. Fetch profiles for root note + all replies
-    final replyCounts = <String, int>{};
-    final nestedReplies = <String, List<NoteEntity>>{};
-    final allNotes = [rootNote, ...replies];
+    final rootProfile = await rootProfileFuture;
+    rootProfile.fold((_) {}, (p) => profiles[p.pubkey] = p);
 
-    for (final note in allNotes) {
-      final pr = await _getProfile.call(note.authorPubkey);
+    // 3. Fetch profiles + counts for direct replies in parallel
+    await Future.wait(replies.map((reply) async {
+      final cr = await _getReplyCount.call(reply.id);
+      cr.fold((_) {}, (c) => replyCounts[reply.id] = c);
+      final pr = await _getProfile.call(reply.authorPubkey);
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
-    }
+    }));
 
-    // BFS-expand nested replies (all depths) and fetch reply counts + profiles
-    final bfsQueue = [...replies];
-    final visited = <String>{rootNote.id, ...replies.map((r) => r.id)};
-    int bfsLimit = 60; // safety cap
-    while (bfsQueue.isNotEmpty && bfsLimit-- > 0) {
-      final current = bfsQueue.removeAt(0);
-      // Reply count badge
-      final cr = await _getReplyCount.call(current.id);
-      cr.fold((_) {}, (c) => replyCounts[current.id] = c);
-      // Nested children
-      final nr = await _getReplies.call(current.id);
-      nr.fold((_) {}, (list) {
-        if (list.isNotEmpty) {
-          nestedReplies[current.id] = list;
-          for (final n in list) {
-            if (!visited.contains(n.id)) {
-              visited.add(n.id);
-              bfsQueue.add(n);
-              _getProfile
-                  .call(n.authorPubkey)
-                  .then((r) => r.fold((_) {}, (p) => profiles[p.pubkey] = p));
-            }
-          }
-        }
-      });
-    }
-
+    // ── Emit skeleton — screen renders immediately ───────────────────────────
     emit(state.copyWith(
       rootNote: rootNote,
-      profiles: profiles,
+      profiles: Map.from(profiles),
       replies: replies,
-      replyCounts: replyCounts,
-      nestedReplies: nestedReplies,
+      replyCounts: Map.from(replyCounts),
+      nestedReplies: const {},
       status: ThreadStatus.loaded,
     ));
+
+    // 4. BFS-expand nested replies level by level, all nodes in each level
+    //    fetched in parallel — fast but doesn't block the initial render
+    var bfsQueue = [...replies];
+    final visited = <String>{rootNote.id, ...replies.map((r) => r.id)};
+    int bfsLimit = 60;
+
+    while (bfsQueue.isNotEmpty && bfsLimit > 0) {
+      final batch = bfsQueue.take(bfsLimit).toList();
+      bfsLimit -= batch.length;
+      bfsQueue = [];
+
+      await Future.wait(batch.map((node) async {
+        final cr = await _getReplyCount.call(node.id);
+        cr.fold((_) {}, (c) => replyCounts[node.id] = c);
+
+        final nr = await _getReplies.call(node.id);
+        nr.fold((_) {}, (children) {
+          if (children.isNotEmpty) {
+            nestedReplies[node.id] = children;
+            for (final child in children) {
+              if (!visited.contains(child.id)) {
+                visited.add(child.id);
+                bfsQueue.add(child);
+              }
+            }
+          }
+        });
+      }));
+
+      // Fetch profiles for newly discovered nodes in parallel
+      final newNodes = bfsQueue
+          .where((n) => !profiles.containsKey(n.authorPubkey))
+          .toList();
+      await Future.wait(newNodes.map((n) async {
+        final pr = await _getProfile.call(n.authorPubkey);
+        pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
+      }));
+    }
+
+    if (emit.isDone) return;
+    emit(state.copyWith(
+      profiles: Map.from(profiles),
+      replyCounts: Map.from(replyCounts),
+      nestedReplies: Map.from(nestedReplies),
+    ));
+  }
+
+  // ── Lazy expand ─────────────────────────────────────────────────────────────
+
+  Future<void> _onExpand(
+    ExpandReplyEvent event,
+    Emitter<ThreadState> emit,
+  ) async {
+    // Already loaded — nothing to do
+    if (state.nestedReplies.containsKey(event.replyId)) return;
+
+    final nr = await _getReplies.call(event.replyId);
+    if (nr.isLeft()) return;
+
+    final children = nr.getOrElse(() => []);
+    if (children.isEmpty) return;
+
+    // Fetch profiles + reply counts for children in parallel
+    final profiles = Map<String, ProfileEntity>.from(state.profiles);
+    final replyCounts = Map<String, int>.from(state.replyCounts);
+
+    await Future.wait(children.map((child) async {
+      final cr = await _getReplyCount.call(child.id);
+      cr.fold((_) {}, (c) => replyCounts[child.id] = c);
+
+      if (!profiles.containsKey(child.authorPubkey)) {
+        final pr = await _getProfile.call(child.authorPubkey);
+        pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
+      }
+    }));
+
+    final updated = Map<String, List<NoteEntity>>.from(state.nestedReplies);
+    updated[event.replyId] = children;
+
+    if (!emit.isDone) {
+      emit(state.copyWith(
+        nestedReplies: updated,
+        replyCounts: replyCounts,
+        profiles: profiles,
+      ));
+    }
   }
 
   // ── Reply composer ──────────────────────────────────────────────────────────

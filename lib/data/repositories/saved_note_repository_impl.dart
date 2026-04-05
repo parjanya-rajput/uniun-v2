@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/repositories/saved_note_repository.dart';
 
@@ -12,20 +13,27 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
   SavedNoteRepositoryImpl({required this.isar});
 
   @override
-  Future<Either<Failure, SavedNoteEntity>> saveNote(
-      String eventId, String contentPreview) async {
+  Future<Either<Failure, SavedNoteEntity>> saveNote(NoteEntity note) async {
     try {
-      // Idempotent — return existing if already saved
       final existing = await isar.savedNoteModels
           .where()
-          .eventIdEqualTo(eventId)
+          .eventIdEqualTo(note.id)
           .findFirst();
       if (existing != null) return Right(existing.toDomain());
 
       final model = SavedNoteModel()
-        ..eventId = eventId
-        ..savedAt = DateTime.now()
-        ..contentPreview = contentPreview;
+        ..eventId = note.id
+        ..sig = note.sig
+        ..authorPubkey = note.authorPubkey
+        ..content = note.content
+        ..type = note.type
+        ..eTagRefs = note.eTagRefs
+        ..rootEventId = note.rootEventId
+        ..replyToEventId = note.replyToEventId
+        ..pTagRefs = note.pTagRefs
+        ..tTags = note.tTags
+        ..created = note.created
+        ..savedAt = DateTime.now();
 
       await isar.writeTxn(() async {
         await isar.savedNoteModels.put(model);

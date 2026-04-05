@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/settings/cubit/settings_cubit.dart';
@@ -31,7 +32,7 @@ class _SettingsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: const SettingsAppBar(title: 'Settings'),
+      appBar: SettingsAppBar(title: AppLocalizations.of(context)!.settingsTitle),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
           if (state.isLoading) {
@@ -39,6 +40,7 @@ class _SettingsContent extends StatelessWidget {
               child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
+          final l10n = AppLocalizations.of(context)!;
           return ListView(
             padding: const EdgeInsets.only(
               top: 16,
@@ -48,15 +50,15 @@ class _SettingsContent extends StatelessWidget {
             ),
             children: [
               // ── Account ───────────────────────────────────────────────────
-              const SettingsSectionLabel('Account'),
+              SettingsSectionLabel(l10n.settingsAccount),
               const SizedBox(height: 12),
               ProfileCard(state: state),
 
               const SizedBox(height: 16),
 
               // ── Identity ──────────────────────────────────────────────────
-              const SettingsSectionLabel(
-                'Identity',
+              SettingsSectionLabel(
+                l10n.settingsIdentity,
                 icon: Icons.lock_outline_rounded,
               ),
               const SizedBox(height: 12),
@@ -65,8 +67,8 @@ class _SettingsContent extends StatelessWidget {
               const SizedBox(height: 16),
 
               // ── AI · Shiv ─────────────────────────────────────────────────
-              const SettingsSectionLabel(
-                'AI · Shiv',
+              SettingsSectionLabel(
+                l10n.settingsAiShiv,
                 icon: Icons.smart_toy_outlined,
               ),
               const SizedBox(height: 12),
@@ -75,8 +77,8 @@ class _SettingsContent extends StatelessWidget {
               const SizedBox(height: 16),
 
               // ── Storage ───────────────────────────────────────────────────
-              const SettingsSectionLabel(
-                'Storage',
+              SettingsSectionLabel(
+                l10n.settingsStorage,
                 icon: Icons.storage_rounded,
               ),
               const SizedBox(height: 12),
@@ -92,8 +94,8 @@ class _SettingsContent extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SettingsSectionLabel(
-                          'Alerts',
+                        SettingsSectionLabel(
+                          l10n.settingsAlerts,
                           icon: Icons.notifications_outlined,
                         ),
                         const SizedBox(height: 12),
@@ -102,16 +104,16 @@ class _SettingsContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SettingsSectionLabel(
-                          'Style',
+                          l10n.settingsStyle,
                           icon: Icons.palette_outlined,
                         ),
-                        SizedBox(height: 12),
-                        StyleCard(),
+                        const SizedBox(height: 12),
+                        const StyleCard(),
                       ],
                     ),
                   ),
@@ -121,9 +123,9 @@ class _SettingsContent extends StatelessWidget {
               const SizedBox(height: 36),
 
               // ── Version ───────────────────────────────────────────────────
-              const Center(
+              Center(
                 child: Text(
-                  'UNIUN v1.0.0-beta',
+                  l10n.appVersion,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,

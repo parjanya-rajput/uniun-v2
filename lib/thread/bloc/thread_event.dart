@@ -29,3 +29,10 @@ final class SwitchTabEvent extends ThreadEvent {
   const SwitchTabEvent(this.index);
   final int index;
 }
+
+/// Fired when the user taps the reply-count badge on a reply.
+/// Fetches that reply's direct children lazily.
+final class ExpandReplyEvent extends ThreadEvent {
+  const ExpandReplyEvent(this.replyId);
+  final String replyId;
+}

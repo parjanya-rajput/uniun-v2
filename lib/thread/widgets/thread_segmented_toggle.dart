@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/thread/bloc/thread_bloc.dart';
 
@@ -15,11 +16,16 @@ class ThreadSegmentedToggle extends StatelessWidget {
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
-        children: [
-          _ToggleTab(label: 'Replies', index: 0, activeTab: activeTab),
-          _ToggleTab(label: 'References', index: 1, activeTab: activeTab),
-        ],
+      child: Builder(
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          return Row(
+            children: [
+              _ToggleTab(label: l10n.threadReplies, index: 0, activeTab: activeTab),
+              _ToggleTab(label: l10n.threadReferences, index: 1, activeTab: activeTab),
+            ],
+          );
+        },
       ),
     );
   }

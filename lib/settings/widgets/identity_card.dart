@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ class IdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
@@ -21,11 +23,11 @@ class IdentityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
             child: Text(
-              'This is your login & recovery method.',
-              style: TextStyle(
+              l10n.identityLoginRecovery,
+              style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.onSurfaceVariant,
                 height: 1.5,
@@ -34,19 +36,19 @@ class IdentityCard extends StatelessWidget {
           ),
           IdentityRow(
             icon: Icons.key_rounded,
-            label: 'Keys',
+            label: l10n.identityKeys,
             trailing: Icons.chevron_right_rounded,
             onTap: () => _showKeysSheet(context),
           ),
           IdentityRow(
             icon: Icons.cell_tower_rounded,
-            label: 'Relays',
+            label: l10n.identityRelays,
             trailing: Icons.chevron_right_rounded,
             onTap: () => _showRelaysSheet(context),
           ),
           IdentityRow(
             icon: Icons.backup_rounded,
-            label: 'Export Backup',
+            label: l10n.identityExportBackup,
             trailing: Icons.download_rounded,
             onTap: () {
               // TODO: export backup
@@ -54,7 +56,7 @@ class IdentityCard extends StatelessWidget {
           ),
           IdentityRow(
             icon: Icons.privacy_tip_outlined,
-            label: 'Privacy & Policy',
+            label: l10n.identityPrivacyPolicy,
             trailing: Icons.chevron_right_rounded,
             onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
           ),
@@ -146,9 +148,9 @@ class _KeysSheetState extends State<_KeysSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Your Keys',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.identityYourKeys,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: AppColors.onSurface,
@@ -156,29 +158,29 @@ class _KeysSheetState extends State<_KeysSheet> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Never share your private key with anyone.',
-            style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+          Text(
+            AppLocalizations.of(context)!.identityNeverShare,
+            style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
           ),
 
           // ── Public Key ─────────────────────────────────────────────────
           const SizedBox(height: 24),
           _KeySectionLabel(
             icon: Icons.lock_open_rounded,
-            label: 'Public Key (npub)',
+            label: AppLocalizations.of(context)!.identityPublicKey,
             color: AppColors.primary,
           ),
           const SizedBox(height: 8),
           _KeyBox(
             text: widget.npub,
-            onCopy: () => _copy(context, widget.npub, 'Public key copied'),
+            onCopy: () => _copy(context, widget.npub, AppLocalizations.of(context)!.identityPublicKeyCopied),
           ),
 
           // ── Private Key ────────────────────────────────────────────────
           const SizedBox(height: 20),
           _KeySectionLabel(
             icon: Icons.lock_rounded,
-            label: 'Private Key (nsec)',
+            label: AppLocalizations.of(context)!.identityPrivateKey,
             color: const Color(0xFFBA1A1A),
           ),
           const SizedBox(height: 8),
@@ -198,7 +200,7 @@ class _KeysSheetState extends State<_KeysSheet> {
                         ),
                       )
                     : const Icon(Icons.visibility_rounded, size: 18),
-                label: const Text('Reveal Private Key'),
+                label: Text(AppLocalizations.of(context)!.identityRevealPrivateKey),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: BorderSide(
@@ -220,14 +222,14 @@ class _KeysSheetState extends State<_KeysSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.warning_rounded,
+                      const Icon(Icons.warning_rounded,
                           size: 15, color: Color(0xFFBA1A1A)),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
-                        'Never share this key',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.identityNeverShareKey,
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFFBA1A1A),
@@ -249,9 +251,9 @@ class _KeysSheetState extends State<_KeysSheet> {
                     children: [
                       GestureDetector(
                         onTap: () => _copy(
-                            context, _nsec ?? '', 'Private key copied — keep it safe!'),
-                        child: const Text(
-                          'Tap to copy',
+                            context, _nsec ?? '', AppLocalizations.of(context)!.identityPrivateKeyCopied),
+                        child: Text(
+                          AppLocalizations.of(context)!.identityTapToCopy,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -262,8 +264,8 @@ class _KeysSheetState extends State<_KeysSheet> {
                       const Spacer(),
                       GestureDetector(
                         onTap: _revealNsec,
-                        child: const Text(
-                          'Hide',
+                        child: Text(
+                          AppLocalizations.of(context)!.identityHide,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -390,9 +392,9 @@ class _RelaysSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Relays',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.identityRelaysSheetTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: AppColors.onSurface,
@@ -400,9 +402,9 @@ class _RelaysSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Nostr relays your client connects to.',
-            style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+          Text(
+            AppLocalizations.of(context)!.identityRelaysSubtitle,
+            style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           ..._defaultRelays.map(
@@ -447,15 +449,15 @@ class _RelaysSheet extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
+                const Icon(Icons.info_outline_rounded,
                     size: 15, color: AppColors.primary),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Custom relay management coming soon.',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.identityRelaysComingSoon,
+                    style: const TextStyle(
                         fontSize: 12, color: AppColors.primary),
                   ),
                 ),

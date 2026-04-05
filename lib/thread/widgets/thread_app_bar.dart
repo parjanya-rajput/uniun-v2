@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -28,10 +29,10 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: AppColors.primary),
                 onPressed: () => Navigator.pop(context),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Thread',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.threadTitle,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: AppColors.onSurface,

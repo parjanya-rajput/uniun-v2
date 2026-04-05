@@ -17,6 +17,7 @@ class ThreadNestedReplyItem extends StatefulWidget {
     required this.onReplyTap,
     required this.nestedReplies,
     required this.allProfiles,
+    required this.replyCounts,
     this.depth = 0,
     /// Whether this item is the last sibling at its level.
     /// When false a thread line is drawn below the avatar to connect to the
@@ -29,6 +30,7 @@ class ThreadNestedReplyItem extends StatefulWidget {
   final VoidCallback onReplyTap;
   final Map<String, List<NoteEntity>> nestedReplies;
   final Map<String, ProfileEntity> allProfiles;
+  final Map<String, int> replyCounts;
   final int depth;
   final bool isLastSibling;
 
@@ -61,20 +63,21 @@ class _ThreadNestedReplyItemState extends State<ThreadNestedReplyItem> {
   }
 
   Future<void> _toggleSave() async {
-    setState(() => _isSaved = !_isSaved);
-    final result = await getIt<ToggleSaveUseCase>().call(ToggleSaveInput(
-      eventId: widget.reply.id,
-      contentPreview: threadContentPreview(widget.reply.content),
-      isSaved: !_isSaved,
-    ));
-    result.fold(
-      (_) {
-        if (mounted) setState(() => _isSaved = !_isSaved);
-      },
-      (v) {
-        if (mounted) setState(() => _isSaved = v);
-      },
-    );
+    final nowSaved = !_isSaved;
+    setState(() => _isSaved = nowSaved);
+    if (nowSaved) {
+      final result = await getIt<SaveNoteUseCase>().call(widget.reply);
+      result.fold(
+        (_) { if (mounted) setState(() => _isSaved = false); },
+        (_) {},
+      );
+    } else {
+      final result = await getIt<UnsaveNoteUseCase>().call(widget.reply.id);
+      result.fold(
+        (_) { if (mounted) setState(() => _isSaved = true); },
+        (_) {},
+      );
+    }
   }
 
   @override
@@ -85,7 +88,9 @@ class _ThreadNestedReplyItemState extends State<ThreadNestedReplyItem> {
         threadShortPubkey(widget.reply.authorPubkey);
 
     final children = widget.nestedReplies[widget.reply.id] ?? [];
+    final replyCount = widget.replyCounts[widget.reply.id] ?? children.length;
     final hasChildren = children.isNotEmpty;
+    final hasReplies = replyCount > 0 || hasChildren;
     // Show a vertical line below the avatar when:
     // - there are children about to be rendered below, OR
     // - this is NOT the last sibling (next sibling follows at the same level)
@@ -174,10 +179,18 @@ class _ThreadNestedReplyItemState extends State<ThreadNestedReplyItem> {
                               size: 16, color: AppColors.onSurfaceVariant),
                         ),
                         const SizedBox(width: 16),
-                        if (hasChildren)
+                        if (hasReplies)
                           GestureDetector(
-                            onTap: () =>
-                                setState(() => _showChildren = !_showChildren),
+                            onTap: () {
+                              // If children not yet loaded (beyond BFS depth),
+                              // fetch them now on first expand
+                              if (!_showChildren && !hasChildren) {
+                                context.read<ThreadBloc>().add(
+                                      ExpandReplyEvent(widget.reply.id),
+                                    );
+                              }
+                              setState(() => _showChildren = !_showChildren);
+                            },
                             child: Row(
                               children: [
                                 const Icon(Icons.chat_bubble_outline_rounded,
@@ -185,7 +198,7 @@ class _ThreadNestedReplyItemState extends State<ThreadNestedReplyItem> {
                                     color: AppColors.onSurfaceVariant),
                                 const SizedBox(width: 3),
                                 Text(
-                                  '${children.length}',
+                                  '$replyCount',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -226,6 +239,7 @@ class _ThreadNestedReplyItemState extends State<ThreadNestedReplyItem> {
                           profile: widget.allProfiles[child.authorPubkey],
                           nestedReplies: widget.nestedReplies,
                           allProfiles: widget.allProfiles,
+                          replyCounts: widget.replyCounts,
                           depth: widget.depth + 1,
                           isLastSibling: isLast,
                           onReplyTap: () {

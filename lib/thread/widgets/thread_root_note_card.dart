@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -39,6 +40,7 @@ class _ThreadRootNoteCardState extends State<ThreadRootNoteCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final followedState = context.watch<FollowedNotesCubit>().state;
     final isFollowed =
         followedState.notes.any((n) => n.eventId == widget.note.id);
@@ -169,7 +171,7 @@ class _ThreadRootNoteCardState extends State<ThreadRootNoteCard> {
 
               ThreadActionChip(
                 icon: isFollowed ? Icons.link_rounded : Icons.add_link_rounded,
-                label: isFollowed ? 'Following' : 'Follow',
+                label: isFollowed ? l10n.actionFollowing : l10n.actionFollow,
                 color: isFollowed
                     ? AppColors.primary
                     : AppColors.onSurfaceVariant,
@@ -191,22 +193,21 @@ class _ThreadRootNoteCardState extends State<ThreadRootNoteCard> {
               // Save toggle — persisted to Isar
               GestureDetector(
                 onTap: () async {
-                  setState(() => _isSaved = !_isSaved); // optimistic
-                  final result = await getIt<ToggleSaveUseCase>().call(
-                    ToggleSaveInput(
-                      eventId: widget.note.id,
-                      contentPreview: threadContentPreview(widget.note.content),
-                      isSaved: !_isSaved, // already flipped
-                    ),
-                  );
-                  result.fold(
-                    (_) {
-                      if (mounted) setState(() => _isSaved = !_isSaved);
-                    },
-                    (v) {
-                      if (mounted) setState(() => _isSaved = v);
-                    },
-                  );
+                  final nowSaved = !_isSaved;
+                  setState(() => _isSaved = nowSaved); // optimistic
+                  if (nowSaved) {
+                    final result = await getIt<SaveNoteUseCase>().call(widget.note);
+                    result.fold(
+                      (_) { if (mounted) setState(() => _isSaved = false); },
+                      (_) {},
+                    );
+                  } else {
+                    final result = await getIt<UnsaveNoteUseCase>().call(widget.note.id);
+                    result.fold(
+                      (_) { if (mounted) setState(() => _isSaved = true); },
+                      (_) {},
+                    );
+                  }
                 },
                 child: Icon(
                   _isSaved

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -52,7 +53,7 @@ class _FollowedNoteDetailView extends StatelessWidget {
                       hasScrollBody: false,
                       child: Center(
                         child: Text(
-                          state.errorMessage ?? 'Failed to load note',
+                          state.errorMessage ?? AppLocalizations.of(context)!.followedNoteFailedToLoad,
                           style: const TextStyle(
                               color: AppColors.onSurfaceVariant),
                         ),
@@ -108,6 +109,7 @@ class _NoteContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final note = state.note!;
     final profile = state.profile;
     final authorName = profile?.name ??
@@ -144,8 +146,10 @@ class _NoteContent extends StatelessWidget {
           const SizedBox(height: 28),
 
           if (replyEntries.isNotEmpty) ...[
-            NoteReferencesSection.referencedBy(
+            NoteReferencesSection(
+              title: l10n.followedNoteReferencedBy,
               references: replyEntries,
+              style: ReferenceSectionStyle.grid,
               badge: '${replyEntries.length} REPLIES',
             ),
             const SizedBox(height: 28),
@@ -215,15 +219,15 @@ class _BottomActionBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.hub_rounded,
+                    const Icon(Icons.hub_rounded,
                         color: AppColors.onPrimary, size: 20),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Text(
-                      'View Thread',
-                      style: TextStyle(
+                      AppLocalizations.of(context)!.followedNoteViewThread,
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.onPrimary,
