@@ -1,8 +1,10 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/note_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/user_key_model.dart';
 
 @module
@@ -16,6 +18,8 @@ abstract class IsarModule {
         NoteModelSchema,
         UserKeyModelSchema,
         ProfileModelSchema,
+        ChannelModelSchema,
+        SubscriptionRecordModelSchema,
       ],
       directory: dir.path,
     );
