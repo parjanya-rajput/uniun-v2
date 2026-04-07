@@ -1,9 +1,12 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/data/models/outbound_event_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/user_key_model.dart';
 
@@ -18,6 +21,9 @@ abstract class IsarModule {
         NoteModelSchema,
         UserKeyModelSchema,
         ProfileModelSchema,
+        FollowedNoteModelSchema,
+        OutboundEventModelSchema,
+        SavedNoteModelSchema,
         ChannelModelSchema,
         SubscriptionRecordModelSchema,
       ],

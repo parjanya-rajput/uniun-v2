@@ -44,5 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+#todofiles
+otodo.md
 # Uniun backend
 uniun-backend/db/
