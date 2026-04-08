@@ -23,7 +23,7 @@ class ChannelModel {
   late String picture;
 
   /// Where this channel was observed / preferred to read.
-  late List<String> relays;
+  late String? relayUrl;
 
   /// Kind 40 created_at (Unix seconds).
   late int createdAt;

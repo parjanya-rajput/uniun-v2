@@ -1,6 +1,8 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/data/models/dm_conversation_model.dart';
+import 'package:uniun/data/models/dm_message_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/note_model.dart';
@@ -16,18 +18,17 @@ abstract class IsarModule {
   @preResolve
   Future<Isar> createIsar() async {
     final dir = await getApplicationDocumentsDirectory();
-    return Isar.open(
-      [
-        NoteModelSchema,
-        UserKeyModelSchema,
-        ProfileModelSchema,
-        FollowedNoteModelSchema,
-        OutboundEventModelSchema,
-        SavedNoteModelSchema,
-        ChannelModelSchema,
-        SubscriptionRecordModelSchema,
-      ],
-      directory: dir.path,
-    );
+    return Isar.open([
+      NoteModelSchema,
+      UserKeyModelSchema,
+      ProfileModelSchema,
+      FollowedNoteModelSchema,
+      OutboundEventModelSchema,
+      DmConversationModelSchema,
+      DmMessageModelSchema,
+      SavedNoteModelSchema,
+      ChannelModelSchema,
+      SubscriptionRecordModelSchema,
+    ], directory: dir.path);
   }
 }

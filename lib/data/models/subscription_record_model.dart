@@ -9,10 +9,8 @@ part 'subscription_record_model.g.dart';
 @Name('SubscriptionRecord')
 class SubscriptionRecordModel {
   Id id = Isar.autoIncrement;
-
-  /// Stable logical key (not runtime random REQ id).
-  // @Index(unique: true) // up for discussion
-  // late String key;
+  
+  late String channelId;
 
   /// Nostr filter definitions to persist intent.
   late List<int> kinds;
