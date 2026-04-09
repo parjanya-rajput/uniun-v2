@@ -39,6 +39,11 @@ class NoteModel {
   late DateTime created;
   late bool isSeen;
 
+  /// 384-dim L2-normalised float vector from all-MiniLM-L6-v2.
+  /// Null until [EmbeddingService] processes this note.
+  /// Only generated for own notes (authorPubkey == logged-in user).
+  List<double>? embedding;
+
   NoteModel({
     required this.eventId,
     required this.sig,
@@ -124,18 +129,19 @@ class NoteModel {
 
 extension NoteModelExtension on NoteModel {
   NoteEntity toDomain() => NoteEntity(
-    id: eventId,
-    sig: sig,
-    authorPubkey: authorPubkey,
-    content: content,
-    subject: subject,
-    type: type,
-    eTagRefs: eTagRefs,
-    rootEventId: rootEventId,
-    replyToEventId: replyToEventId,
-    pTagRefs: pTagRefs,
-    tTags: tTags,
-    created: created,
-    isSeen: isSeen,
-  );
+        id: eventId,
+        sig: sig,
+        authorPubkey: authorPubkey,
+        content: content,
+        subject: subject,
+        type: type,
+        eTagRefs: eTagRefs,
+        rootEventId: rootEventId,
+        replyToEventId: replyToEventId,
+        pTagRefs: pTagRefs,
+        tTags: tTags,
+        created: created,
+        isSeen: isSeen,
+        embedding: embedding,
+      );
 }

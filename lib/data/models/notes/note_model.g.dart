@@ -33,25 +33,29 @@ const NoteModelSchema = CollectionSchema(
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
-    r'isSeen': PropertySchema(id: 5, name: r'isSeen', type: IsarType.bool),
+    r'embedding': PropertySchema(
+      id: 4,
+      name: r'embedding',
+      type: IsarType.doubleList,
+    ),
+    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
+    r'isSeen': PropertySchema(id: 6, name: r'isSeen', type: IsarType.bool),
     r'pTagRefs': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 9, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 10, name: r'subject', type: IsarType.string),
+    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
     r'tTags': PropertySchema(id: 11, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
       id: 12,
@@ -131,6 +135,12 @@ int _noteModelEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.embedding;
+    if (value != null) {
+      bytesCount += 3 + value.length * 8;
+    }
+  }
   bytesCount += 3 + object.eventId.length * 3;
   bytesCount += 3 + object.pTagRefs.length * 3;
   {
@@ -152,12 +162,6 @@ int _noteModelEstimateSize(
     }
   }
   bytesCount += 3 + object.sig.length * 3;
-  {
-    final value = object.subject;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
   bytesCount += 3 + object.tTags.length * 3;
   {
     for (var i = 0; i < object.tTags.length; i++) {
@@ -179,13 +183,13 @@ void _noteModelSerialize(
   writer.writeString(offsets[1], object.content);
   writer.writeDateTime(offsets[2], object.created);
   writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeString(offsets[4], object.eventId);
-  writer.writeBool(offsets[5], object.isSeen);
-  writer.writeStringList(offsets[6], object.pTagRefs);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeString(offsets[9], object.sig);
-  writer.writeString(offsets[10], object.subject);
+  writer.writeDoubleList(offsets[4], object.embedding);
+  writer.writeString(offsets[5], object.eventId);
+  writer.writeBool(offsets[6], object.isSeen);
+  writer.writeStringList(offsets[7], object.pTagRefs);
+  writer.writeString(offsets[8], object.replyToEventId);
+  writer.writeString(offsets[9], object.rootEventId);
+  writer.writeString(offsets[10], object.sig);
   writer.writeStringList(offsets[11], object.tTags);
   writer.writeString(offsets[12], object.type.name);
 }
@@ -201,18 +205,18 @@ NoteModel _noteModelDeserialize(
     content: reader.readString(offsets[1]),
     created: reader.readDateTime(offsets[2]),
     eTagRefs: reader.readStringList(offsets[3]) ?? [],
-    eventId: reader.readString(offsets[4]),
-    isSeen: reader.readBool(offsets[5]),
-    pTagRefs: reader.readStringList(offsets[6]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[7]),
-    rootEventId: reader.readStringOrNull(offsets[8]),
-    sig: reader.readString(offsets[9]),
-    subject: reader.readStringOrNull(offsets[10]),
+    eventId: reader.readString(offsets[5]),
+    isSeen: reader.readBool(offsets[6]),
+    pTagRefs: reader.readStringList(offsets[7]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[8]),
+    rootEventId: reader.readStringOrNull(offsets[9]),
+    sig: reader.readString(offsets[10]),
     tTags: reader.readStringList(offsets[11]) ?? [],
     type:
         _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[12])] ??
         NoteType.text,
   );
+  object.embedding = reader.readDoubleList(offsets[4]);
   object.id = id;
   return object;
 }
@@ -233,19 +237,19 @@ P _noteModelDeserializeProp<P>(
     case 3:
       return (reader.readStringList(offset) ?? []) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleList(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
     case 11:
       return (reader.readStringList(offset) ?? []) as P;
     case 12:
@@ -1174,6 +1178,150 @@ extension NoteModelQueryFilter
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> embeddingIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'embedding'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'embedding'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingElementEqualTo(double value, {double epsilon = Query.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'embedding',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingElementGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'embedding',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingElementLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'embedding',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingElementBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'embedding',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'embedding', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> embeddingIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'embedding', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'embedding', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'embedding', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'embedding', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  embeddingLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'embedding',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> eventIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2053,169 +2201,6 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'subject'),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'subject'),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'subject',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'subject',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'subject',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> subjectIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'subject', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  subjectIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'subject', value: ''),
-      );
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> tTagsElementEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2663,18 +2648,6 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortBySubject() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'subject', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortBySubjectDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'subject', Sort.desc);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -2798,18 +2771,6 @@ extension NoteModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenBySubject() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'subject', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenBySubjectDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'subject', Sort.desc);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -2850,6 +2811,12 @@ extension NoteModelQueryWhereDistinct
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByETagRefs() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'eTagRefs');
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByEmbedding() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'embedding');
     });
   }
 
@@ -2900,14 +2867,6 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctBySubject({
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'subject', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByTTags() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tTags');
@@ -2955,6 +2914,12 @@ extension NoteModelQueryProperty
     });
   }
 
+  QueryBuilder<NoteModel, List<double>?, QQueryOperations> embeddingProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'embedding');
+    });
+  }
+
   QueryBuilder<NoteModel, String, QQueryOperations> eventIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'eventId');
@@ -2988,12 +2953,6 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String, QQueryOperations> sigProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sig');
-    });
-  }
-
-  QueryBuilder<NoteModel, String?, QQueryOperations> subjectProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'subject');
     });
   }
 
