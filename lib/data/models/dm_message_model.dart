@@ -12,10 +12,8 @@ class DmMessageModel {
   late String eventId;
 
   @Index()
-  late String otherPubkey;
+  late int conversationId;
 
-  late String senderPubkey;
-  late List<String> receiverPubkeys;
   late String content;
   String? subject;
   String? replyToEventId;
@@ -26,9 +24,7 @@ class DmMessageModel {
 extension DmMessageModelExtension on DmMessageModel {
   DmMessageEntity toDomain() => DmMessageEntity(
     eventId: eventId,
-    otherPubkey: otherPubkey,
-    senderPubkey: senderPubkey,
-    receiverPubkeys: receiverPubkeys,
+    conversationId: conversationId,
     content: content,
     subject: subject,
     replyToEventId: replyToEventId,

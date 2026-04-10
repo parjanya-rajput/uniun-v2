@@ -10,9 +10,14 @@ class DmConversationModel {
 
   @Index(unique: true)
   late String otherPubkey;
+
+  late String relayUrl;
 }
 
 extension DmConversationModelExtension on DmConversationModel {
-  DmConversationEntity toDomain() =>
-      DmConversationEntity(otherPubkey: otherPubkey);
+  DmConversationEntity toDomain() => DmConversationEntity(
+    id: id,
+    otherPubkey: otherPubkey,
+    relayUrl: relayUrl,
+  );
 }

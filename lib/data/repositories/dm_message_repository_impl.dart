@@ -26,9 +26,7 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
 
       final model = DmMessageModel()
         ..eventId = entity.eventId
-        ..otherPubkey = entity.otherPubkey
-        ..senderPubkey = entity.senderPubkey
-        ..receiverPubkeys = List<String>.from(entity.receiverPubkeys)
+        ..conversationId = entity.conversationId
         ..content = entity.content
         ..subject = entity.subject
         ..replyToEventId = entity.replyToEventId
@@ -47,14 +45,14 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
 
   @override
   Future<Either<Failure, List<DmMessageEntity>>> getMessages(
-    String otherPubkey, {
+    int conversationId, {
     DateTime? before,
     int limit = 30,
   }) async {
     try {
       final rows = await isar.dmMessageModels
           .where()
-          .otherPubkeyEqualTo(otherPubkey)
+          .conversationIdEqualTo(conversationId)
           .findAll();
 
       rows.sort((a, b) => b.createdAt.compareTo(a.createdAt));

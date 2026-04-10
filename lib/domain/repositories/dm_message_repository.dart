@@ -6,7 +6,7 @@ abstract class DmMessageRepository {
   Future<Either<Failure, DmMessageEntity>> saveMessage(DmMessageEntity entity);
 
   Future<Either<Failure, List<DmMessageEntity>>> getMessages(
-    String otherPubkey, {
+    int conversationId, {
     DateTime? before,
     int limit = 30,
   });
