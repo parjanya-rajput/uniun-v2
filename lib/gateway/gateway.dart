@@ -1,6 +1,6 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/gateway/central_relay_manager.dart';

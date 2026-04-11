@@ -9,7 +9,8 @@ part 'subscription_record_model.g.dart';
 @Name('SubscriptionRecord')
 class SubscriptionRecordModel {
   Id id = Isar.autoIncrement;
-  
+
+  @Index(unique: true)
   late String channelId;
 
   /// Nostr filter definitions to persist intent.
@@ -17,9 +18,6 @@ class SubscriptionRecordModel {
   late List<String> eTags;
   List<String>? authors;
   int? limit;
-
-  /// Which relays this subscription should run on.
-  late List<String> relays;
 
   /// JSON-encoded Map<String, int> checkpoint by relay.
   late String lastUntilByRelayJson;
@@ -34,10 +32,9 @@ class SubscriptionRecordModel {
 extension SubscriptionRecordModelExtension on SubscriptionRecordModel {
   SubscriptionRecordEntity toDomain(Map<String, int> lastUntilByRelay) =>
       SubscriptionRecordEntity(
-        key: key,
+        channelId: channelId,
         kinds: kinds,
         eTags: eTags,
-        relays: relays,
         lastUntilByRelay: lastUntilByRelay,
         authors: authors,
         limit: limit,

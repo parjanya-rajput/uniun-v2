@@ -21,18 +21,17 @@ class SubscriptionRecordRepositoryImpl extends SubscriptionRecordRepository {
     try {
       final existing = await isar.subscriptionRecordModels
           .where()
-          .keyEqualTo(record.key)
+          .channelIdEqualTo(record.channelId)
           .findFirst();
 
       final model = existing ?? SubscriptionRecordModel();
-      model.key = record.key;
+      model.channelId = record.channelId;
       model.kinds = List<int>.from(record.kinds);
       model.eTags = List<String>.from(record.eTags);
       model.authors = record.authors == null
           ? null
           : List<String>.from(record.authors!);
       model.limit = record.limit;
-      model.relays = List<String>.from(record.relays);
       model.lastUntilByRelayJson = jsonEncode(record.lastUntilByRelay);
       model.createdAt = record.createdAt;
       model.updatedAt = record.updatedAt;
@@ -51,20 +50,40 @@ class SubscriptionRecordRepositoryImpl extends SubscriptionRecordRepository {
   }
 
   @override
-  Future<Either<Failure, SubscriptionRecordEntity>> getRecordByKey(
-    String key,
+  Future<Either<Failure, SubscriptionRecordEntity>> getRecordByChannelId(
+    String channelId,
   ) async {
     try {
       final row = await isar.subscriptionRecordModels
           .where()
-          .keyEqualTo(key)
+          .channelIdEqualTo(channelId)
           .findFirst();
       if (row == null) {
         return Left(
-          Failure.notFoundFailure('Subscription record not found for key: $key'),
+          Failure.notFoundFailure('Subscription record not found for channelId: $channelId'),
         );
       }
       return Right(row.toDomain(_decodeLastUntilMap(row.lastUntilByRelayJson)));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  //write the toggleEnabled function here
+  @override
+  Future<Either<Failure, Unit>> toggleEnabled(String channelId, bool enabled) async {
+    try {
+      await isar.writeTxn(() async {
+        final row = await isar.subscriptionRecordModels
+            .where()
+            .channelIdEqualTo(channelId)
+            .findFirst();
+        if (row == null) return;
+        row.enabled = enabled;
+        row.updatedAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        await isar.subscriptionRecordModels.put(row);
+      });
+      return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -75,7 +94,6 @@ class SubscriptionRecordRepositoryImpl extends SubscriptionRecordRepository {
       getEnabledRecords() async {
     try {
       final rows = await isar.subscriptionRecordModels
-          .where()
           .filter()
           .enabledEqualTo(true)
           .findAll();
@@ -91,14 +109,14 @@ class SubscriptionRecordRepositoryImpl extends SubscriptionRecordRepository {
 
   @override
   Future<Either<Failure, Unit>> updateCheckpoint(
-    String key,
+    String channelId,
     Map<String, int> lastUntilByRelay,
   ) async {
     try {
       await isar.writeTxn(() async {
         final row = await isar.subscriptionRecordModels
             .where()
-            .keyEqualTo(key)
+            .channelIdEqualTo(channelId)
             .findFirst();
         if (row == null) return;
         row.lastUntilByRelayJson = jsonEncode(lastUntilByRelay);
@@ -111,24 +129,6 @@ class SubscriptionRecordRepositoryImpl extends SubscriptionRecordRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, Unit>> toggleEnabled(String key, bool enabled) async {
-    try {
-      await isar.writeTxn(() async {
-        final row = await isar.subscriptionRecordModels
-            .where()
-            .keyEqualTo(key)
-            .findFirst();
-        if (row == null) return;
-        row.enabled = enabled;
-        row.updatedAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await isar.subscriptionRecordModels.put(row);
-      });
-      return const Right(unit);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
 
   Map<String, int> _decodeLastUntilMap(String rawJson) {
     try {

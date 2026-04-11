@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/dm_conversation_model.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 

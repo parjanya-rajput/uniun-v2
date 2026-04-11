@@ -7,14 +7,14 @@ abstract class SubscriptionRecordRepository {
     SubscriptionRecordEntity record,
   );
 
-  Future<Either<Failure, SubscriptionRecordEntity>> getRecordByKey(String key);
+  Future<Either<Failure, SubscriptionRecordEntity>> getRecordByChannelId(String channelId);
 
   Future<Either<Failure, List<SubscriptionRecordEntity>>> getEnabledRecords();
 
   Future<Either<Failure, Unit>> updateCheckpoint(
-    String key,
+    String channelId,
     Map<String, int> lastUntilByRelay,
   );
 
-  Future<Either<Failure, Unit>> toggleEnabled(String key, bool enabled);
-}
+  Future<Either<Failure, Unit>> toggleEnabled(String channelId, bool enabled);
+} 

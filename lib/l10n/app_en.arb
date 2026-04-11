@@ -93,6 +93,9 @@
   "brahmaHintText": "Write a new note...",
   "@brahmaHintText": { "description": "Placeholder in the note compose field" },
 
+  "brahmaSubjectHintText": "Subject (optional)",
+  "@brahmaSubjectHintText": { "description": "Placeholder in the note subject field" },
+
   "brahmaAddImage": "Add Image",
   "@brahmaAddImage": { "description": "Tooltip for attach-image button" },
 

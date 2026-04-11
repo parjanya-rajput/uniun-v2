@@ -98,6 +98,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get brahmaHintText => 'Write a new note...';
 
   @override
+  String get brahmaSubjectHintText => 'Subject (optional)';
+
+  @override
   String get brahmaAddImage => 'Add Image';
 
   @override

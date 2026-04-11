@@ -5,8 +5,8 @@ part 'dm_conversation_entity.freezed.dart';
 @freezed
 abstract class DmConversationEntity with _$DmConversationEntity {
   const factory DmConversationEntity({
-    required int id,
+    int? id,
     required String otherPubkey,
-    required String relayUrl,
+    String? relayUrl,
   }) = _DmConversationEntity;
 }
