@@ -2,7 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/dm_message_model.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
 
@@ -26,12 +27,17 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
 
       final model = DmMessageModel()
         ..eventId = entity.eventId
+        ..sig = ''
+        ..authorPubkey = ''
         ..conversationId = entity.conversationId
+        ..pTagRefs = [entity.receiverPubkey]
         ..content = entity.content
         ..subject = entity.subject
         ..replyToEventId = entity.replyToEventId
-        ..createdAt = entity.createdAt
-        ..isSentByMe = entity.isSentByMe;
+        ..kind = entity.kind
+        ..type = entity.type
+        ..created = entity.created
+        ..isSeen = entity.isSeen;
 
       await isar.writeTxn(() async {
         await isar.dmMessageModels.put(model);
@@ -55,10 +61,10 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
           .conversationIdEqualTo(conversationId)
           .findAll();
 
-      rows.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      rows.sort((a, b) => b.created.compareTo(a.created));
       final filtered = before == null
           ? rows
-          : rows.where((m) => m.createdAt.isBefore(before)).toList();
+          : rows.where((m) => m.created.isBefore(before)).toList();
 
       return Right(filtered.take(limit).map((m) => m.toDomain()).toList());
     } catch (e) {

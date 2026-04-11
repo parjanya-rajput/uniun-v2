@@ -59,7 +59,7 @@ class DmConversationRepositoryImpl extends DmConversationRepository {
 
       final model = DmConversationModel()
         ..otherPubkey = entity.otherPubkey
-        ..relayUrl = entity.relayUrl
+        ..relayUrl = entity.relayUrl;
       await isar.writeTxn(() async {
         await isar.dmConversationModels.put(model);
       });
