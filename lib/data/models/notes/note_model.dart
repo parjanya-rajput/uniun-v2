@@ -16,6 +16,7 @@ class NoteModel {
   late String sig;
   late String authorPubkey;
   late String content;
+  String? subject;
 
   @Enumerated(EnumType.name)
   late NoteType type;
@@ -43,6 +44,7 @@ class NoteModel {
     required this.sig,
     required this.authorPubkey,
     required this.content,
+    this.subject,
     required this.type,
     required this.eTagRefs,
     this.rootEventId,
@@ -63,6 +65,7 @@ class NoteModel {
     final eTagRefs = <String>[];
     String? rootEventId;
     String? replyToEventId;
+    String? subject;
     final pTagRefs = <String>[];
     final tTags = <String>[];
 
@@ -81,6 +84,8 @@ class NoteModel {
         pTagRefs.add(tag[1]);
       } else if (tagName == 't' && tag.length >= 2) {
         tTags.add(tag[1]);
+      } else if (tagName == 'subject' && tag.length >= 2) {
+        subject = tag[1];
       }
     }
 
@@ -104,6 +109,7 @@ class NoteModel {
       sig: event.sig,
       authorPubkey: event.pubkey,
       content: event.content,
+      subject: subject,
       type: type,
       eTagRefs: eTagRefs,
       rootEventId: rootEventId,
@@ -118,17 +124,18 @@ class NoteModel {
 
 extension NoteModelExtension on NoteModel {
   NoteEntity toDomain() => NoteEntity(
-        id: eventId,
-        sig: sig,
-        authorPubkey: authorPubkey,
-        content: content,
-        type: type,
-        eTagRefs: eTagRefs,
-        rootEventId: rootEventId,
-        replyToEventId: replyToEventId,
-        pTagRefs: pTagRefs,
-        tTags: tTags,
-        created: created,
-        isSeen: isSeen,
-      );
+    id: eventId,
+    sig: sig,
+    authorPubkey: authorPubkey,
+    content: content,
+    subject: subject,
+    type: type,
+    eTagRefs: eTagRefs,
+    rootEventId: rootEventId,
+    replyToEventId: replyToEventId,
+    pTagRefs: pTagRefs,
+    tTags: tTags,
+    created: created,
+    isSeen: isSeen,
+  );
 }

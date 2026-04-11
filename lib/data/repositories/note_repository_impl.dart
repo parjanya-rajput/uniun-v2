@@ -20,16 +20,13 @@ class NoteRepositoryImpl extends NoteRepository {
     try {
       // Only top-level notes (rootEventId == null) appear in the feed.
       // Replies live inside thread views — never in the main feed.
-      final query = isar.noteModels
-          .filter()
-          .rootEventIdIsNull();
+      final query = isar.noteModels.filter().rootEventIdIsNull();
 
-      final notes = await (before != null
-              ? query.createdLessThan(before)
-              : query)
-          .sortByCreatedDesc()
-          .limit(limit)
-          .findAll();
+      final notes =
+          await (before != null ? query.createdLessThan(before) : query)
+              .sortByCreatedDesc()
+              .limit(limit)
+              .findAll();
 
       return Right(notes.map((n) => n.toDomain()).toList());
     } catch (e) {
@@ -72,7 +69,8 @@ class NoteRepositoryImpl extends NoteRepository {
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getThread(
-      String rootEventId) async {
+    String rootEventId,
+  ) async {
     try {
       // Root note
       final root = await isar.noteModels
@@ -87,10 +85,7 @@ class NoteRepositoryImpl extends NoteRepository {
           .sortByCreated()
           .findAll();
 
-      final all = [
-        if (root != null) root,
-        ...replies,
-      ];
+      final all = [if (root != null) root, ...replies];
 
       return Right(all.map((n) => n.toDomain()).toList());
     } catch (e) {
@@ -115,6 +110,7 @@ class NoteRepositoryImpl extends NoteRepository {
         sig: note.sig,
         authorPubkey: note.authorPubkey,
         content: note.content,
+        subject: note.subject,
         type: note.type,
         eTagRefs: note.eTagRefs,
         rootEventId: note.rootEventId,
@@ -179,5 +175,4 @@ class NoteRepositoryImpl extends NoteRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
-
 }

@@ -11,14 +11,17 @@ abstract class NoteEntity with _$NoteEntity {
     required String sig,
     required String authorPubkey,
     required String content,
+    String? subject,
     required NoteType type,
     required List<String> eTagRefs,
     required List<String> pTagRefs,
     required List<String> tTags,
     required DateTime created,
     required bool isSeen,
+
     /// NIP-10 "root" marker — null means this IS a top-level note.
     String? rootEventId,
+
     /// NIP-10 "reply" marker — the direct parent note this replies to.
     String? replyToEventId,
   }) = _NoteEntity;

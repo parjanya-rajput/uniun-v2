@@ -11,6 +11,7 @@ _NoteEntity _$NoteEntityFromJson(Map<String, dynamic> json) => _NoteEntity(
   sig: json['sig'] as String,
   authorPubkey: json['authorPubkey'] as String,
   content: json['content'] as String,
+  subject: json['subject'] as String?,
   type: $enumDecode(_$NoteTypeEnumMap, json['type']),
   eTagRefs: (json['eTagRefs'] as List<dynamic>)
       .map((e) => e as String)
@@ -31,6 +32,7 @@ Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
       'sig': instance.sig,
       'authorPubkey': instance.authorPubkey,
       'content': instance.content,
+      'subject': instance.subject,
       'type': _$NoteTypeEnumMap[instance.type]!,
       'eTagRefs': instance.eTagRefs,
       'pTagRefs': instance.pTagRefs,
