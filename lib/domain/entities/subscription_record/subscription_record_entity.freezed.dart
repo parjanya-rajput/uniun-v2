@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SubscriptionRecordEntity {
 
- String get channelId; List<int> get kinds; List<String> get eTags; List<String>? get authors; int? get limit; Map<String, int> get lastUntilByRelay; int get createdAt; int get updatedAt; bool get enabled;
+ String get key; List<int> get kinds; List<String> get eTags; List<String>? get authors; int? get limit; List<String> get relays; Map<String, int> get lastUntilByRelay; int get createdAt; int get updatedAt; bool get enabled;
 /// Create a copy of SubscriptionRecordEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $SubscriptionRecordEntityCopyWith<SubscriptionRecordEntity> get copyWith => _$Su
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubscriptionRecordEntity&&(identical(other.channelId, channelId) || other.channelId == channelId)&&const DeepCollectionEquality().equals(other.kinds, kinds)&&const DeepCollectionEquality().equals(other.eTags, eTags)&&const DeepCollectionEquality().equals(other.authors, authors)&&(identical(other.limit, limit) || other.limit == limit)&&const DeepCollectionEquality().equals(other.lastUntilByRelay, lastUntilByRelay)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.enabled, enabled) || other.enabled == enabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubscriptionRecordEntity&&(identical(other.key, key) || other.key == key)&&const DeepCollectionEquality().equals(other.kinds, kinds)&&const DeepCollectionEquality().equals(other.eTags, eTags)&&const DeepCollectionEquality().equals(other.authors, authors)&&(identical(other.limit, limit) || other.limit == limit)&&const DeepCollectionEquality().equals(other.relays, relays)&&const DeepCollectionEquality().equals(other.lastUntilByRelay, lastUntilByRelay)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.enabled, enabled) || other.enabled == enabled));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,channelId,const DeepCollectionEquality().hash(kinds),const DeepCollectionEquality().hash(eTags),const DeepCollectionEquality().hash(authors),limit,const DeepCollectionEquality().hash(lastUntilByRelay),createdAt,updatedAt,enabled);
+int get hashCode => Object.hash(runtimeType,key,const DeepCollectionEquality().hash(kinds),const DeepCollectionEquality().hash(eTags),const DeepCollectionEquality().hash(authors),limit,const DeepCollectionEquality().hash(relays),const DeepCollectionEquality().hash(lastUntilByRelay),createdAt,updatedAt,enabled);
 
 @override
 String toString() {
-  return 'SubscriptionRecordEntity(channelId: $channelId, kinds: $kinds, eTags: $eTags, authors: $authors, limit: $limit, lastUntilByRelay: $lastUntilByRelay, createdAt: $createdAt, updatedAt: $updatedAt, enabled: $enabled)';
+  return 'SubscriptionRecordEntity(key: $key, kinds: $kinds, eTags: $eTags, authors: $authors, limit: $limit, relays: $relays, lastUntilByRelay: $lastUntilByRelay, createdAt: $createdAt, updatedAt: $updatedAt, enabled: $enabled)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $SubscriptionRecordEntityCopyWith<$Res>  {
   factory $SubscriptionRecordEntityCopyWith(SubscriptionRecordEntity value, $Res Function(SubscriptionRecordEntity) _then) = _$SubscriptionRecordEntityCopyWithImpl;
 @useResult
 $Res call({
- String channelId, List<int> kinds, List<String> eTags, List<String>? authors, int? limit, Map<String, int> lastUntilByRelay, int createdAt, int updatedAt, bool enabled
+ String key, List<int> kinds, List<String> eTags, List<String>? authors, int? limit, List<String> relays, Map<String, int> lastUntilByRelay, int createdAt, int updatedAt, bool enabled
 });
 
 
@@ -62,14 +62,15 @@ class _$SubscriptionRecordEntityCopyWithImpl<$Res>
 
 /// Create a copy of SubscriptionRecordEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? channelId = null,Object? kinds = null,Object? eTags = null,Object? authors = freezed,Object? limit = freezed,Object? lastUntilByRelay = null,Object? createdAt = null,Object? updatedAt = null,Object? enabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? key = null,Object? kinds = null,Object? eTags = null,Object? authors = freezed,Object? limit = freezed,Object? relays = null,Object? lastUntilByRelay = null,Object? createdAt = null,Object? updatedAt = null,Object? enabled = null,}) {
   return _then(_self.copyWith(
-channelId: null == channelId ? _self.channelId : channelId // ignore: cast_nullable_to_non_nullable
+key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,kinds: null == kinds ? _self.kinds : kinds // ignore: cast_nullable_to_non_nullable
 as List<int>,eTags: null == eTags ? _self.eTags : eTags // ignore: cast_nullable_to_non_nullable
 as List<String>,authors: freezed == authors ? _self.authors : authors // ignore: cast_nullable_to_non_nullable
 as List<String>?,limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
-as int?,lastUntilByRelay: null == lastUntilByRelay ? _self.lastUntilByRelay : lastUntilByRelay // ignore: cast_nullable_to_non_nullable
+as int?,relays: null == relays ? _self.relays : relays // ignore: cast_nullable_to_non_nullable
+as List<String>,lastUntilByRelay: null == lastUntilByRelay ? _self.lastUntilByRelay : lastUntilByRelay // ignore: cast_nullable_to_non_nullable
 as Map<String, int>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as int,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String channelId,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String key,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  List<String> relays,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SubscriptionRecordEntity() when $default != null:
-return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
+return $default(_that.key,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.relays,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String channelId,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String key,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  List<String> relays,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)  $default,) {final _that = this;
 switch (_that) {
 case _SubscriptionRecordEntity():
-return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
+return $default(_that.key,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.relays,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String channelId,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String key,  List<int> kinds,  List<String> eTags,  List<String>? authors,  int? limit,  List<String> relays,  Map<String, int> lastUntilByRelay,  int createdAt,  int updatedAt,  bool enabled)?  $default,) {final _that = this;
 switch (_that) {
 case _SubscriptionRecordEntity() when $default != null:
-return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
+return $default(_that.key,_that.kinds,_that.eTags,_that.authors,_that.limit,_that.relays,_that.lastUntilByRelay,_that.createdAt,_that.updatedAt,_that.enabled);case _:
   return null;
 
 }
@@ -214,10 +215,10 @@ return $default(_that.channelId,_that.kinds,_that.eTags,_that.authors,_that.limi
 
 
 class _SubscriptionRecordEntity implements SubscriptionRecordEntity {
-  const _SubscriptionRecordEntity({required this.channelId, required final  List<int> kinds, required final  List<String> eTags, final  List<String>? authors, this.limit, required final  Map<String, int> lastUntilByRelay, required this.createdAt, required this.updatedAt, this.enabled = true}): _kinds = kinds,_eTags = eTags,_authors = authors,_lastUntilByRelay = lastUntilByRelay;
+  const _SubscriptionRecordEntity({required this.key, required final  List<int> kinds, required final  List<String> eTags, final  List<String>? authors, this.limit, required final  List<String> relays, required final  Map<String, int> lastUntilByRelay, required this.createdAt, required this.updatedAt, this.enabled = true}): _kinds = kinds,_eTags = eTags,_authors = authors,_relays = relays,_lastUntilByRelay = lastUntilByRelay;
   
 
-@override final  String channelId;
+@override final  String key;
  final  List<int> _kinds;
 @override List<int> get kinds {
   if (_kinds is EqualUnmodifiableListView) return _kinds;
@@ -242,6 +243,13 @@ class _SubscriptionRecordEntity implements SubscriptionRecordEntity {
 }
 
 @override final  int? limit;
+ final  List<String> _relays;
+@override List<String> get relays {
+  if (_relays is EqualUnmodifiableListView) return _relays;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_relays);
+}
+
  final  Map<String, int> _lastUntilByRelay;
 @override Map<String, int> get lastUntilByRelay {
   if (_lastUntilByRelay is EqualUnmodifiableMapView) return _lastUntilByRelay;
@@ -263,16 +271,16 @@ _$SubscriptionRecordEntityCopyWith<_SubscriptionRecordEntity> get copyWith => __
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubscriptionRecordEntity&&(identical(other.channelId, channelId) || other.channelId == channelId)&&const DeepCollectionEquality().equals(other._kinds, _kinds)&&const DeepCollectionEquality().equals(other._eTags, _eTags)&&const DeepCollectionEquality().equals(other._authors, _authors)&&(identical(other.limit, limit) || other.limit == limit)&&const DeepCollectionEquality().equals(other._lastUntilByRelay, _lastUntilByRelay)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.enabled, enabled) || other.enabled == enabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubscriptionRecordEntity&&(identical(other.key, key) || other.key == key)&&const DeepCollectionEquality().equals(other._kinds, _kinds)&&const DeepCollectionEquality().equals(other._eTags, _eTags)&&const DeepCollectionEquality().equals(other._authors, _authors)&&(identical(other.limit, limit) || other.limit == limit)&&const DeepCollectionEquality().equals(other._relays, _relays)&&const DeepCollectionEquality().equals(other._lastUntilByRelay, _lastUntilByRelay)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.enabled, enabled) || other.enabled == enabled));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,channelId,const DeepCollectionEquality().hash(_kinds),const DeepCollectionEquality().hash(_eTags),const DeepCollectionEquality().hash(_authors),limit,const DeepCollectionEquality().hash(_lastUntilByRelay),createdAt,updatedAt,enabled);
+int get hashCode => Object.hash(runtimeType,key,const DeepCollectionEquality().hash(_kinds),const DeepCollectionEquality().hash(_eTags),const DeepCollectionEquality().hash(_authors),limit,const DeepCollectionEquality().hash(_relays),const DeepCollectionEquality().hash(_lastUntilByRelay),createdAt,updatedAt,enabled);
 
 @override
 String toString() {
-  return 'SubscriptionRecordEntity(channelId: $channelId, kinds: $kinds, eTags: $eTags, authors: $authors, limit: $limit, lastUntilByRelay: $lastUntilByRelay, createdAt: $createdAt, updatedAt: $updatedAt, enabled: $enabled)';
+  return 'SubscriptionRecordEntity(key: $key, kinds: $kinds, eTags: $eTags, authors: $authors, limit: $limit, relays: $relays, lastUntilByRelay: $lastUntilByRelay, createdAt: $createdAt, updatedAt: $updatedAt, enabled: $enabled)';
 }
 
 
@@ -283,7 +291,7 @@ abstract mixin class _$SubscriptionRecordEntityCopyWith<$Res> implements $Subscr
   factory _$SubscriptionRecordEntityCopyWith(_SubscriptionRecordEntity value, $Res Function(_SubscriptionRecordEntity) _then) = __$SubscriptionRecordEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String channelId, List<int> kinds, List<String> eTags, List<String>? authors, int? limit, Map<String, int> lastUntilByRelay, int createdAt, int updatedAt, bool enabled
+ String key, List<int> kinds, List<String> eTags, List<String>? authors, int? limit, List<String> relays, Map<String, int> lastUntilByRelay, int createdAt, int updatedAt, bool enabled
 });
 
 
@@ -300,14 +308,15 @@ class __$SubscriptionRecordEntityCopyWithImpl<$Res>
 
 /// Create a copy of SubscriptionRecordEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? channelId = null,Object? kinds = null,Object? eTags = null,Object? authors = freezed,Object? limit = freezed,Object? lastUntilByRelay = null,Object? createdAt = null,Object? updatedAt = null,Object? enabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? key = null,Object? kinds = null,Object? eTags = null,Object? authors = freezed,Object? limit = freezed,Object? relays = null,Object? lastUntilByRelay = null,Object? createdAt = null,Object? updatedAt = null,Object? enabled = null,}) {
   return _then(_SubscriptionRecordEntity(
-channelId: null == channelId ? _self.channelId : channelId // ignore: cast_nullable_to_non_nullable
+key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,kinds: null == kinds ? _self._kinds : kinds // ignore: cast_nullable_to_non_nullable
 as List<int>,eTags: null == eTags ? _self._eTags : eTags // ignore: cast_nullable_to_non_nullable
 as List<String>,authors: freezed == authors ? _self._authors : authors // ignore: cast_nullable_to_non_nullable
 as List<String>?,limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
-as int?,lastUntilByRelay: null == lastUntilByRelay ? _self._lastUntilByRelay : lastUntilByRelay // ignore: cast_nullable_to_non_nullable
+as int?,relays: null == relays ? _self._relays : relays // ignore: cast_nullable_to_non_nullable
+as List<String>,lastUntilByRelay: null == lastUntilByRelay ? _self._lastUntilByRelay : lastUntilByRelay // ignore: cast_nullable_to_non_nullable
 as Map<String, int>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as int,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
