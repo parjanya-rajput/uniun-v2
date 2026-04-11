@@ -17,29 +17,43 @@ const DmMessageModelSchema = CollectionSchema(
   name: r'DmMessage',
   id: -4350074240817476732,
   properties: {
-    r'content': PropertySchema(id: 0, name: r'content', type: IsarType.string),
+    r'authorPubkey': PropertySchema(
+      id: 0,
+      name: r'authorPubkey',
+      type: IsarType.string,
+    ),
+    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
     r'conversationId': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'conversationId',
       type: IsarType.long,
     ),
-    r'createdAt': PropertySchema(
-      id: 2,
-      name: r'createdAt',
+    r'created': PropertySchema(
+      id: 3,
+      name: r'created',
       type: IsarType.dateTime,
     ),
-    r'eventId': PropertySchema(id: 3, name: r'eventId', type: IsarType.string),
-    r'isSentByMe': PropertySchema(
-      id: 4,
-      name: r'isSentByMe',
-      type: IsarType.bool,
+    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
+    r'isSeen': PropertySchema(id: 5, name: r'isSeen', type: IsarType.bool),
+    r'kind': PropertySchema(id: 6, name: r'kind', type: IsarType.long),
+    r'pTagRefs': PropertySchema(
+      id: 7,
+      name: r'pTagRefs',
+      type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
-    r'subject': PropertySchema(id: 6, name: r'subject', type: IsarType.string),
+    r'sig': PropertySchema(id: 9, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 10, name: r'subject', type: IsarType.string),
+    r'type': PropertySchema(
+      id: 11,
+      name: r'type',
+      type: IsarType.string,
+      enumMap: _DmMessageModeltypeEnumValueMap,
+    ),
   },
 
   estimateSize: _dmMessageModelEstimateSize,
@@ -74,6 +88,19 @@ const DmMessageModelSchema = CollectionSchema(
         ),
       ],
     ),
+    r'replyToEventId': IndexSchema(
+      id: -8252228501288249794,
+      name: r'replyToEventId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'replyToEventId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -90,20 +117,30 @@ int _dmMessageModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.authorPubkey.length * 3;
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.eventId.length * 3;
+  bytesCount += 3 + object.pTagRefs.length * 3;
+  {
+    for (var i = 0; i < object.pTagRefs.length; i++) {
+      final value = object.pTagRefs[i];
+      bytesCount += value.length * 3;
+    }
+  }
   {
     final value = object.replyToEventId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.sig.length * 3;
   {
     final value = object.subject;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.type.name.length * 3;
   return bytesCount;
 }
 
@@ -113,13 +150,18 @@ void _dmMessageModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.content);
-  writer.writeLong(offsets[1], object.conversationId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.eventId);
-  writer.writeBool(offsets[4], object.isSentByMe);
-  writer.writeString(offsets[5], object.replyToEventId);
-  writer.writeString(offsets[6], object.subject);
+  writer.writeString(offsets[0], object.authorPubkey);
+  writer.writeString(offsets[1], object.content);
+  writer.writeLong(offsets[2], object.conversationId);
+  writer.writeDateTime(offsets[3], object.created);
+  writer.writeString(offsets[4], object.eventId);
+  writer.writeBool(offsets[5], object.isSeen);
+  writer.writeLong(offsets[6], object.kind);
+  writer.writeStringList(offsets[7], object.pTagRefs);
+  writer.writeString(offsets[8], object.replyToEventId);
+  writer.writeString(offsets[9], object.sig);
+  writer.writeString(offsets[10], object.subject);
+  writer.writeString(offsets[11], object.type.name);
 }
 
 DmMessageModel _dmMessageModelDeserialize(
@@ -128,15 +170,23 @@ DmMessageModel _dmMessageModelDeserialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = DmMessageModel();
-  object.content = reader.readString(offsets[0]);
-  object.conversationId = reader.readLong(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.eventId = reader.readString(offsets[3]);
+  final object = DmMessageModel(
+    authorPubkey: reader.readString(offsets[0]),
+    content: reader.readString(offsets[1]),
+    conversationId: reader.readLong(offsets[2]),
+    created: reader.readDateTime(offsets[3]),
+    eventId: reader.readString(offsets[4]),
+    isSeen: reader.readBool(offsets[5]),
+    kind: reader.readLong(offsets[6]),
+    pTagRefs: reader.readStringList(offsets[7]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[8]),
+    sig: reader.readString(offsets[9]),
+    subject: reader.readStringOrNull(offsets[10]),
+    type:
+        _DmMessageModeltypeValueEnumMap[reader.readStringOrNull(offsets[11])] ??
+        NoteType.text,
+  );
   object.id = id;
-  object.isSentByMe = reader.readBool(offsets[4]);
-  object.replyToEventId = reader.readStringOrNull(offsets[5]);
-  object.subject = reader.readStringOrNull(offsets[6]);
   return object;
 }
 
@@ -150,21 +200,48 @@ P _dmMessageModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
-    case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
       return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readLong(offset)) as P;
+    case 3:
+      return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 8:
       return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (_DmMessageModeltypeValueEnumMap[reader.readStringOrNull(
+                offset,
+              )] ??
+              NoteType.text)
+          as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _DmMessageModeltypeEnumValueMap = {
+  r'text': r'text',
+  r'image': r'image',
+  r'link': r'link',
+  r'reference': r'reference',
+};
+const _DmMessageModeltypeValueEnumMap = {
+  r'text': NoteType.text,
+  r'image': NoteType.image,
+  r'link': NoteType.link,
+  r'reference': NoteType.reference,
+};
 
 Id _dmMessageModelGetId(DmMessageModel object) {
   return object.id;
@@ -485,10 +562,229 @@ extension DmMessageModelQueryWhere
       );
     });
   }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterWhereClause>
+  replyToEventIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'replyToEventId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterWhereClause>
+  replyToEventIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'replyToEventId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterWhereClause>
+  replyToEventIdEqualTo(String? replyToEventId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'replyToEventId',
+          value: [replyToEventId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterWhereClause>
+  replyToEventIdNotEqualTo(String? replyToEventId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'replyToEventId',
+                lower: [],
+                upper: [replyToEventId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'replyToEventId',
+                lower: [replyToEventId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'replyToEventId',
+                lower: [replyToEventId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'replyToEventId',
+                lower: [],
+                upper: [replyToEventId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
 }
 
 extension DmMessageModelQueryFilter
     on QueryBuilder<DmMessageModel, DmMessageModel, QFilterCondition> {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'authorPubkey',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'authorPubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'authorPubkey',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'authorPubkey', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  authorPubkeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'authorPubkey', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
   contentEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -686,21 +982,21 @@ extension DmMessageModelQueryFilter
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
-  createdAtEqualTo(DateTime value) {
+  createdEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'createdAt', value: value),
+        FilterCondition.equalTo(property: r'created', value: value),
       );
     });
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
-  createdAtGreaterThan(DateTime value, {bool include = false}) {
+  createdGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'createdAt',
+          property: r'created',
           value: value,
         ),
       );
@@ -708,12 +1004,12 @@ extension DmMessageModelQueryFilter
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
-  createdAtLessThan(DateTime value, {bool include = false}) {
+  createdLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'createdAt',
+          property: r'created',
           value: value,
         ),
       );
@@ -721,7 +1017,7 @@ extension DmMessageModelQueryFilter
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
-  createdAtBetween(
+  createdBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
@@ -730,7 +1026,7 @@ extension DmMessageModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'createdAt',
+          property: r'created',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -937,10 +1233,259 @@ extension DmMessageModelQueryFilter
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
-  isSentByMeEqualTo(bool value) {
+  isSeenEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isSentByMe', value: value),
+        FilterCondition.equalTo(property: r'isSeen', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  kindEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'kind', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  kindGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'kind',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  kindLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'kind',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  kindBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'kind',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pTagRefs',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pTagRefs',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pTagRefs',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pTagRefs', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pTagRefs', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pTagRefs', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pTagRefs', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pTagRefs', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pTagRefs', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pTagRefs', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  pTagRefsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'pTagRefs',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
       );
     });
   }
@@ -1105,6 +1650,143 @@ extension DmMessageModelQueryFilter
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigLessThan(String value, {bool include = false, bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'sig',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'sig',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'sig',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'sig', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  sigIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'sig', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
   subjectIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1262,6 +1944,147 @@ extension DmMessageModelQueryFilter
       );
     });
   }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeEqualTo(NoteType value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeGreaterThan(
+    NoteType value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeLessThan(
+    NoteType value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeBetween(
+    NoteType lower,
+    NoteType upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'type',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'type',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'type', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterFilterCondition>
+  typeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'type', value: ''),
+      );
+    });
+  }
 }
 
 extension DmMessageModelQueryObject
@@ -1272,6 +2095,20 @@ extension DmMessageModelQueryLinks
 
 extension DmMessageModelQuerySortBy
     on QueryBuilder<DmMessageModel, DmMessageModel, QSortBy> {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
+  sortByAuthorPubkey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authorPubkey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
+  sortByAuthorPubkeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authorPubkey', Sort.desc);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -1299,16 +2136,16 @@ extension DmMessageModelQuerySortBy
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByCreatedAt() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByCreated() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'createdAt', Sort.asc);
+      return query.addSortBy(r'created', Sort.asc);
     });
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  sortByCreatedAtDesc() {
+  sortByCreatedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'createdAt', Sort.desc);
+      return query.addSortBy(r'created', Sort.desc);
     });
   }
 
@@ -1325,17 +2162,28 @@ extension DmMessageModelQuerySortBy
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  sortByIsSentByMe() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByIsSeen() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSentByMe', Sort.asc);
+      return query.addSortBy(r'isSeen', Sort.asc);
     });
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  sortByIsSentByMeDesc() {
+  sortByIsSeenDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSentByMe', Sort.desc);
+      return query.addSortBy(r'isSeen', Sort.desc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByKindDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
@@ -1353,6 +2201,18 @@ extension DmMessageModelQuerySortBy
     });
   }
 
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortBySig() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sig', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortBySigDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortBySubject() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subject', Sort.asc);
@@ -1365,10 +2225,36 @@ extension DmMessageModelQuerySortBy
       return query.addSortBy(r'subject', Sort.desc);
     });
   }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> sortByTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.desc);
+    });
+  }
 }
 
 extension DmMessageModelQuerySortThenBy
     on QueryBuilder<DmMessageModel, DmMessageModel, QSortThenBy> {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
+  thenByAuthorPubkey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authorPubkey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
+  thenByAuthorPubkeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authorPubkey', Sort.desc);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -1396,16 +2282,16 @@ extension DmMessageModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByCreatedAt() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByCreated() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'createdAt', Sort.asc);
+      return query.addSortBy(r'created', Sort.asc);
     });
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  thenByCreatedAtDesc() {
+  thenByCreatedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'createdAt', Sort.desc);
+      return query.addSortBy(r'created', Sort.desc);
     });
   }
 
@@ -1434,17 +2320,28 @@ extension DmMessageModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  thenByIsSentByMe() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByIsSeen() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSentByMe', Sort.asc);
+      return query.addSortBy(r'isSeen', Sort.asc);
     });
   }
 
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy>
-  thenByIsSentByMeDesc() {
+  thenByIsSeenDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSentByMe', Sort.desc);
+      return query.addSortBy(r'isSeen', Sort.desc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByKindDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
@@ -1462,6 +2359,18 @@ extension DmMessageModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenBySig() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sig', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenBySigDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenBySubject() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subject', Sort.asc);
@@ -1474,10 +2383,29 @@ extension DmMessageModelQuerySortThenBy
       return query.addSortBy(r'subject', Sort.desc);
     });
   }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QAfterSortBy> thenByTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.desc);
+    });
+  }
 }
 
 extension DmMessageModelQueryWhereDistinct
     on QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> {
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct>
+  distinctByAuthorPubkey({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'authorPubkey', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByContent({
     bool caseSensitive = true,
   }) {
@@ -1493,10 +2421,9 @@ extension DmMessageModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct>
-  distinctByCreatedAt() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByCreated() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'createdAt');
+      return query.addDistinctBy(r'created');
     });
   }
 
@@ -1508,10 +2435,21 @@ extension DmMessageModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct>
-  distinctByIsSentByMe() {
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByIsSeen() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isSentByMe');
+      return query.addDistinctBy(r'isSeen');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'kind');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByPTagRefs() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pTagRefs');
     });
   }
 
@@ -1525,11 +2463,27 @@ extension DmMessageModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctBySig({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sig', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctBySubject({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'subject', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<DmMessageModel, DmMessageModel, QDistinct> distinctByType({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'type', caseSensitive: caseSensitive);
     });
   }
 }
@@ -1539,6 +2493,13 @@ extension DmMessageModelQueryProperty
   QueryBuilder<DmMessageModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, String, QQueryOperations>
+  authorPubkeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'authorPubkey');
     });
   }
 
@@ -1554,9 +2515,9 @@ extension DmMessageModelQueryProperty
     });
   }
 
-  QueryBuilder<DmMessageModel, DateTime, QQueryOperations> createdAtProperty() {
+  QueryBuilder<DmMessageModel, DateTime, QQueryOperations> createdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'createdAt');
+      return query.addPropertyName(r'created');
     });
   }
 
@@ -1566,9 +2527,22 @@ extension DmMessageModelQueryProperty
     });
   }
 
-  QueryBuilder<DmMessageModel, bool, QQueryOperations> isSentByMeProperty() {
+  QueryBuilder<DmMessageModel, bool, QQueryOperations> isSeenProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isSentByMe');
+      return query.addPropertyName(r'isSeen');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, int, QQueryOperations> kindProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'kind');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, List<String>, QQueryOperations>
+  pTagRefsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pTagRefs');
     });
   }
 
@@ -1579,9 +2553,21 @@ extension DmMessageModelQueryProperty
     });
   }
 
+  QueryBuilder<DmMessageModel, String, QQueryOperations> sigProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sig');
+    });
+  }
+
   QueryBuilder<DmMessageModel, String?, QQueryOperations> subjectProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'subject');
+    });
+  }
+
+  QueryBuilder<DmMessageModel, NoteType, QQueryOperations> typeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'type');
     });
   }
 }
