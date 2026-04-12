@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DmConversationEntity {
 
- int get id; String get otherPubkey; String get relayUrl;
+ int? get id; String get otherPubkey; String? get relayUrl;
 /// Create a copy of DmConversationEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $DmConversationEntityCopyWith<$Res>  {
   factory $DmConversationEntityCopyWith(DmConversationEntity value, $Res Function(DmConversationEntity) _then) = _$DmConversationEntityCopyWithImpl;
 @useResult
 $Res call({
- int id, String otherPubkey, String relayUrl
+ int? id, String otherPubkey, String? relayUrl
 });
 
 
@@ -62,12 +62,12 @@ class _$DmConversationEntityCopyWithImpl<$Res>
 
 /// Create a copy of DmConversationEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? otherPubkey = null,Object? relayUrl = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? otherPubkey = null,Object? relayUrl = freezed,}) {
   return _then(_self.copyWith(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,otherPubkey: null == otherPubkey ? _self.otherPubkey : otherPubkey // ignore: cast_nullable_to_non_nullable
-as String,relayUrl: null == relayUrl ? _self.relayUrl : relayUrl // ignore: cast_nullable_to_non_nullable
-as String,
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,otherPubkey: null == otherPubkey ? _self.otherPubkey : otherPubkey // ignore: cast_nullable_to_non_nullable
+as String,relayUrl: freezed == relayUrl ? _self.relayUrl : relayUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -152,7 +152,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String otherPubkey,  String relayUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? id,  String otherPubkey,  String? relayUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DmConversationEntity() when $default != null:
 return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
@@ -173,7 +173,7 @@ return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String otherPubkey,  String relayUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? id,  String otherPubkey,  String? relayUrl)  $default,) {final _that = this;
 switch (_that) {
 case _DmConversationEntity():
 return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
@@ -193,7 +193,7 @@ return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String otherPubkey,  String relayUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? id,  String otherPubkey,  String? relayUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _DmConversationEntity() when $default != null:
 return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
@@ -208,12 +208,12 @@ return $default(_that.id,_that.otherPubkey,_that.relayUrl);case _:
 
 
 class _DmConversationEntity implements DmConversationEntity {
-  const _DmConversationEntity({required this.id, required this.otherPubkey, required this.relayUrl});
+  const _DmConversationEntity({this.id, required this.otherPubkey, this.relayUrl});
   
 
-@override final  int id;
+@override final  int? id;
 @override final  String otherPubkey;
-@override final  String relayUrl;
+@override final  String? relayUrl;
 
 /// Create a copy of DmConversationEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -245,7 +245,7 @@ abstract mixin class _$DmConversationEntityCopyWith<$Res> implements $DmConversa
   factory _$DmConversationEntityCopyWith(_DmConversationEntity value, $Res Function(_DmConversationEntity) _then) = __$DmConversationEntityCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String otherPubkey, String relayUrl
+ int? id, String otherPubkey, String? relayUrl
 });
 
 
@@ -262,12 +262,12 @@ class __$DmConversationEntityCopyWithImpl<$Res>
 
 /// Create a copy of DmConversationEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? otherPubkey = null,Object? relayUrl = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? otherPubkey = null,Object? relayUrl = freezed,}) {
   return _then(_DmConversationEntity(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,otherPubkey: null == otherPubkey ? _self.otherPubkey : otherPubkey // ignore: cast_nullable_to_non_nullable
-as String,relayUrl: null == relayUrl ? _self.relayUrl : relayUrl // ignore: cast_nullable_to_non_nullable
-as String,
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,otherPubkey: null == otherPubkey ? _self.otherPubkey : otherPubkey // ignore: cast_nullable_to_non_nullable
+as String,relayUrl: freezed == relayUrl ? _self.relayUrl : relayUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

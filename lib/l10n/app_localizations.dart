@@ -268,6 +268,12 @@ abstract class AppLocalizations {
   /// **'Write a new note...'**
   String get brahmaHintText;
 
+  /// Placeholder in the note subject field
+  ///
+  /// In en, this message translates to:
+  /// **'Subject (optional)'**
+  String get brahmaSubjectHintText;
+
   /// Tooltip for attach-image button
   ///
   /// In en, this message translates to:

@@ -6,7 +6,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 

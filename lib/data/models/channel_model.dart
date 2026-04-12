@@ -22,8 +22,9 @@ class ChannelModel {
   late String about;
   late String picture;
 
-  /// Where this channel was observed / preferred to read.
-  late String? relayUrl;
+
+  /// All relay URLs associated with this channel.
+  late List<String> relays;
 
   /// Kind 40 created_at (Unix seconds).
   late int createdAt;

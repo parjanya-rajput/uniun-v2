@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'event_queue_model.g.dart';

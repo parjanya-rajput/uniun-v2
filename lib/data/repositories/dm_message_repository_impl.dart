@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
@@ -25,19 +24,20 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
         return Right(existing.toDomain());
       }
 
-      final model = DmMessageModel()
-        ..eventId = entity.eventId
-        ..sig = ''
-        ..authorPubkey = ''
-        ..conversationId = entity.conversationId
-        ..pTagRefs = [entity.receiverPubkey]
-        ..content = entity.content
-        ..subject = entity.subject
-        ..replyToEventId = entity.replyToEventId
-        ..kind = entity.kind
-        ..type = entity.type
-        ..created = entity.created
-        ..isSeen = entity.isSeen;
+      final model = DmMessageModel(
+        eventId: entity.eventId,
+        sig: '',
+        authorPubkey: '',
+        conversationId: entity.conversationId,
+        pTagRefs: [entity.receiverPubkey],
+        content: entity.content,
+        subject: entity.subject,
+        replyToEventId: entity.replyToEventId,
+        kind: entity.kind,
+        type: entity.type,
+        created: entity.created,
+        isSeen: entity.isSeen,
+      );
 
       await isar.writeTxn(() async {
         await isar.dmMessageModels.put(model);

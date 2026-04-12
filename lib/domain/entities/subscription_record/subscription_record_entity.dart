@@ -5,12 +5,11 @@ part 'subscription_record_entity.freezed.dart';
 @freezed
 abstract class SubscriptionRecordEntity with _$SubscriptionRecordEntity {
   const factory SubscriptionRecordEntity({
-    required String key,
+    required String channelId,
     required List<int> kinds,
     required List<String> eTags,
     List<String>? authors,
     int? limit,
-    required List<String> relays,
     required Map<String, int> lastUntilByRelay,
     required int createdAt,
     required int updatedAt,

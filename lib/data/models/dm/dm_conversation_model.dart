@@ -11,7 +11,7 @@ class DmConversationModel {
   @Index(unique: true)
   late String otherPubkey;
 
-  late String relayUrl;
+  String? relayUrl;
 }
 
 extension DmConversationModelExtension on DmConversationModel {
