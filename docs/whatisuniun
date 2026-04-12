@@ -88,18 +88,29 @@ Also includes:
 
 ### Shiv (AI Assistant)
 
-Shiv is a local AI assistant running on device.
+Shiv is a fully on-device AI assistant. No cloud API. No data leaves the phone.
 
-Capabilities:
+**Model selection:**
+User picks from supported models (Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B) via `AIModelSelectionPage`. Selection is persisted in `AppSettingsModel` (Isar). If no model is active, Shiv redirects to the selection screen.
 
-* summarize notes
-* search notes
-* answer questions from notes
-* translate content
+**What Shiv can do:**
+* Answer questions using your own saved notes as context (RAG)
+* Summarize topics across your notes
+* Reason over your personal knowledge base
+* Maintain multi-turn conversation history per session
 
-AI uses local RAG over stored notes.
+**RAG pipeline:**
+1. On tab open — embedding model (all-MiniLM-L6-v2, TFLite, ~80MB) is loaded. User profile + own notes build a personalized system instruction.
+2. On each message — the question is embedded, compared against saved-note vectors (cosine similarity), top-K matches are injected as context before the model sees the question.
+3. `InferenceChat` (flutter_gemma 0.13.x) manages conversation history internally — each turn only receives the current question + RAG context, not the full history.
 
-No external API required.
+**Conversation management:**
+* Each chat is a `ShivConversation` (persisted in Isar forever).
+* Messages form a linked list via `parentId` — future branch-tree view is possible without schema changes.
+* Auto-title: the first 40 characters of the first user message become the conversation title.
+* History drawer slides in from the left (Scaffold drawer). Swipe a conversation to delete.
+
+**Stack:** flutter_gemma 0.13.1 · tflite_flutter · all-MiniLM-L6-v2 · Isar
 
 ---
 

@@ -82,6 +82,20 @@ class UpdateMessageContentUseCase
   }
 }
 
+@lazySingleton
+class UpdateConversationTitleUseCase
+    extends UseCase<Either<Failure, Unit>,
+        (String conversationId, String title)> {
+  final ShivRepository _repository;
+  const UpdateConversationTitleUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call((String, String) input,
+      {bool cached = false}) {
+    return _repository.updateConversationTitle(input.$1, input.$2);
+  }
+}
+
 /// Updates which leaf node the user is currently viewing (for branch switching).
 @lazySingleton
 class UpdateActiveLeafUseCase

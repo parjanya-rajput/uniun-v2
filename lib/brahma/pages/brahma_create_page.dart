@@ -5,25 +5,43 @@ import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/brahma/widgets/graph_preview_card.dart';
 import 'package:uniun/brahma/widgets/note_compose_card.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class BrahmaCreatePage extends StatelessWidget {
-  const BrahmaCreatePage({super.key, this.onPublished});
+  const BrahmaCreatePage({
+    super.key,
+    required this.currentIndex,
+    required this.onSwitchTab,
+    this.onPublished,
+  });
 
+  final int currentIndex;
+  final Future<void> Function(int) onSwitchTab;
   final VoidCallback? onPublished;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<BrahmaCreateBloc>(
       create: (_) => getIt<BrahmaCreateBloc>(),
-      child: _BrahmaCreateView(onPublished: onPublished),
+      child: _BrahmaCreateView(
+        currentIndex: currentIndex,
+        onSwitchTab: onSwitchTab,
+        onPublished: onPublished,
+      ),
     );
   }
 }
 
 class _BrahmaCreateView extends StatefulWidget {
-  const _BrahmaCreateView({this.onPublished});
+  const _BrahmaCreateView({
+    required this.currentIndex,
+    required this.onSwitchTab,
+    this.onPublished,
+  });
 
+  final int currentIndex;
+  final Future<void> Function(int) onSwitchTab;
   final VoidCallback? onPublished;
 
   @override
@@ -194,6 +212,17 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                     ),
                   ),
                 ],
+              ),
+            ),
+
+            // ── Floating nav ─────────────────────────────────────────────
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: FloatingNav(
+                currentIndex: widget.currentIndex,
+                onTap: widget.onSwitchTab,
               ),
             ),
             ],

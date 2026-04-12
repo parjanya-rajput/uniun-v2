@@ -111,13 +111,22 @@ class _AboutYouPageState extends State<AboutYouPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             OnboardingAppBar(onBack: () => Navigator.pop(context)),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  0,
+                  24,
+                  MediaQuery.of(context).viewInsets.bottom +
+                      MediaQuery.of(context).padding.bottom +
+                      24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

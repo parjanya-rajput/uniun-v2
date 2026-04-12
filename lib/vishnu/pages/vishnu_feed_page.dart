@@ -1,29 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/home/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/vishnu/drawer/widgets/vishnu_drawer.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/vishnu/widgets/note_card.dart';
 
-class VishnuFeedPage extends StatelessWidget {
-  const VishnuFeedPage({super.key, required this.onOpenDrawer});
-  final VoidCallback onOpenDrawer;
+class VishnuFeedPage extends StatefulWidget {
+  const VishnuFeedPage({
+    super.key,
+    required this.currentIndex,
+    required this.onSwitchTab,
+  });
+  final int currentIndex;
+  final Future<void> Function(int) onSwitchTab;
+
+  @override
+  State<VishnuFeedPage> createState() => _VishnuFeedPageState();
+}
+
+class _VishnuFeedPageState extends State<VishnuFeedPage> {
+  late final app_drawer.DrawerBloc _drawerBloc;
+  bool _navVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _drawerBloc = getIt<app_drawer.DrawerBloc>()
+      ..add(app_drawer.DrawerLoadEvent());
+  }
+
+  @override
+  void dispose() {
+    _drawerBloc.close();
+    super.dispose();
+  }
+
+  void _onScrollDirection(ScrollDirection direction) {
+    if (direction == ScrollDirection.reverse && _navVisible) {
+      setState(() => _navVisible = false);
+    } else if (direction == ScrollDirection.forward && !_navVisible) {
+      setState(() => _navVisible = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return _VishnuFeedView(onOpenDrawer: onOpenDrawer);
+    return BlocProvider<app_drawer.DrawerBloc>.value(
+      value: _drawerBloc,
+      child: Scaffold(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        drawer: VishnuDrawer(onSwitchTab: widget.onSwitchTab),
+        body: Stack(
+          children: [
+            _VishnuFeedView(onScrollDirection: _onScrollDirection),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: AnimatedSlide(
+                offset: _navVisible ? Offset.zero : const Offset(0, 1.5),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: FloatingNav(
+                  currentIndex: widget.currentIndex,
+                  onTap: widget.onSwitchTab,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
 // ── Feed view ─────────────────────────────────────────────────────────────────
 
 class _VishnuFeedView extends StatefulWidget {
-  const _VishnuFeedView({required this.onOpenDrawer});
-  final VoidCallback onOpenDrawer;
+  const _VishnuFeedView({required this.onScrollDirection});
+  final void Function(ScrollDirection) onScrollDirection;
 
   @override
   State<_VishnuFeedView> createState() => _VishnuFeedViewState();
@@ -47,6 +110,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
   }
 
   void _onScroll() {
+    widget.onScrollDirection(_scrollController.position.userScrollDirection);
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       context.read<VishnuFeedBloc>().add(const LoadMoreFeedEvent());
@@ -85,7 +149,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
       child: Column(
         children: [
           // ── Header ──────────────────────────────────────────────────
-          _FeedHeader(onOpenDrawer: widget.onOpenDrawer),
+          const _FeedHeader(),
 
           // ── Feed list ────────────────────────────────────────────────
           Expanded(
@@ -206,8 +270,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
 // ── Feed header ───────────────────────────────────────────────────────────────
 
 class _FeedHeader extends StatelessWidget {
-  const _FeedHeader({required this.onOpenDrawer});
-  final VoidCallback onOpenDrawer;
+  const _FeedHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +288,7 @@ class _FeedHeader extends StatelessWidget {
         children: [
           // Drawer / logo button
           GestureDetector(
-            onTap: onOpenDrawer,
+            onTap: () => Scaffold.of(context).openDrawer(),
             child: const Row(
               children: [
                 Image(
@@ -258,7 +321,7 @@ class _FeedHeader extends StatelessWidget {
           const SizedBox(width: 4),
           // Avatar — shows logged-in user's actual profile picture
           GestureDetector(
-            onTap: onOpenDrawer,
+            onTap: () => Scaffold.of(context).openDrawer(),
             child: BlocBuilder<app_drawer.DrawerBloc, app_drawer.DrawerState>(
               builder: (context, drawerState) {
                 String? avatarUrl;

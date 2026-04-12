@@ -119,23 +119,52 @@ classDiagram
         +bool isRecommended
         +String quantization
         +int contextWindow
+        <<stored in AIModelSelectionModel + AppSettingsModel>>
     }
 
-    class AIConversationEntity {
-        +int id
+    class ShivConversationEntity {
+        +String conversationId
         +String title
-        +String modelId
-        +DateTime created
-        +DateTime? updated
+        +String? activeLeafMessageId
+        +DateTime createdAt
+        +DateTime updatedAt
+        <<local only — Isar ShivConversationModel>>
     }
 
-    class AIMessageEntity {
-        +int id
-        +int conversationId
-        +String content
+    class ShivMessageEntity {
+        +String messageId
+        +String conversationId
+        +String? parentId
         +MessageRole role
+        +String content
+        +DateTime createdAt
+        <<linked list via parentId — enables branch tree>>
+    }
+
+    class EventQueueModel {
+        +String eventId
+        +String authorPubkey
+        +String sig
+        +String content
+        +int kind
+        +List~String~ eTagRefs
+        +String? rootEventId
+        +String? replyToEventId
+        +List~String~ pTagRefs
+        +List~String~ tTags
         +DateTime created
-        +int? tokensUsed
+        +int sentCount
+        +DateTime enqueuedAt
+        +toSerializedRelayMessage() String
+        <<durable outbound relay queue — read by EmbeddedServer WebSocketService>>
+    }
+
+    class DmConversationModel {
+        <<Isar — schema done, UI pending>>
+    }
+
+    class DmMessageModel {
+        <<Isar — schema done, UI pending>>
     }
 
     class ReferenceEdgeEntity {
@@ -174,8 +203,11 @@ classDiagram
     MessageEntity --> NostrChannelView : postedIn
     ChannelReadStateModel --> NostrChannelView : tracks
     DMReadStateModel --> MessageEntity : tracks
-    AIConversationEntity --> AIModelEntity : uses
-    AIConversationEntity --> AIMessageEntity : contains
+    ShivConversationEntity --> ShivMessageEntity : contains
+    ShivConversationEntity --> AIModelEntity : uses
+    ShivMessageEntity --> ShivMessageEntity : parentId chain
+    EventQueueModel --> EmbeddedServer : dequeuedBy
+    DmConversationModel --> DmMessageModel : contains
     RelayEntity --> EmbeddedServer : managedBy
 
     %% ════════════════════════════════════════
