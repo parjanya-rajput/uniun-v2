@@ -7,6 +7,7 @@ enum ThreadPostStatus { idle, posting, posted, error }
 class ThreadState {
   const ThreadState({
     this.rootNote,
+    this.parentChain = const [],
     this.profiles = const {},
     this.replies = const [],
     this.replyCounts = const {},
@@ -21,6 +22,9 @@ class ThreadState {
   });
 
   final NoteEntity? rootNote;
+  /// Ancestor notes ordered oldest → newest (immediate parent is last).
+  /// Empty when the root note is a top-level post.
+  final List<NoteEntity> parentChain;
   /// pubkey → ProfileEntity for every author visible in this thread
   final Map<String, ProfileEntity> profiles;
   /// Direct replies to the root note (replyToEventId == rootNote.id)
@@ -47,6 +51,7 @@ class ThreadState {
 
   ThreadState copyWith({
     NoteEntity? rootNote,
+    List<NoteEntity>? parentChain,
     Map<String, ProfileEntity>? profiles,
     List<NoteEntity>? replies,
     Map<String, int>? replyCounts,
@@ -61,6 +66,7 @@ class ThreadState {
   }) {
     return ThreadState(
       rootNote: rootNote ?? this.rootNote,
+      parentChain: parentChain ?? this.parentChain,
       profiles: profiles ?? this.profiles,
       replies: replies ?? this.replies,
       replyCounts: replyCounts ?? this.replyCounts,

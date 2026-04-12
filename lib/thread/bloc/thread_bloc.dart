@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
@@ -8,9 +10,12 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/domain/usecases/vector_usecases.dart';
 
 part 'thread_event.dart';
 part 'thread_state.dart';
+
+// ── BLoC ─────────────────────────────────────────────────────────────────────
 
 @injectable
 class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
@@ -20,6 +25,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final GetProfileUseCase _getProfile;
   final GetReplyCountUseCase _getReplyCount;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
+  final EmbedAndStoreNoteUseCase _embedAndStore;
 
   ThreadBloc(
     this._getNoteById,
@@ -28,6 +34,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     this._getProfile,
     this._getReplyCount,
     this._getActiveUserKeys,
+    this._embedAndStore,
   ) : super(const ThreadState()) {
     on<LoadThreadEvent>(_onLoad, transformer: droppable());
     on<UpdateReplyTextEvent>(_onUpdateText);
@@ -37,7 +44,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     on<ExpandReplyEvent>(_onExpand, transformer: sequential());
   }
 
-  // ── Load ────────────────────────────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────────────────────────────
 
   Future<void> _onLoad(
     LoadThreadEvent event,
@@ -45,7 +52,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   ) async {
     emit(state.copyWith(status: ThreadStatus.loading));
 
-    // 1. Fetch root note
+    // ── Phase 1: fetch root note ─────────────────────────────────────────────
     final rootResult = await _getNoteById.call(event.noteId);
     if (rootResult.isLeft()) {
       emit(state.copyWith(
@@ -56,84 +63,55 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     }
     final rootNote = rootResult.getOrElse(() => throw StateError(''));
 
-    // 2. Fetch root profile + direct replies in parallel
+    // ── Phase 2: fetch root profile + direct replies + parent chain in parallel
     final profiles = <String, ProfileEntity>{};
     final replyCounts = <String, int>{};
-    final nestedReplies = <String, List<NoteEntity>>{};
 
     final rootProfileFuture = _getProfile.call(rootNote.authorPubkey);
     final repliesResult = await _getReplies.call(event.noteId);
-    final replies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
+    final directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
 
     final rootProfile = await rootProfileFuture;
     rootProfile.fold((_) {}, (p) => profiles[p.pubkey] = p);
 
-    // 3. Fetch profiles + counts for direct replies in parallel
-    await Future.wait(replies.map((reply) async {
+    // Profiles + counts for direct replies — all parallel
+    await Future.wait(directReplies.map((reply) async {
       final cr = await _getReplyCount.call(reply.id);
       cr.fold((_) {}, (c) => replyCounts[reply.id] = c);
       final pr = await _getProfile.call(reply.authorPubkey);
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
     }));
 
-    // ── Emit skeleton — screen renders immediately ───────────────────────────
+    // ── Walk up the parent chain (max 2 levels) ───────────────────────────────
+    // Needed to display context above the focused note (X/Twitter style).
+    final parentChain = <NoteEntity>[];
+    var parentId = rootNote.replyToEventId;
+    var depth = 0;
+    while (parentId != null && depth < 2) {
+      final pr = await _getNoteById.call(parentId);
+      if (pr.isLeft()) break;
+      final parent = pr.getOrElse(() => throw StateError('unreachable'));
+      parentChain.insert(0, parent); // oldest first
+      if (!profiles.containsKey(parent.authorPubkey)) {
+        final pfr = await _getProfile.call(parent.authorPubkey);
+        pfr.fold((_) {}, (p) => profiles[p.pubkey] = p);
+      }
+      parentId = parent.replyToEventId;
+      depth++;
+    }
+
     emit(state.copyWith(
       rootNote: rootNote,
+      parentChain: parentChain,
       profiles: Map.from(profiles),
-      replies: replies,
+      replies: directReplies,
       replyCounts: Map.from(replyCounts),
       nestedReplies: const {},
       status: ThreadStatus.loaded,
     ));
-
-    // 4. BFS-expand nested replies level by level, all nodes in each level
-    //    fetched in parallel — fast but doesn't block the initial render
-    var bfsQueue = [...replies];
-    final visited = <String>{rootNote.id, ...replies.map((r) => r.id)};
-    int bfsLimit = 60;
-
-    while (bfsQueue.isNotEmpty && bfsLimit > 0) {
-      final batch = bfsQueue.take(bfsLimit).toList();
-      bfsLimit -= batch.length;
-      bfsQueue = [];
-
-      await Future.wait(batch.map((node) async {
-        final cr = await _getReplyCount.call(node.id);
-        cr.fold((_) {}, (c) => replyCounts[node.id] = c);
-
-        final nr = await _getReplies.call(node.id);
-        nr.fold((_) {}, (children) {
-          if (children.isNotEmpty) {
-            nestedReplies[node.id] = children;
-            for (final child in children) {
-              if (!visited.contains(child.id)) {
-                visited.add(child.id);
-                bfsQueue.add(child);
-              }
-            }
-          }
-        });
-      }));
-
-      // Fetch profiles for newly discovered nodes in parallel
-      final newNodes = bfsQueue
-          .where((n) => !profiles.containsKey(n.authorPubkey))
-          .toList();
-      await Future.wait(newNodes.map((n) async {
-        final pr = await _getProfile.call(n.authorPubkey);
-        pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
-      }));
-    }
-
-    if (emit.isDone) return;
-    emit(state.copyWith(
-      profiles: Map.from(profiles),
-      replyCounts: Map.from(replyCounts),
-      nestedReplies: Map.from(nestedReplies),
-    ));
   }
 
-  // ── Lazy expand ─────────────────────────────────────────────────────────────
+  // ── Lazy expand (on-demand, beyond BFS depth limit) ───────────────────────
 
   Future<void> _onExpand(
     ExpandReplyEvent event,
@@ -148,7 +126,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     final children = nr.getOrElse(() => []);
     if (children.isEmpty) return;
 
-    // Fetch profiles + reply counts for children in parallel
     final profiles = Map<String, ProfileEntity>.from(state.profiles);
     final replyCounts = Map<String, int>.from(state.replyCounts);
 
@@ -174,16 +151,20 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     }
   }
 
-  // ── Reply composer ──────────────────────────────────────────────────────────
+  // ── Reply composer ────────────────────────────────────────────────────────
 
   void _onUpdateText(UpdateReplyTextEvent event, Emitter<ThreadState> emit) {
-    emit(state.copyWith(replyText: event.text));
+    emit(state.copyWith(
+      replyText: event.text,
+      postStatus: ThreadPostStatus.idle,
+    ));
   }
 
   void _onSetTarget(SetReplyTargetEvent event, Emitter<ThreadState> emit) {
     emit(state.copyWith(
       replyingToId: event.replyToId,
       replyingToName: event.replyToName,
+      postStatus: ThreadPostStatus.idle,
     ));
   }
 
@@ -194,7 +175,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     if (!state.canPost || state.rootNote == null) return;
     emit(state.copyWith(postStatus: ThreadPostStatus.posting));
 
-    // Get signing keys
     final keysResult = await _getActiveUserKeys.call();
     if (keysResult.isLeft()) {
       emit(state.copyWith(
@@ -214,6 +194,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       if (replyToId != rootId) ['e', replyToId, '', 'reply'],
     ];
 
+    // Sign with user's private key
     late final Event signed;
     try {
       signed = Event.from(
@@ -252,6 +233,8 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
         errorMessage: f.toMessage(),
       )),
       (published) {
+        // Fire-and-forget: embed own authored reply for RAG.
+        unawaited(_embedAndStore.call((published.id, published.content)));
         final updatedState = state.copyWith(
           replyText: '',
           replyingToId: null,

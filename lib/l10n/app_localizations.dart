@@ -262,6 +262,12 @@ abstract class AppLocalizations {
   /// **'Brahma'**
   String get brahmaTitle;
 
+  /// Brahma header tagline shown below the title
+  ///
+  /// In en, this message translates to:
+  /// **'Write & publish to Nostr'**
+  String get brahmaTagline;
+
   /// Placeholder in the note compose field
   ///
   /// In en, this message translates to:
@@ -688,17 +694,143 @@ abstract class AppLocalizations {
   /// **'Select Model'**
   String get aiSelectModel;
 
-  /// Current model value in AI card
+  /// Subtitle in AI card when no model is active
   ///
   /// In en, this message translates to:
-  /// **'Gemma 2B (Recommended)'**
-  String get aiGemma2bRecommended;
+  /// **'No model downloaded'**
+  String get aiModelNoneSelected;
 
   /// AI card destructive action
   ///
   /// In en, this message translates to:
   /// **'Clear AI Cache'**
   String get aiClearCache;
+
+  /// App bar title on the model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'AI Model Selection'**
+  String get aiModelSelectionTitle;
+
+  /// Subtitle under available models header
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the intelligence level that fits your device\'s capabilities.'**
+  String get aiModelSelectionSubtitle;
+
+  /// Section header on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'Available Models'**
+  String get aiModelAvailableHeader;
+
+  /// Badge shown on the recommended model card
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get aiModelRecommendedBadge;
+
+  /// Primary CTA button on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'Use This Model'**
+  String get aiModelUseThisButton;
+
+  /// Info banner text on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'Switching models requires a one-time download. Connect to Wi-Fi to avoid data charges. Your chat history is preserved.'**
+  String get aiModelDownloadInfoText;
+
+  /// Capability chip — CPU optimized model
+  ///
+  /// In en, this message translates to:
+  /// **'Optimized for CPU'**
+  String get aiModelOptimizedCpu;
+
+  /// Capability chip — GPU+CPU model
+  ///
+  /// In en, this message translates to:
+  /// **'Optimized for GPU / CPU'**
+  String get aiModelOptimizedGpuCpu;
+
+  /// Capability chip — GPU-only model
+  ///
+  /// In en, this message translates to:
+  /// **'Optimized for GPU'**
+  String get aiModelOptimizedGpu;
+
+  /// Download progress label shown in footer while downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String aiModelDownloadingProgress(int percent);
+
+  /// Badge shown on already-downloaded active model card
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get aiModelAlreadyActive;
+
+  /// Snackbar when model download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Please try again.'**
+  String get aiModelDownloadError;
+
+  /// Display name for Qwen 2.5 0.5B model
+  ///
+  /// In en, this message translates to:
+  /// **'Qwen 2.5 0.5B'**
+  String get aiModelQwen25Name;
+
+  /// Description for Qwen 2.5 0.5B model
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra-compact and fast. Works on any Android device with 3 GB+ RAM.'**
+  String get aiModelQwen25Desc;
+
+  /// Display name for DeepSeek R1 1.5B model
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek R1'**
+  String get aiModelDeepSeekR1Name;
+
+  /// Description for DeepSeek R1 1.5B model
+  ///
+  /// In en, this message translates to:
+  /// **'Best reasoning and code generation for daily use. Requires 4 GB+ RAM.'**
+  String get aiModelDeepSeekR1Desc;
+
+  /// Display name for Gemma 4 E2B model
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 4 E2B'**
+  String get aiModelGemma4E2bName;
+
+  /// Description for Gemma 4 E2B model
+  ///
+  /// In en, this message translates to:
+  /// **'Multimodal — handles text and images. Great for high-end devices with 6 GB+ RAM.'**
+  String get aiModelGemma4E2bDesc;
+
+  /// Display name for Gemma 4 E4B model
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 4 E4B'**
+  String get aiModelGemma4E4bName;
+
+  /// Description for Gemma 4 E4B model
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum accuracy multimodal model. Best on flagship devices with 8 GB+ RAM.'**
+  String get aiModelGemma4E4bDesc;
+
+  /// Progress label shown while the embedding model is downloading after first LLM install
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up AI features…'**
+  String get aiEmbeddingSetupInProgress;
 
   /// Edit profile screen app-bar title
   ///
@@ -1251,6 +1383,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNIUN is provided as-is. We make no guarantees about relay uptime, third-party server availability, or persistence of content on external relays.'**
   String get termsNoWarrantyBody;
+
+  /// Shiv AI assistant name label (uppercase)
+  ///
+  /// In en, this message translates to:
+  /// **'SHIV'**
+  String get shivName;
+
+  /// Shiv landing header tagline
+  ///
+  /// In en, this message translates to:
+  /// **'Think in threads'**
+  String get shivTagline;
+
+  /// Shiv landing screen body subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Your on-device AI.\nThink in threads.'**
+  String get shivLandingBody;
+
+  /// Button label to create a new Shiv conversation
+  ///
+  /// In en, this message translates to:
+  /// **'New Conversation'**
+  String get shivNewConversation;
+
+  /// Link to view existing conversations on Shiv landing
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{View 1 conversation} other{View {count} conversations}}'**
+  String shivViewConversations(int count);
+
+  /// Title of the conversations history sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get shivConversations;
+
+  /// Tooltip on new conversation icon button
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get shivNewConversationTooltip;
+
+  /// Tooltip on the history icon in chat header
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get shivConversationsTooltip;
+
+  /// Tooltip on the branch tree icon in chat header
+  ///
+  /// In en, this message translates to:
+  /// **'Branch tree'**
+  String get shivBranchTreeTooltip;
+
+  /// Snackbar shown when tapping the branch tree button
+  ///
+  /// In en, this message translates to:
+  /// **'Branch tree — coming in Phase 4'**
+  String get shivBranchTreeComingSoon;
+
+  /// Default title for a newly created conversation
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get shivDefaultConversationTitle;
+
+  /// Empty chat state heading
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation'**
+  String get shivEmptyTitle;
+
+  /// Empty chat state body text
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Shiv anything — your saved notes\ngive it context about what you know.'**
+  String get shivEmptyBody;
+
+  /// Hint text inside the Shiv chat input field
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Shiv anything…'**
+  String get shivInputHint;
+
+  /// Empty state in the conversations history sheet
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get shivNoConversations;
+
+  /// Badge on the currently active conversation in history
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get shivActiveLabel;
+
+  /// Relative time: less than 1 minute ago
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get shivTimeJustNow;
+
+  /// Relative time in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String shivTimeMinutesAgo(int count);
+
+  /// Relative time in hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String shivTimeHoursAgo(int count);
+
+  /// Relative time in days
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d ago'**
+  String shivTimeDaysAgo(int count);
 }
 
 class _AppLocalizationsDelegate

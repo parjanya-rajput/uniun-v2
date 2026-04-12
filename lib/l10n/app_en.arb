@@ -90,6 +90,9 @@
   "brahmaTitle": "Brahma",
   "@brahmaTitle": { "description": "Title of the create-note screen" },
 
+  "brahmaTagline": "Write & publish to Nostr",
+  "@brahmaTagline": { "description": "Brahma header tagline shown below the title" },
+
   "brahmaHintText": "Write a new note...",
   "@brahmaHintText": { "description": "Placeholder in the note compose field" },
 
@@ -323,11 +326,79 @@
   "aiSelectModel": "Select Model",
   "@aiSelectModel": { "description": "AI card row — model selector" },
 
-  "aiGemma2bRecommended": "Gemma 2B (Recommended)",
-  "@aiGemma2bRecommended": { "description": "Current model value in AI card" },
+  "aiModelNoneSelected": "No model downloaded",
+  "@aiModelNoneSelected": { "description": "Subtitle in AI card when no model is active" },
 
   "aiClearCache": "Clear AI Cache",
   "@aiClearCache": { "description": "AI card destructive action" },
+
+  "aiModelSelectionTitle": "AI Model Selection",
+  "@aiModelSelectionTitle": { "description": "App bar title on the model selection screen" },
+
+  "aiModelSelectionSubtitle": "Choose the intelligence level that fits your device's capabilities.",
+  "@aiModelSelectionSubtitle": { "description": "Subtitle under available models header" },
+
+  "aiModelAvailableHeader": "Available Models",
+  "@aiModelAvailableHeader": { "description": "Section header on model selection screen" },
+
+  "aiModelRecommendedBadge": "Recommended",
+  "@aiModelRecommendedBadge": { "description": "Badge shown on the recommended model card" },
+
+  "aiModelUseThisButton": "Use This Model",
+  "@aiModelUseThisButton": { "description": "Primary CTA button on model selection screen" },
+
+  "aiModelDownloadInfoText": "Switching models requires a one-time download. Connect to Wi-Fi to avoid data charges. Your chat history is preserved.",
+  "@aiModelDownloadInfoText": { "description": "Info banner text on model selection screen" },
+
+  "aiModelOptimizedCpu": "Optimized for CPU",
+  "@aiModelOptimizedCpu": { "description": "Capability chip — CPU optimized model" },
+
+  "aiModelOptimizedGpuCpu": "Optimized for GPU / CPU",
+  "@aiModelOptimizedGpuCpu": { "description": "Capability chip — GPU+CPU model" },
+
+  "aiModelOptimizedGpu": "Optimized for GPU",
+  "@aiModelOptimizedGpu": { "description": "Capability chip — GPU-only model" },
+
+  "aiModelDownloadingProgress": "Downloading… {percent}%",
+  "@aiModelDownloadingProgress": {
+    "description": "Download progress label shown in footer while downloading",
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+
+  "aiModelAlreadyActive": "Active",
+  "@aiModelAlreadyActive": { "description": "Badge shown on already-downloaded active model card" },
+
+  "aiModelDownloadError": "Download failed. Please try again.",
+  "@aiModelDownloadError": { "description": "Snackbar when model download fails" },
+
+  "aiModelQwen25Name": "Qwen 2.5 0.5B",
+  "@aiModelQwen25Name": { "description": "Display name for Qwen 2.5 0.5B model" },
+
+  "aiModelQwen25Desc": "Ultra-compact and fast. Works on any Android device with 3 GB+ RAM.",
+  "@aiModelQwen25Desc": { "description": "Description for Qwen 2.5 0.5B model" },
+
+  "aiModelDeepSeekR1Name": "DeepSeek R1",
+  "@aiModelDeepSeekR1Name": { "description": "Display name for DeepSeek R1 1.5B model" },
+
+  "aiModelDeepSeekR1Desc": "Best reasoning and code generation for daily use. Requires 4 GB+ RAM.",
+  "@aiModelDeepSeekR1Desc": { "description": "Description for DeepSeek R1 1.5B model" },
+
+  "aiModelGemma4E2bName": "Gemma 4 E2B",
+  "@aiModelGemma4E2bName": { "description": "Display name for Gemma 4 E2B model" },
+
+  "aiModelGemma4E2bDesc": "Multimodal — handles text and images. Great for high-end devices with 6 GB+ RAM.",
+  "@aiModelGemma4E2bDesc": { "description": "Description for Gemma 4 E2B model" },
+
+  "aiModelGemma4E4bName": "Gemma 4 E4B",
+  "@aiModelGemma4E4bName": { "description": "Display name for Gemma 4 E4B model" },
+
+  "aiModelGemma4E4bDesc": "Maximum accuracy multimodal model. Best on flagship devices with 8 GB+ RAM.",
+  "@aiModelGemma4E4bDesc": { "description": "Description for Gemma 4 E4B model" },
+
+  "aiEmbeddingSetupInProgress": "Setting up AI features…",
+  "@aiEmbeddingSetupInProgress": { "description": "Progress label shown while the embedding model is downloading after first LLM install" },
 
   "editProfileTitle": "Edit Profile",
   "@editProfileTitle": { "description": "Edit profile screen app-bar title" },
@@ -599,5 +670,85 @@
   "termsNoWarrantyTitle": "No Warranty",
   "@termsNoWarrantyTitle": {},
   "termsNoWarrantyBody": "UNIUN is provided as-is. We make no guarantees about relay uptime, third-party server availability, or persistence of content on external relays.",
-  "@termsNoWarrantyBody": {}
+  "@termsNoWarrantyBody": {},
+
+  "shivName": "SHIV",
+  "@shivName": { "description": "Shiv AI assistant name label (uppercase)" },
+
+  "shivTagline": "Think in threads",
+  "@shivTagline": { "description": "Shiv landing header tagline" },
+
+  "shivLandingBody": "Your on-device AI.\nThink in threads.",
+  "@shivLandingBody": { "description": "Shiv landing screen body subtitle" },
+
+  "shivNewConversation": "New Conversation",
+  "@shivNewConversation": { "description": "Button label to create a new Shiv conversation" },
+
+  "shivViewConversations": "{count, plural, =1{View 1 conversation} other{View {count} conversations}}",
+  "@shivViewConversations": {
+    "description": "Link to view existing conversations on Shiv landing",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "shivConversations": "Conversations",
+  "@shivConversations": { "description": "Title of the conversations history sheet" },
+
+  "shivNewConversationTooltip": "New conversation",
+  "@shivNewConversationTooltip": { "description": "Tooltip on new conversation icon button" },
+
+  "shivConversationsTooltip": "Conversations",
+  "@shivConversationsTooltip": { "description": "Tooltip on the history icon in chat header" },
+
+  "shivBranchTreeTooltip": "Branch tree",
+  "@shivBranchTreeTooltip": { "description": "Tooltip on the branch tree icon in chat header" },
+
+  "shivBranchTreeComingSoon": "Branch tree — coming in Phase 4",
+  "@shivBranchTreeComingSoon": { "description": "Snackbar shown when tapping the branch tree button" },
+
+  "shivDefaultConversationTitle": "New conversation",
+  "@shivDefaultConversationTitle": { "description": "Default title for a newly created conversation" },
+
+  "shivEmptyTitle": "Start a conversation",
+  "@shivEmptyTitle": { "description": "Empty chat state heading" },
+
+  "shivEmptyBody": "Ask Shiv anything — your saved notes\ngive it context about what you know.",
+  "@shivEmptyBody": { "description": "Empty chat state body text" },
+
+  "shivInputHint": "Ask Shiv anything…",
+  "@shivInputHint": { "description": "Hint text inside the Shiv chat input field" },
+
+  "shivNoConversations": "No conversations yet",
+  "@shivNoConversations": { "description": "Empty state in the conversations history sheet" },
+
+  "shivActiveLabel": "Active",
+  "@shivActiveLabel": { "description": "Badge on the currently active conversation in history" },
+
+  "shivTimeJustNow": "Just now",
+  "@shivTimeJustNow": { "description": "Relative time: less than 1 minute ago" },
+
+  "shivTimeMinutesAgo": "{count}m ago",
+  "@shivTimeMinutesAgo": {
+    "description": "Relative time in minutes",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "shivTimeHoursAgo": "{count}h ago",
+  "@shivTimeHoursAgo": {
+    "description": "Relative time in hours",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "shivTimeDaysAgo": "{count}d ago",
+  "@shivTimeDaysAgo": {
+    "description": "Relative time in days",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
 }
