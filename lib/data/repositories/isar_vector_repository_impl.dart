@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/note_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/repositories/vector_repository.dart';
@@ -96,20 +96,21 @@ class IsarVectorRepositoryImpl implements VectorRepository {
       if (!seen.add(n.eventId)) continue;
       final score = _cosine(queryVector, n.embedding!);
       if (score >= minScore) {
-        candidates.add(ScoredNote(noteId: n.eventId, score: score, content: n.content));
+        candidates.add(
+          ScoredNote(noteId: n.eventId, score: score, content: n.content),
+        );
       }
     }
 
     // 2 — Own authored notes — query for non-null embeddings.
-    final own = await _isar.noteModels
-        .filter()
-        .embeddingIsNotEmpty()
-        .findAll();
+    final own = await _isar.noteModels.filter().embeddingIsNotEmpty().findAll();
     for (final n in own) {
       if (!seen.add(n.eventId)) continue;
       final score = _cosine(queryVector, n.embedding!);
       if (score >= minScore) {
-        candidates.add(ScoredNote(noteId: n.eventId, score: score, content: n.content));
+        candidates.add(
+          ScoredNote(noteId: n.eventId, score: score, content: n.content),
+        );
       }
     }
 

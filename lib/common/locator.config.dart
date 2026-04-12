@@ -17,13 +17,17 @@ import 'package:uniun/core/isolate/embedded_server_bridge.dart' as _i717;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/repositories/ai_model_repository_impl.dart' as _i72;
 import 'package:uniun/data/repositories/channel_repository_impl.dart' as _i1009;
+import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart'
+    as _i1011;
+import 'package:uniun/data/repositories/dm_message_repository_impl.dart'
+    as _i398;
+import 'package:uniun/data/repositories/event_queue_repository_impl.dart'
+    as _i116;
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
     as _i107;
 import 'package:uniun/data/repositories/isar_vector_repository_impl.dart'
     as _i456;
 import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
-import 'package:uniun/data/repositories/outbound_event_repository_impl.dart'
-    as _i694;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
 import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
@@ -34,6 +38,11 @@ import 'package:uniun/data/repositories/subscription_record_repository_impl.dart
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
 import 'package:uniun/domain/repositories/ai_model_repository.dart' as _i646;
 import 'package:uniun/domain/repositories/channel_repository.dart' as _i127;
+import 'package:uniun/domain/repositories/dm_conversation_repository.dart'
+    as _i189;
+import 'package:uniun/domain/repositories/dm_message_repository.dart' as _i551;
+import 'package:uniun/domain/repositories/event_queue_repository.dart'
+    as _i1039;
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
     as _i836;
 import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
@@ -110,20 +119,26 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i858.UpdateEmbeddingUseCase>(
       () => _i858.UpdateEmbeddingUseCase(gh<_i739.VectorRepository>()),
     );
+    gh.factory<_i189.DmConversationRepository>(
+      () => _i1011.DmConversationRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i47.NoteRepository>(
       () => _i348.NoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.factory<_i218.OutboundEventRepository>(
-      () => _i694.OutboundEventRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
     gh.factory<_i43.SavedNoteRepository>(
       () => _i669.SavedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i194.SubscriptionRecordRepository>(
       () => _i364.SubscriptionRecordRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i551.DmMessageRepository>(
+      () => _i398.DmMessageRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i1039.EventQueueRepository>(
+      () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),

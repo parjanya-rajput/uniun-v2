@@ -23,25 +23,25 @@ const SubscriptionRecordModelSchema = CollectionSchema(
       name: r'authors',
       type: IsarType.stringList,
     ),
-    r'createdAt': PropertySchema(
+    r'channelId': PropertySchema(
       id: 1,
+      name: r'channelId',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 2,
       name: r'createdAt',
       type: IsarType.long,
     ),
-    r'eTags': PropertySchema(id: 2, name: r'eTags', type: IsarType.stringList),
-    r'enabled': PropertySchema(id: 3, name: r'enabled', type: IsarType.bool),
-    r'kinds': PropertySchema(id: 4, name: r'kinds', type: IsarType.longList),
+    r'eTags': PropertySchema(id: 3, name: r'eTags', type: IsarType.stringList),
+    r'enabled': PropertySchema(id: 4, name: r'enabled', type: IsarType.bool),
+    r'kinds': PropertySchema(id: 5, name: r'kinds', type: IsarType.longList),
     r'lastUntilByRelayJson': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'lastUntilByRelayJson',
       type: IsarType.string,
     ),
-    r'limit': PropertySchema(id: 6, name: r'limit', type: IsarType.long),
-    r'relays': PropertySchema(
-      id: 7,
-      name: r'relays',
-      type: IsarType.stringList,
-    ),
+    r'limit': PropertySchema(id: 7, name: r'limit', type: IsarType.long),
     r'updatedAt': PropertySchema(
       id: 8,
       name: r'updatedAt',
@@ -55,6 +55,19 @@ const SubscriptionRecordModelSchema = CollectionSchema(
   deserializeProp: _subscriptionRecordModelDeserializeProp,
   idName: r'id',
   indexes: {
+    r'channelId': IndexSchema(
+      id: -8352446570702114471,
+      name: r'channelId',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'channelId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
     r'enabled': IndexSchema(
       id: -4605800638041043998,
       name: r'enabled',
@@ -96,6 +109,7 @@ int _subscriptionRecordModelEstimateSize(
       }
     }
   }
+  bytesCount += 3 + object.channelId.length * 3;
   bytesCount += 3 + object.eTags.length * 3;
   {
     for (var i = 0; i < object.eTags.length; i++) {
@@ -105,13 +119,6 @@ int _subscriptionRecordModelEstimateSize(
   }
   bytesCount += 3 + object.kinds.length * 8;
   bytesCount += 3 + object.lastUntilByRelayJson.length * 3;
-  bytesCount += 3 + object.relays.length * 3;
-  {
-    for (var i = 0; i < object.relays.length; i++) {
-      final value = object.relays[i];
-      bytesCount += value.length * 3;
-    }
-  }
   return bytesCount;
 }
 
@@ -122,13 +129,13 @@ void _subscriptionRecordModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeStringList(offsets[0], object.authors);
-  writer.writeLong(offsets[1], object.createdAt);
-  writer.writeStringList(offsets[2], object.eTags);
-  writer.writeBool(offsets[3], object.enabled);
-  writer.writeLongList(offsets[4], object.kinds);
-  writer.writeString(offsets[5], object.lastUntilByRelayJson);
-  writer.writeLong(offsets[6], object.limit);
-  writer.writeStringList(offsets[7], object.relays);
+  writer.writeString(offsets[1], object.channelId);
+  writer.writeLong(offsets[2], object.createdAt);
+  writer.writeStringList(offsets[3], object.eTags);
+  writer.writeBool(offsets[4], object.enabled);
+  writer.writeLongList(offsets[5], object.kinds);
+  writer.writeString(offsets[6], object.lastUntilByRelayJson);
+  writer.writeLong(offsets[7], object.limit);
   writer.writeLong(offsets[8], object.updatedAt);
 }
 
@@ -140,14 +147,14 @@ SubscriptionRecordModel _subscriptionRecordModelDeserialize(
 ) {
   final object = SubscriptionRecordModel();
   object.authors = reader.readStringList(offsets[0]);
-  object.createdAt = reader.readLong(offsets[1]);
-  object.eTags = reader.readStringList(offsets[2]) ?? [];
-  object.enabled = reader.readBool(offsets[3]);
+  object.channelId = reader.readString(offsets[1]);
+  object.createdAt = reader.readLong(offsets[2]);
+  object.eTags = reader.readStringList(offsets[3]) ?? [];
+  object.enabled = reader.readBool(offsets[4]);
   object.id = id;
-  object.kinds = reader.readLongList(offsets[4]) ?? [];
-  object.lastUntilByRelayJson = reader.readString(offsets[5]);
-  object.limit = reader.readLongOrNull(offsets[6]);
-  object.relays = reader.readStringList(offsets[7]) ?? [];
+  object.kinds = reader.readLongList(offsets[5]) ?? [];
+  object.lastUntilByRelayJson = reader.readString(offsets[6]);
+  object.limit = reader.readLongOrNull(offsets[7]);
   object.updatedAt = reader.readLong(offsets[8]);
   return object;
 }
@@ -162,19 +169,19 @@ P _subscriptionRecordModelDeserializeProp<P>(
     case 0:
       return (reader.readStringList(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
-    case 2:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 3:
-      return (reader.readBool(offset)) as P;
-    case 4:
-      return (reader.readLongList(offset) ?? []) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readLongOrNull(offset)) as P;
-    case 7:
+    case 2:
+      return (reader.readLong(offset)) as P;
+    case 3:
       return (reader.readStringList(offset) ?? []) as P;
+    case 4:
+      return (reader.readBool(offset)) as P;
+    case 5:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
       return (reader.readLong(offset)) as P;
     default:
@@ -198,6 +205,71 @@ void _subscriptionRecordModelAttach(
   SubscriptionRecordModel object,
 ) {
   object.id = id;
+}
+
+extension SubscriptionRecordModelByIndex
+    on IsarCollection<SubscriptionRecordModel> {
+  Future<SubscriptionRecordModel?> getByChannelId(String channelId) {
+    return getByIndex(r'channelId', [channelId]);
+  }
+
+  SubscriptionRecordModel? getByChannelIdSync(String channelId) {
+    return getByIndexSync(r'channelId', [channelId]);
+  }
+
+  Future<bool> deleteByChannelId(String channelId) {
+    return deleteByIndex(r'channelId', [channelId]);
+  }
+
+  bool deleteByChannelIdSync(String channelId) {
+    return deleteByIndexSync(r'channelId', [channelId]);
+  }
+
+  Future<List<SubscriptionRecordModel?>> getAllByChannelId(
+    List<String> channelIdValues,
+  ) {
+    final values = channelIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'channelId', values);
+  }
+
+  List<SubscriptionRecordModel?> getAllByChannelIdSync(
+    List<String> channelIdValues,
+  ) {
+    final values = channelIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'channelId', values);
+  }
+
+  Future<int> deleteAllByChannelId(List<String> channelIdValues) {
+    final values = channelIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'channelId', values);
+  }
+
+  int deleteAllByChannelIdSync(List<String> channelIdValues) {
+    final values = channelIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'channelId', values);
+  }
+
+  Future<Id> putByChannelId(SubscriptionRecordModel object) {
+    return putByIndex(r'channelId', object);
+  }
+
+  Id putByChannelIdSync(
+    SubscriptionRecordModel object, {
+    bool saveLinks = true,
+  }) {
+    return putByIndexSync(r'channelId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByChannelId(List<SubscriptionRecordModel> objects) {
+    return putAllByIndex(r'channelId', objects);
+  }
+
+  List<Id> putAllByChannelIdSync(
+    List<SubscriptionRecordModel> objects, {
+    bool saveLinks = true,
+  }) {
+    return putAllByIndexSync(r'channelId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension SubscriptionRecordModelQueryWhereSort
@@ -310,6 +382,66 @@ extension SubscriptionRecordModelQueryWhere
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterWhereClause
+  >
+  channelIdEqualTo(String channelId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'channelId', value: [channelId]),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterWhereClause
+  >
+  channelIdNotEqualTo(String channelId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [],
+                upper: [channelId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [channelId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [channelId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [],
+                upper: [channelId],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 
@@ -661,6 +793,187 @@ extension SubscriptionRecordModelQueryFilter
         includeLower,
         upper,
         includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'channelId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'channelId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'channelId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    SubscriptionRecordModel,
+    SubscriptionRecordModel,
+    QAfterFilterCondition
+  >
+  channelIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'channelId', value: ''),
       );
     });
   }
@@ -1512,264 +1825,6 @@ extension SubscriptionRecordModelQueryFilter
     SubscriptionRecordModel,
     QAfterFilterCondition
   >
-  relaysElementEqualTo(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'relays',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'relays',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'relays',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'relays', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'relays', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'relays', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'relays', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'relays', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysLengthLessThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'relays', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysLengthGreaterThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'relays', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
-  relaysLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'relays',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<
-    SubscriptionRecordModel,
-    SubscriptionRecordModel,
-    QAfterFilterCondition
-  >
   updatedAtEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1856,6 +1911,20 @@ extension SubscriptionRecordModelQueryLinks
 extension SubscriptionRecordModelQuerySortBy
     on QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QSortBy> {
   QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
+  sortByChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
+  sortByChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
   sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1933,6 +2002,20 @@ extension SubscriptionRecordModelQuerySortThenBy
           SubscriptionRecordModel,
           QSortThenBy
         > {
+  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
+  thenByChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
+  thenByChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.desc);
+    });
+  }
+
   QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QAfterSortBy>
   thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -2033,6 +2116,13 @@ extension SubscriptionRecordModelQueryWhereDistinct
   }
 
   QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QDistinct>
+  distinctByChannelId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'channelId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QDistinct>
   distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -2078,13 +2168,6 @@ extension SubscriptionRecordModelQueryWhereDistinct
   }
 
   QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QDistinct>
-  distinctByRelays() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'relays');
-    });
-  }
-
-  QueryBuilder<SubscriptionRecordModel, SubscriptionRecordModel, QDistinct>
   distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
@@ -2109,6 +2192,13 @@ extension SubscriptionRecordModelQueryProperty
   authorsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authors');
+    });
+  }
+
+  QueryBuilder<SubscriptionRecordModel, String, QQueryOperations>
+  channelIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'channelId');
     });
   }
 
@@ -2151,13 +2241,6 @@ extension SubscriptionRecordModelQueryProperty
   limitProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'limit');
-    });
-  }
-
-  QueryBuilder<SubscriptionRecordModel, List<String>, QQueryOperations>
-  relaysProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'relays');
     });
   }
 
