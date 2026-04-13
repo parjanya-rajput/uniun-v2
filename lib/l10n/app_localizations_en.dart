@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionContinue => 'Continue';
 
   @override
+  String get actionDelete => 'Delete';
+
+  @override
   String get actionSave => 'Save';
 
   @override
@@ -123,6 +126,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get brahmaInteractivePreview => 'Interactive Preview';
+
+  @override
+  String get brahmaDraft => 'Draft';
+
+  @override
+  String get brahmaDraftSaved => 'Draft saved';
+
+  @override
+  String get brahmaDrafts => 'Drafts';
+
+  @override
+  String get brahmaPublish => 'Publish';
+
+  @override
+  String get brahmaTags => 'tags';
 
   @override
   String get vishnuNoNotes => 'No notes yet';

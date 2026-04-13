@@ -148,6 +148,12 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get actionContinue;
 
+  /// Delete button
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get actionDelete;
+
   /// Save / bookmark action
   ///
   /// In en, this message translates to:
@@ -321,6 +327,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Interactive Preview'**
   String get brahmaInteractivePreview;
+
+  /// Save as draft button label
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get brahmaDraft;
+
+  /// Feedback after saving a draft
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved'**
+  String get brahmaDraftSaved;
+
+  /// Section header for drafts list
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get brahmaDrafts;
+
+  /// Publish draft button in draft list
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get brahmaPublish;
+
+  /// Tag count display in draft item
+  ///
+  /// In en, this message translates to:
+  /// **'tags'**
+  String get brahmaTags;
 
   /// Empty-feed heading
   ///

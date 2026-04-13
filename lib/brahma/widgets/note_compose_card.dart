@@ -10,6 +10,7 @@ class NoteComposeCard extends StatelessWidget {
     required this.onSubmit,
     required this.isSubmitting,
     required this.canSubmit,
+    this.onSaveDraft,
   });
 
   final TextEditingController controller;
@@ -17,6 +18,7 @@ class NoteComposeCard extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool isSubmitting;
   final bool canSubmit;
+  final VoidCallback? onSaveDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +129,31 @@ class NoteComposeCard extends StatelessWidget {
                 ),
 
                 const Spacer(),
+
+                // Draft button
+                if (canSubmit && onSaveDraft != null)
+                  GestureDetector(
+                    onTap: onSaveDraft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        l10n.brahmaDraft,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurfaceVariant,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(width: 8),
 
                 // Create Note button
                 AnimatedOpacity(

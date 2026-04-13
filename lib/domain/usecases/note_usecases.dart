@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
@@ -7,8 +5,8 @@ import 'package:uniun/core/isolate/embedded_server_bridge.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
+import 'package:uniun/domain/repositories/event_queue_repository.dart';
 import 'package:uniun/domain/repositories/note_repository.dart';
-import 'package:uniun/domain/repositories/outbound_event_repository.dart';
 import 'package:uniun/domain/repositories/vector_repository.dart';
 
 // ── GetFeedUseCase ────────────────────────────────────────────────────────────
@@ -173,19 +171,20 @@ class GetOwnNotesUseCase
 ///
 /// Steps:
 ///   1. Save to local Isar via [NoteRepository.saveNote] — note appears in
-///      the feed or thread view immediately (optimistic local display).
-///   2. Serialize to Nostr event JSON and enqueue in [OutboundEventRepository].
-///   3. Ping [EmbeddedServerBridge] — EmbeddedServer flushes the queue to relays.
+///      the feed immediately (optimistic local display).
+///   2. Enqueue in [EventQueueRepository] — the EmbeddedServer's WebSocketService
+///      reads this collection and broadcasts events to connected relays.
+///   3. Ping [EmbeddedServerBridge] — signals EmbeddedServer to flush the queue now.
 @lazySingleton
 class PublishNoteUseCase
     extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   final NoteRepository _noteRepository;
-  final OutboundEventRepository _outboundRepository;
+  final EventQueueRepository _eventQueueRepository;
   final EmbeddedServerBridge _bridge;
 
   const PublishNoteUseCase(
     this._noteRepository,
-    this._outboundRepository,
+    this._eventQueueRepository,
     this._bridge,
   );
 
@@ -194,58 +193,38 @@ class PublishNoteUseCase
     NoteEntity note, {
     bool cached = false,
   }) async {
+    // 1. Save locally first so the note appears in feed immediately.
     final saveResult = await _noteRepository.saveNote(note);
     if (saveResult.isLeft()) return saveResult;
 
-    final json = _toNostrJson(note);
-    final enqueueResult = await _outboundRepository.enqueue(json);
+    // 2. Enqueue for relay broadcast — EmbeddedServer's WebSocketService reads
+    //    EventQueueModel rows and sends them to connected Nostr relays.
+    final enqueueResult = await _eventQueueRepository.enqueueSignedEvent(
+      eventId: note.id,
+      authorPubkey: note.authorPubkey,
+      sig: note.sig,
+      kind: 1,
+      eTagRefs: note.eTagRefs,
+      rootEventId: note.rootEventId,
+      replyToEventId: note.replyToEventId,
+      pTagRefs: note.pTagRefs,
+      tTags: note.tTags,
+      content: note.content,
+      created: note.created,
+    );
+
     if (enqueueResult.isLeft()) {
       return Left(
         enqueueResult.fold(
-            (f) => f, (_) => const Failure.errorFailure('enqueue failed')),
+          (f) => f,
+          (_) => const Failure.errorFailure('enqueue failed'),
+        ),
       );
     }
 
+    // 3. Signal the EmbeddedServer isolate to flush the queue to relays now.
     _bridge.notifyNewOutboundEvent();
     return saveResult;
-  }
-
-  String _toNostrJson(NoteEntity note) {
-    final tags = <List<String>>[];
-
-    if (note.rootEventId != null) {
-      tags.add(['e', note.rootEventId!, '', 'root']);
-    }
-    if (note.replyToEventId != null) {
-      tags.add(['e', note.replyToEventId!, '', 'reply']);
-    }
-
-    final threadingIds = {
-      if (note.rootEventId != null) note.rootEventId!,
-      if (note.replyToEventId != null) note.replyToEventId!,
-    };
-    for (final id in note.eTagRefs) {
-      if (!threadingIds.contains(id)) {
-        tags.add(['e', id, '', 'mention']);
-      }
-    }
-
-    for (final pubkey in note.pTagRefs) {
-      tags.add(['p', pubkey]);
-    }
-    for (final hashtag in note.tTags) {
-      tags.add(['t', hashtag]);
-    }
-
-    return jsonEncode({
-      'id': note.id,
-      'pubkey': note.authorPubkey,
-      'created_at': note.created.millisecondsSinceEpoch ~/ 1000,
-      'kind': 1,
-      'tags': tags,
-      'content': note.content,
-      'sig': note.sig,
-    });
   }
 }
 

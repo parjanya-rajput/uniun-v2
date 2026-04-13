@@ -5,6 +5,7 @@ import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/data/models/app_settings_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
+import 'package:uniun/data/models/draft_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
@@ -31,6 +32,7 @@ abstract class IsarModule {
         EventQueueModelSchema,
         DmConversationModelSchema,
         DmMessageModelSchema,
+        DraftModelSchema,
         SavedNoteModelSchema,
         AIModelSelectionModelSchema,
         AppSettingsModelSchema,
