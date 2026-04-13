@@ -28,5 +28,3 @@ class BrahmaCreateState {
   }
 }
 
-// Import placeholder for DraftEntity — added by bloc
-// This is provided by the import at the top of brahma_create_bloc.dart

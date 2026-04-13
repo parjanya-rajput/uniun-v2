@@ -214,7 +214,7 @@ return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEvent
 
 
 class _DraftEntity implements DraftEntity {
-  const _DraftEntity({required this.draftId, required this.content, required this.rootEventId, required this.replyToEventId, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.createdAt, required this.updatedAt}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags;
+  const _DraftEntity({required this.draftId, required this.content, this.rootEventId, this.replyToEventId, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.createdAt, required this.updatedAt}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags;
   
 
 @override final  String draftId;

@@ -7,8 +7,8 @@ abstract class DraftEntity with _$DraftEntity {
   const factory DraftEntity({
     required String draftId,
     required String content,
-    required String? rootEventId,
-    required String? replyToEventId,
+    String? rootEventId,
+    String? replyToEventId,
     required List<String> eTagRefs,
     required List<String> pTagRefs,
     required List<String> tTags,

@@ -327,12 +327,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetOwnNotesUseCase>(),
       ),
     );
-    gh.lazySingleton<_i537.PublishDraftUseCase>(
-      () => _i537.PublishDraftUseCase(
-        gh<_i47.NoteRepository>(),
-        gh<_i170.DraftRepository>(),
-      ),
-    );
     gh.factory<_i787.BrahmaCreateBloc>(
       () => _i787.BrahmaCreateBloc(
         gh<_i799.GetActiveUserKeysUseCase>(),

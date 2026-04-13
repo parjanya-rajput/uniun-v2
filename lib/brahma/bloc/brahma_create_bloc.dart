@@ -158,15 +158,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         status: BrahmaCreateStatus.error,
         errorMessage: f.toMessage(),
       )),
-      (_) {
-        // Reload drafts after saving
-        _getDrafts.call().then((value) {
-          value.fold(
-            (f) => null,
-            (drafts) => add(LoadDraftsEvent()),
-          );
-        });
-      },
+      (_) => add(const LoadDraftsEvent()),
     );
   }
 

@@ -4,7 +4,6 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/repositories/draft_repository.dart';
-import 'package:uniun/domain/repositories/note_repository.dart';
 
 /// Save a draft (create or update).
 @lazySingleton
@@ -58,19 +57,3 @@ class DeleteDraftUseCase extends UseCase<Either<Failure, Unit>, String> {
   }
 }
 
-/// Publish a draft as a note (convert draft to note and publish).
-@lazySingleton
-class PublishDraftUseCase extends UseCase<Either<Failure, Unit>, DraftEntity> {
-  final NoteRepository noteRepository;
-  final DraftRepository draftRepository;
-
-  PublishDraftUseCase(this.noteRepository, this.draftRepository);
-
-  @override
-  Future<Either<Failure, Unit>> call(DraftEntity input, {bool cached = false}) async {
-    // Note: The draft is converted to a note in the BLoC, not here.
-    // This use case primarily handles the cleanup after publishing.
-    // Delete the draft after successful publish is handled by the BLoC.
-    return const Right(unit);
-  }
-}
