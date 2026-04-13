@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 
@@ -98,7 +99,7 @@ class _NoteCardState extends State<NoteCard> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _timeAgo(widget.note.created),
+                              formatTimeAgo(widget.note.created),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -224,15 +225,6 @@ class _NoteCardState extends State<NoteCard> {
   String _shortName(String pubkey) {
     if (pubkey.length <= 16) return pubkey;
     return '${pubkey.substring(0, 8)}...${pubkey.substring(pubkey.length - 4)}';
-  }
-
-  String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inSeconds < 60) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${dt.day}/${dt.month}';
   }
 }
 

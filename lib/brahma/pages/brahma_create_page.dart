@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
+import 'package:uniun/brahma/widgets/draft_list.dart';
 import 'package:uniun/brahma/widgets/graph_preview_card.dart';
 import 'package:uniun/brahma/widgets/note_compose_card.dart';
 import 'package:uniun/common/locator.dart';
@@ -23,7 +25,7 @@ class BrahmaCreatePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<BrahmaCreateBloc>(
-      create: (_) => getIt<BrahmaCreateBloc>(),
+      create: (_) => getIt<BrahmaCreateBloc>()..add(const LoadDraftsEvent()),
       child: _BrahmaCreateView(
         currentIndex: currentIndex,
         onSwitchTab: onSwitchTab,
@@ -51,12 +53,15 @@ class _BrahmaCreateView extends StatefulWidget {
 class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  final _scrollController = ScrollController();
   List<String> _extractedTags = const [];
+  bool _navVisible = true;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+    _scrollController.addListener(_onScroll);
   }
 
   void _onTextChanged() {
@@ -72,11 +77,24 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
     }
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final direction = _scrollController.position.userScrollDirection;
+    if (direction == ScrollDirection.reverse && _navVisible) {
+      setState(() => _navVisible = false);
+    } else if (direction == ScrollDirection.forward && !_navVisible) {
+      setState(() => _navVisible = true);
+    }
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
+    _scrollController.removeListener(_onScroll);
     _controller.dispose();
     _focusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -96,6 +114,11 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
               backgroundColor: AppColors.error,
             ),
           );
+        }
+        // Reset nav visibility when drafts change (delete/save)
+        // This fixes the bug where nav stays hidden after deleting last draft
+        if (state.drafts.isEmpty && !_navVisible) {
+          setState(() => _navVisible = true);
         }
       },
       builder: (context, state) {
@@ -184,6 +207,7 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                   // ── Scrollable body ────────────────────────────────────
                   Expanded(
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       padding: EdgeInsets.fromLTRB(
                           16, 8, 16, 100 + MediaQuery.of(context).viewInsets.bottom),
                       child: Column(
@@ -202,11 +226,47 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                                         content: _controller.text),
                                   );
                             },
+                            onSaveDraft: () {
+                              context.read<BrahmaCreateBloc>().add(
+                                    SaveDraftEvent(
+                                        content: _controller.text),
+                                  );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!.brahmaDraftSaved),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 28),
 
                           // Graph preview (updates as hashtags are typed)
                           GraphPreviewCard(hashtags: _extractedTags),
+
+                          const SizedBox(height: 28),
+
+                          // Draft list
+                          if (state.drafts.isNotEmpty)
+                            DraftList(
+                              drafts: state.drafts,
+                              onPublish: (draft) {
+                                context.read<BrahmaCreateBloc>().add(
+                                      PublishDraftEvent(
+                                        draftId: draft.draftId,
+                                        content: draft.content,
+                                        rootEventId: draft.rootEventId,
+                                        replyToEventId: draft.replyToEventId,
+                                      ),
+                                    );
+                              },
+                              onDelete: (draftId) {
+                                context.read<BrahmaCreateBloc>().add(
+                                      DeleteDraftEvent(draftId),
+                                    );
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -220,9 +280,13 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
               left: 20,
               right: 20,
               bottom: 20,
-              child: FloatingNav(
-                currentIndex: widget.currentIndex,
-                onTap: widget.onSwitchTab,
+              child: AnimatedSlide(
+                offset: _navVisible ? Offset.zero : const Offset(0, 1.5),
+                duration: const Duration(milliseconds: 300),
+                child: FloatingNav(
+                  currentIndex: widget.currentIndex,
+                  onTap: widget.onSwitchTab,
+                ),
               ),
             ),
             ],

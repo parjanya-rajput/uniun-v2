@@ -21,6 +21,7 @@ import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart'
     as _i1011;
 import 'package:uniun/data/repositories/dm_message_repository_impl.dart'
     as _i398;
+import 'package:uniun/data/repositories/draft_repository_impl.dart' as _i640;
 import 'package:uniun/data/repositories/event_queue_repository_impl.dart'
     as _i116;
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
@@ -41,6 +42,7 @@ import 'package:uniun/domain/repositories/channel_repository.dart' as _i127;
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart'
     as _i189;
 import 'package:uniun/domain/repositories/dm_message_repository.dart' as _i551;
+import 'package:uniun/domain/repositories/draft_repository.dart' as _i170;
 import 'package:uniun/domain/repositories/event_queue_repository.dart'
     as _i1039;
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
@@ -55,6 +57,7 @@ import 'package:uniun/domain/repositories/subscription_record_repository.dart'
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
 import 'package:uniun/domain/repositories/vector_repository.dart' as _i739;
 import 'package:uniun/domain/usecases/ai_model_usecases.dart' as _i894;
+import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
@@ -126,6 +129,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i170.DraftRepository>(
+      () => _i640.DraftRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i43.SavedNoteRepository>(
       () => _i669.SavedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -140,6 +146,18 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.lazySingleton<_i537.SaveDraftUseCase>(
+      () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
+    );
+    gh.lazySingleton<_i537.GetDraftsUseCase>(
+      () => _i537.GetDraftsUseCase(gh<_i170.DraftRepository>()),
+    );
+    gh.lazySingleton<_i537.GetDraftByIdUseCase>(
+      () => _i537.GetDraftByIdUseCase(gh<_i170.DraftRepository>()),
+    );
+    gh.lazySingleton<_i537.DeleteDraftUseCase>(
+      () => _i537.DeleteDraftUseCase(gh<_i170.DraftRepository>()),
     );
     gh.factory<_i127.ChannelRepository>(
       () => _i1009.ChannelRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -309,11 +327,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetOwnNotesUseCase>(),
       ),
     );
+    gh.lazySingleton<_i537.PublishDraftUseCase>(
+      () => _i537.PublishDraftUseCase(
+        gh<_i47.NoteRepository>(),
+        gh<_i170.DraftRepository>(),
+      ),
+    );
     gh.factory<_i787.BrahmaCreateBloc>(
       () => _i787.BrahmaCreateBloc(
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i475.PublishNoteUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i537.SaveDraftUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
       ),
     );
     gh.factory<_i731.SettingsCubit>(

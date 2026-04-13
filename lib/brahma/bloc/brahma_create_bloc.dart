@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'package:uuid/uuid.dart';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
@@ -18,13 +21,23 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final PublishNoteUseCase _publishUseCase;
   final EmbedAndStoreNoteUseCase _embedAndStore;
+  final SaveDraftUseCase _saveDraft;
+  final GetDraftsUseCase _getDrafts;
+  final DeleteDraftUseCase _deleteDraft;
 
   BrahmaCreateBloc(
     this._getActiveUserKeys,
     this._publishUseCase,
     this._embedAndStore,
+    this._saveDraft,
+    this._getDrafts,
+    this._deleteDraft,
   ) : super(const BrahmaCreateState()) {
     on<SubmitNoteEvent>(_onSubmitNote, transformer: droppable());
+    on<SaveDraftEvent>(_onSaveDraft, transformer: droppable());
+    on<LoadDraftsEvent>(_onLoadDrafts, transformer: droppable());
+    on<DeleteDraftEvent>(_onDeleteDraft, transformer: sequential());
+    on<PublishDraftEvent>(_onPublishDraft, transformer: droppable());
     on<ResetBrahmaEvent>(_onReset);
   }
 
@@ -110,6 +123,171 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       (_) {
         emit(state.copyWith(status: BrahmaCreateStatus.success));
         // Fire-and-forget: embed this note for RAG (no-op if model not ready yet).
+        unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
+      },
+    );
+  }
+
+  Future<void> _onSaveDraft(
+    SaveDraftEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    final content = event.content.trim();
+    if (content.isEmpty) return;
+
+    final extractedTags = _extractHashtags(content);
+
+    final draft = DraftEntity(
+      draftId: const Uuid().v4(),
+      content: content,
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+      eTagRefs: [
+        if (event.rootEventId != null) event.rootEventId!,
+        if (event.replyToEventId != null) event.replyToEventId!,
+      ],
+      pTagRefs: const [],
+      tTags: extractedTags,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await _saveDraft.call(draft);
+    result.fold(
+      (f) => emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (_) {
+        // Reload drafts after saving
+        _getDrafts.call().then((value) {
+          value.fold(
+            (f) => null,
+            (drafts) => add(LoadDraftsEvent()),
+          );
+        });
+      },
+    );
+  }
+
+  Future<void> _onLoadDrafts(
+    LoadDraftsEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    emit(state.copyWith(status: BrahmaCreateStatus.loadingDrafts));
+    final result = await _getDrafts.call();
+    result.fold(
+      (f) => emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (drafts) => emit(state.copyWith(
+        status: BrahmaCreateStatus.idle,
+        drafts: drafts,
+      )),
+    );
+  }
+
+  Future<void> _onDeleteDraft(
+    DeleteDraftEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    final result = await _deleteDraft.call(event.draftId);
+    result.fold(
+      (f) => emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (_) {
+        // Reload drafts after deletion
+        add(const LoadDraftsEvent());
+      },
+    );
+  }
+
+  Future<void> _onPublishDraft(
+    PublishDraftEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    // Publish draft as a note, then delete the draft
+    final keysResult = await _getActiveUserKeys.call();
+    if (keysResult.isLeft()) {
+      emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: keysResult.fold((f) => f.toMessage(), (_) => ''),
+      ));
+      return;
+    }
+
+    final keys = keysResult.getOrElse(() => throw StateError('unreachable'));
+    final privkeyHex = keys.privkeyHex;
+    final pubkeyHex = keys.pubkeyHex;
+
+    // Build tags
+    final extractedTags = _extractHashtags(event.content);
+    final tags = <List<String>>[];
+    if (event.rootEventId != null) {
+      tags.add(['e', event.rootEventId!, '', 'root']);
+    }
+    if (event.replyToEventId != null) {
+      tags.add(['e', event.replyToEventId!, '', 'reply']);
+    }
+    for (final h in extractedTags) {
+      tags.add(['t', h]);
+    }
+
+    // Sign
+    late final Event signedEvent;
+    try {
+      signedEvent = Event.from(
+        kind: 1,
+        tags: tags,
+        content: event.content,
+        privkey: privkeyHex,
+      );
+    } catch (e) {
+      emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: 'Signing failed: $e',
+      ));
+      return;
+    }
+
+    // Build NoteEntity
+    final eTagRefs = [
+      if (event.rootEventId != null) event.rootEventId!,
+      if (event.replyToEventId != null) event.replyToEventId!,
+    ];
+
+    final note = NoteEntity(
+      id: signedEvent.id,
+      sig: signedEvent.sig,
+      authorPubkey: pubkeyHex,
+      content: signedEvent.content,
+      type: NoteType.text,
+      eTagRefs: eTagRefs,
+      pTagRefs: const [],
+      tTags: extractedTags,
+      created: DateTime.fromMillisecondsSinceEpoch(signedEvent.createdAt * 1000),
+      isSeen: true,
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+    );
+
+    // Publish
+    emit(state.copyWith(status: BrahmaCreateStatus.submitting));
+    final publishResult = await _publishUseCase.call(note);
+    publishResult.fold(
+      (f) => emit(state.copyWith(
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (_) {
+        // Delete draft after successful publish
+        _deleteDraft.call(event.draftId).then((_) {
+          add(const LoadDraftsEvent());
+        });
+        emit(state.copyWith(status: BrahmaCreateStatus.success));
         unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
       },
     );
