@@ -137,7 +137,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         l10n.aboutYouTitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.8,
@@ -150,7 +150,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         l10n.aboutYouSubtitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.onSurfaceVariant,
                           height: 1.4,
@@ -168,7 +168,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
                     const SizedBox(height: 6),
                     Text(
                       l10n.aboutYouAvatarCaption,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.onSurfaceVariant,
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
@@ -220,7 +220,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         l10n.aboutYouUsernameHelper,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
@@ -271,7 +271,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
                             child: Center(
                               child: Text(
                                 l10n.actionContinue,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: AppColors.onPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,

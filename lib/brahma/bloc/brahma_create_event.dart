@@ -51,3 +51,24 @@ final class PublishDraftEvent extends BrahmaCreateEvent {
 final class ResetBrahmaEvent extends BrahmaCreateEvent {
   const ResetBrahmaEvent();
 }
+
+// ── Mention events ────────────────────────────────────────────────────────────
+
+final class SearchMentionsEvent extends BrahmaCreateEvent {
+  const SearchMentionsEvent(this.query);
+  final String query;
+}
+
+final class AddMentionEvent extends BrahmaCreateEvent {
+  const AddMentionEvent(this.note);
+  final NoteEntity note;
+}
+
+final class RemoveMentionEvent extends BrahmaCreateEvent {
+  const RemoveMentionEvent(this.noteId);
+  final String noteId;
+}
+
+final class ClearMentionSearchEvent extends BrahmaCreateEvent {
+  const ClearMentionSearchEvent();
+}

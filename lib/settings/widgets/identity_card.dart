@@ -113,11 +113,13 @@ class _KeysSheetState extends State<_KeysSheet> {
     try {
       final result = await getIt<GetActiveUserUseCase>().call();
       final nsec = result.fold((_) => null, (u) => u.nsec);
-      if (mounted) setState(() {
-        _nsec = nsec;
-        _nsecVisible = true;
-        _nsecLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _nsec = nsec;
+          _nsecVisible = true;
+          _nsecLoading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _nsecLoading = false);
     }
@@ -254,7 +256,7 @@ class _KeysSheetState extends State<_KeysSheet> {
                             context, _nsec ?? '', AppLocalizations.of(context)!.identityPrivateKeyCopied),
                         child: Text(
                           AppLocalizations.of(context)!.identityTapToCopy,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primary,
@@ -266,7 +268,7 @@ class _KeysSheetState extends State<_KeysSheet> {
                         onTap: _revealNsec,
                         child: Text(
                           AppLocalizations.of(context)!.identityHide,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.onSurfaceVariant,
@@ -418,12 +420,14 @@ class _RelaysSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Container(
+                  const SizedBox(
                     width: 8,
                     height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),

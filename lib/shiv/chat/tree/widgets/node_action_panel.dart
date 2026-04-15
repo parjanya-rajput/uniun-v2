@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/shiv/chat/bloc/shiv_ai_bloc.dart';
 
 class NodeActionPanel extends StatelessWidget {
   const NodeActionPanel({
@@ -62,7 +60,10 @@ class NodeActionPanel extends StatelessWidget {
             children: [
               if (isActiveBranch) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.secondaryContainer,
                     borderRadius: BorderRadius.circular(99),
@@ -79,15 +80,25 @@ class NodeActionPanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
               ],
-              Icon(Icons.schedule_rounded, size: 14, color: AppColors.onSurfaceVariant),
+              const Icon(
+                Icons.schedule_rounded,
+                size: 14,
+                color: AppColors.onSurfaceVariant,
+              ),
               const SizedBox(width: 4),
               Text(
                 formatTimeAgo(message.createdAt),
-                style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
@@ -121,7 +132,9 @@ class NodeActionPanel extends StatelessWidget {
                 child: Icon(
                   isUser ? Icons.person_rounded : Icons.smart_toy_outlined,
                   size: 18,
-                  color: isUser ? AppColors.onSurfaceVariant : AppColors.primary,
+                  color: isUser
+                      ? AppColors.onSurfaceVariant
+                      : AppColors.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -155,7 +168,10 @@ class NodeActionPanel extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),

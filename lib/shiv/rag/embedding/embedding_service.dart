@@ -102,7 +102,7 @@ class EmbeddingService {
     }
 
     tokens.add(_sepToken);
-    while (tokens.length < _maxSeqLen) tokens.add(_padToken);
+    while (tokens.length < _maxSeqLen) { tokens.add(_padToken); }
     return tokens.take(_maxSeqLen).toList();
   }
 

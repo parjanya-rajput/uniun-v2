@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
@@ -55,7 +56,7 @@ class PromptBuilder {
     buf.writeln('Answer concisely and helpfully.');
     buf.writeln('If you reason before answering, keep your thinking brief — do not over-reason.');
 
-    print('🤖 System instruction built — name: $name, bio: $bio');
+    debugPrint('🤖 System instruction built — name: $name, bio: $bio');
 
     return buf.toString().trimRight();
   }
@@ -63,20 +64,59 @@ class PromptBuilder {
   // ── Branch context (called on branch switch) ──────────────────────────────
 
   /// Summarises a branch's conversation for injection into the system instruction
-  /// when the user switches branches. Takes the last 6 messages (3 exchanges)
-  /// and truncates each to 120 chars so the context stays compact.
+  /// when the user switches branches.
+  ///
+  /// Takes the last 6 messages (3 exchanges). For each message:
+  /// - User turns: first sentence or up to 100 chars — questions are short.
+  /// - AI turns: strips markdown formatting, extracts the first complete sentence
+  ///   (up to 220 chars) — avoids cutting a long response mid-thought.
   String buildBranchContextSummary(List<ShivMessageEntity> branch) {
     if (branch.isEmpty) return '';
     final recent = branch.length > 6 ? branch.sublist(branch.length - 6) : branch;
     final buf = StringBuffer('\n[Previous conversation context on this branch]\n');
     for (final m in recent) {
-      final role = m.role.name == 'user' ? 'User' : 'Shiv';
-      final content = m.content.trim();
-      final preview = content.length > 120 ? '${content.substring(0, 120)}…' : content;
+      final isUser = m.role.name == 'user';
+      final role = isUser ? 'User' : 'Shiv';
+      final preview = isUser
+          ? _summarizeUser(m.content)
+          : _summarizeAssistant(m.content);
       buf.writeln('$role: $preview');
     }
     buf.write('[Continue naturally from this context]');
     return buf.toString();
+  }
+
+  /// First sentence of a user message (≤ 100 chars).
+  String _summarizeUser(String content) {
+    final text = content.trim();
+    return _firstSentence(text, 100);
+  }
+
+  /// First complete sentence of an AI response with markdown stripped (≤ 220 chars).
+  String _summarizeAssistant(String content) {
+    // Strip common markdown: headers, bold, italic, inline code, bullet leaders
+    final clean = content
+        .replaceAll(RegExp(r'#{1,6}\s+'), '')
+        .replaceAll(RegExp(r'\*{1,2}([^*]+)\*{1,2}'), r'\1')
+        .replaceAll(RegExp(r'`[^`]*`'), '')
+        .replaceAll(RegExp(r'^[\-\*]\s+', multiLine: true), '')
+        .replaceAll(RegExp(r'^\d+\.\s+', multiLine: true), '')
+        .trim();
+    return _firstSentence(clean, 220);
+  }
+
+  /// Extracts the first complete sentence up to [limit] chars.
+  /// Falls back to plain truncation if no sentence boundary is found early enough.
+  String _firstSentence(String text, int limit) {
+    if (text.isEmpty) return '…';
+    // Look for sentence-ending punctuation followed by space or end-of-string
+    final match = RegExp(r'[.!?](?:\s|$)').firstMatch(text);
+    if (match != null && match.end <= limit) {
+      return text.substring(0, match.end).trim();
+    }
+    // No early sentence boundary — truncate at limit
+    if (text.length <= limit) return text;
+    return '${text.substring(0, limit)}…';
   }
 
   // ── Per-turn (called each message) ─────────────────────────────────────────

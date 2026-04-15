@@ -23,14 +23,14 @@ class StorageCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.storageUsage,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.onSurface,
                   ),
                 ),
               ),
-              Text(
+              const Text(
                 '1.2 GB',
                 style: TextStyle(
                   fontSize: 20,

@@ -126,7 +126,7 @@ class _SettingsContent extends StatelessWidget {
               Center(
                 child: Text(
                   l10n.appVersion,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.4,

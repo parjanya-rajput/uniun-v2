@@ -24,6 +24,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final SaveDraftUseCase _saveDraft;
   final GetDraftsUseCase _getDrafts;
   final DeleteDraftUseCase _deleteDraft;
+  final SearchNotesUseCase _searchNotes;
 
   BrahmaCreateBloc(
     this._getActiveUserKeys,
@@ -32,6 +33,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     this._saveDraft,
     this._getDrafts,
     this._deleteDraft,
+    this._searchNotes,
   ) : super(const BrahmaCreateState()) {
     on<SubmitNoteEvent>(_onSubmitNote, transformer: droppable());
     on<SaveDraftEvent>(_onSaveDraft, transformer: droppable());
@@ -39,6 +41,10 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<DeleteDraftEvent>(_onDeleteDraft, transformer: sequential());
     on<PublishDraftEvent>(_onPublishDraft, transformer: droppable());
     on<ResetBrahmaEvent>(_onReset);
+    on<SearchMentionsEvent>(_onSearchMentions, transformer: restartable());
+    on<AddMentionEvent>(_onAddMention);
+    on<RemoveMentionEvent>(_onRemoveMention);
+    on<ClearMentionSearchEvent>(_onClearMentionSearch);
   }
 
   Future<void> _onSubmitNote(
@@ -62,14 +68,18 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final privkeyHex = keys.privkeyHex;
     final pubkeyHex = keys.pubkeyHex;
 
-    // 2. Build NIP-10 tags + hashtags
+    // 2. Build NIP-10 tags + hashtags + mention e-tags
     final extractedTags = _extractHashtags(content);
+    final mentions = state.selectedMentions;
     final tags = <List<String>>[];
     if (event.rootEventId != null) {
       tags.add(['e', event.rootEventId!, '', 'root']);
     }
     if (event.replyToEventId != null) {
       tags.add(['e', event.replyToEventId!, '', 'reply']);
+    }
+    for (final mention in mentions) {
+      tags.add(['e', mention.id, '', 'mention']);
     }
     for (final h in extractedTags) {
       tags.add(['t', h]);
@@ -96,6 +106,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final eTagRefs = [
       if (event.rootEventId != null) event.rootEventId!,
       if (event.replyToEventId != null) event.replyToEventId!,
+      ...mentions.map((m) => m.id),
     ];
 
     final note = NoteEntity(
@@ -121,7 +132,10 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         errorMessage: f.toMessage(),
       )),
       (_) {
-        emit(state.copyWith(status: BrahmaCreateStatus.success));
+        emit(state.copyWith(
+          status: BrahmaCreateStatus.success,
+          selectedMentions: [],
+        ));
         // Fire-and-forget: embed this note for RAG (no-op if model not ready yet).
         unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
       },
@@ -136,6 +150,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     if (content.isEmpty) return;
 
     final extractedTags = _extractHashtags(content);
+    final mentionIds = state.selectedMentions.map((m) => m.id).toList();
 
     final draft = DraftEntity(
       draftId: const Uuid().v4(),
@@ -145,6 +160,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       eTagRefs: [
         if (event.rootEventId != null) event.rootEventId!,
         if (event.replyToEventId != null) event.replyToEventId!,
+        ...mentionIds,
       ],
       pTagRefs: const [],
       tTags: extractedTags,
@@ -215,7 +231,14 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final privkeyHex = keys.privkeyHex;
     final pubkeyHex = keys.pubkeyHex;
 
-    // Build tags
+    // Build tags — restore mention e-tags from the stored draft
+    final draft = state.drafts.where((d) => d.draftId == event.draftId).firstOrNull;
+    final mentionIds = draft != null
+        ? draft.eTagRefs
+            .where((id) => id != event.rootEventId && id != event.replyToEventId)
+            .toList()
+        : <String>[];
+
     final extractedTags = _extractHashtags(event.content);
     final tags = <List<String>>[];
     if (event.rootEventId != null) {
@@ -223,6 +246,9 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     }
     if (event.replyToEventId != null) {
       tags.add(['e', event.replyToEventId!, '', 'reply']);
+    }
+    for (final mentionId in mentionIds) {
+      tags.add(['e', mentionId, '', 'mention']);
     }
     for (final h in extractedTags) {
       tags.add(['t', h]);
@@ -249,6 +275,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final eTagRefs = [
       if (event.rootEventId != null) event.rootEventId!,
       if (event.replyToEventId != null) event.replyToEventId!,
+      ...mentionIds,
     ];
 
     final note = NoteEntity(
@@ -287,6 +314,44 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
 
   void _onReset(ResetBrahmaEvent event, Emitter<BrahmaCreateState> emit) {
     emit(const BrahmaCreateState());
+  }
+
+  // ── Mention handlers ───────────────────────────────────────────────────────
+
+  Future<void> _onSearchMentions(
+    SearchMentionsEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    emit(state.copyWith(isMentionSearching: true));
+    final result = await _searchNotes.call(event.query);
+    result.fold(
+      (_) => emit(state.copyWith(isMentionSearching: false)),
+      (notes) => emit(state.copyWith(
+        mentionResults: notes,
+        isMentionSearching: false,
+      )),
+    );
+  }
+
+  void _onAddMention(AddMentionEvent event, Emitter<BrahmaCreateState> emit) {
+    final already = state.selectedMentions.any((m) => m.id == event.note.id);
+    if (already) return;
+    emit(state.copyWith(
+      selectedMentions: [...state.selectedMentions, event.note],
+    ));
+  }
+
+  void _onRemoveMention(
+      RemoveMentionEvent event, Emitter<BrahmaCreateState> emit) {
+    emit(state.copyWith(
+      selectedMentions:
+          state.selectedMentions.where((m) => m.id != event.noteId).toList(),
+    ));
+  }
+
+  void _onClearMentionSearch(
+      ClearMentionSearchEvent event, Emitter<BrahmaCreateState> emit) {
+    emit(state.copyWith(mentionResults: [], isMentionSearching: false));
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

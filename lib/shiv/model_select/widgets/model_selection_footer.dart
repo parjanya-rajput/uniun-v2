@@ -59,7 +59,7 @@ class ModelSelectionFooter extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () => context.read<SelectAIModelCubit>().close(),
-                      child: Text(
+                      child: const Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 12,
@@ -98,7 +98,7 @@ class ModelSelectionFooter extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () => context.read<SelectAIModelCubit>().close(),
-                      child: Text(
+                      child: const Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 12,

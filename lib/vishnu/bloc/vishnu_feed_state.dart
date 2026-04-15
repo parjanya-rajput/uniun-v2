@@ -8,6 +8,7 @@ class VishnuFeedState {
     this.profiles = const {},
     this.replyCounts = const {},
     this.savedIds = const {},
+    this.mentionedNotes = const {},
     this.status = VishnuFeedStatus.initial,
     this.hasMore = true,
     this.errorMessage,
@@ -20,6 +21,8 @@ class VishnuFeedState {
   final Map<String, int> replyCounts;
   /// set of noteIds the user has saved/bookmarked
   final Set<String> savedIds;
+  /// noteId → list of resolved mention notes (eTagRefs that are pure mentions)
+  final Map<String, List<NoteEntity>> mentionedNotes;
   final VishnuFeedStatus status;
   final bool hasMore;
   final String? errorMessage;
@@ -31,6 +34,7 @@ class VishnuFeedState {
     Map<String, ProfileEntity>? profiles,
     Map<String, int>? replyCounts,
     Set<String>? savedIds,
+    Map<String, List<NoteEntity>>? mentionedNotes,
     VishnuFeedStatus? status,
     bool? hasMore,
     String? errorMessage,
@@ -40,6 +44,7 @@ class VishnuFeedState {
       profiles: profiles ?? this.profiles,
       replyCounts: replyCounts ?? this.replyCounts,
       savedIds: savedIds ?? this.savedIds,
+      mentionedNotes: mentionedNotes ?? this.mentionedNotes,
       status: status ?? this.status,
       hasMore: hasMore ?? this.hasMore,
       errorMessage: errorMessage,

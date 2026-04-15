@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/core/isolate/embedded_server_bridge.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
@@ -162,6 +161,25 @@ class GetOwnNotesUseCase
   }
 }
 
+// ── SearchNotesUseCase ────────────────────────────────────────────────────────
+
+/// Case-insensitive substring search over locally stored note content.
+/// Used by Brahma's mention picker — returns up to 30 matches newest-first.
+@lazySingleton
+class SearchNotesUseCase
+    extends UseCase<Either<Failure, List<NoteEntity>>, String> {
+  final NoteRepository _repository;
+  const SearchNotesUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, List<NoteEntity>>> call(
+    String query, {
+    bool cached = false,
+  }) {
+    return _repository.searchNotes(query);
+  }
+}
+
 // ── PublishNoteUseCase ────────────────────────────────────────────────────────
 
 /// Publishes a fully signed NoteEntity.
@@ -172,20 +190,18 @@ class GetOwnNotesUseCase
 /// Steps:
 ///   1. Save to local Isar via [NoteRepository.saveNote] — note appears in
 ///      the feed immediately (optimistic local display).
-///   2. Enqueue in [EventQueueRepository] — the EmbeddedServer's WebSocketService
-///      reads this collection and broadcasts events to connected relays.
-///   3. Ping [EmbeddedServerBridge] — signals EmbeddedServer to flush the queue now.
+///   2. Enqueue in [EventQueueRepository] — the Gateway isolate's WebSocketService
+///      watches EventQueueModel via Isar.watchLazy() and sends immediately.
+///      No explicit ping is needed — Isar fires the watcher automatically.
 @lazySingleton
 class PublishNoteUseCase
     extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   final NoteRepository _noteRepository;
   final EventQueueRepository _eventQueueRepository;
-  final EmbeddedServerBridge _bridge;
 
   const PublishNoteUseCase(
     this._noteRepository,
     this._eventQueueRepository,
-    this._bridge,
   );
 
   @override
@@ -197,8 +213,8 @@ class PublishNoteUseCase
     final saveResult = await _noteRepository.saveNote(note);
     if (saveResult.isLeft()) return saveResult;
 
-    // 2. Enqueue for relay broadcast — EmbeddedServer's WebSocketService reads
-    //    EventQueueModel rows and sends them to connected Nostr relays.
+    // 2. Enqueue for relay broadcast — Gateway's WebSocketService watches
+    //    EventQueueModel via Isar.watchLazy() and fires immediately.
     final enqueueResult = await _eventQueueRepository.enqueueSignedEvent(
       eventId: note.id,
       authorPubkey: note.authorPubkey,
@@ -222,8 +238,6 @@ class PublishNoteUseCase
       );
     }
 
-    // 3. Signal the EmbeddedServer isolate to flush the queue to relays now.
-    _bridge.notifyNewOutboundEvent();
     return saveResult;
   }
 }

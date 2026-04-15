@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
-import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/shiv/rag/embedding/embedding_service.dart';
@@ -45,7 +44,6 @@ class RagPipeline {
   final PromptBuilder _promptBuilder;
   final GetActiveUserUseCase _getActiveUser;
   final GetOwnProfileUseCase _getOwnProfile;
-  final GetOwnNotesUseCase _getOwnNotes;
 
   PersonalizationContext? _personalization;
 
@@ -55,7 +53,6 @@ class RagPipeline {
     this._promptBuilder,
     this._getActiveUser,
     this._getOwnProfile,
-    this._getOwnNotes,
   );
 
   // ── Phase 1 ────────────────────────────────────────────────────────────────

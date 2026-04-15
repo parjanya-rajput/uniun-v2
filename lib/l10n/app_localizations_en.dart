@@ -113,7 +113,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get brahmaTagPeople => 'Tag People';
 
   @override
-  String get brahmaReferenceNote => 'Reference Note';
+  String get brahmaReferenceNote => 'Mention a Note';
+
+  @override
+  String get brahmaMentionSheetTitle => 'Mention a Note';
+
+  @override
+  String get brahmaMentionSearchHint => 'Search notes…';
+
+  @override
+  String get brahmaMentionEmpty => 'No notes found';
+
+  @override
+  String get brahmaMentionSelected => 'Mentioned';
 
   @override
   String get brahmaCreateNote => 'Create Note';
@@ -151,6 +163,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vishnuThread => 'THREAD';
+
+  @override
+  String vishnuReferences(num count) {
+    final intl.NumberFormat countNumberFormat = intl.NumberFormat.compact(
+      locale: localeName,
+    );
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString REFERENCES',
+      one: '1 REFERENCE',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get vishnuReferenceUnavailable => 'Referenced note not available';
 
   @override
   String get homeShivTitle => 'Shiv — AI Assistant';
@@ -221,7 +252,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get followedNoteFollowing => 'Following';
 
   @override
-  String get followedNoteReferencedBy => 'Referenced By';
+  String get followedNoteReferencedBy => 'Replies';
 
   @override
   String get followedNoteReferences => 'References';
@@ -823,4 +854,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String shivTimeDaysAgo(int count) {
     return '${count}d ago';
   }
+
+  @override
+  String get savedNotesTitle => 'Saved Notes';
+
+  @override
+  String get savedNotesSearch => 'Search saved notes…';
+
+  @override
+  String get savedNotesEmpty => 'Nothing saved yet';
+
+  @override
+  String get savedNotesEmptySub =>
+      'Bookmark notes from your feed to read them later.';
 }

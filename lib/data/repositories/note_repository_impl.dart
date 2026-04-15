@@ -192,6 +192,22 @@ class NoteRepositoryImpl extends NoteRepository {
   }
 
   @override
+  Future<Either<Failure, List<NoteEntity>>> searchNotes(String query) async {
+    try {
+      if (query.trim().isEmpty) return const Right([]);
+      final results = await isar.noteModels
+          .filter()
+          .contentContains(query.trim(), caseSensitive: false)
+          .sortByCreatedDesc()
+          .limit(30)
+          .findAll();
+      return Right(results.map((m) => m.toDomain()).toList());
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> updateNoteEmbedding(
       String eventId, List<double> embedding) async {
     try {

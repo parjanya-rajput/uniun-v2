@@ -23,7 +23,7 @@ class GraphPreviewCard extends StatelessWidget {
           children: [
             Text(
               l10n.brahmaGraphPreviewLabel,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
@@ -91,7 +91,7 @@ class GraphPreviewCard extends StatelessWidget {
                     ),
                     child: Text(
                       l10n.brahmaInteractivePreview,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: AppColors.onSurfaceVariant,

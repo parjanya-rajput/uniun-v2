@@ -699,21 +699,26 @@ UNIUN is a **decentralized, offline-first note network** — a hybrid of:
 **Key Classes:**
 ```
 VishnuFeedBloc
-  ├── VishnuFeedState (initial | loading | success | failure | refreshing)
+  ├── VishnuFeedState (initial | loading | loaded | loadingMore | error)
+  │     ├── notes: List<NoteEntity>
+  │     ├── profiles: Map<pubkey, ProfileEntity>
+  │     ├── replyCounts: Map<noteId, int>
+  │     ├── savedIds: Set<noteId>
+  │     └── mentionedNotes: Map<noteId, List<NoteEntity>>  ← resolved mention refs
   ├── LoadFeedEvent
   ├── RefreshFeedEvent
-  ├── FilterByChannelEvent
-  ├── SaveNoteEvent
-  └── VoteNoteEvent
+  ├── LoadMoreFeedEvent
+  ├── SaveFeedNoteEvent
+  └── UnsaveFeedNoteEvent
 
 GetFeedUseCase → NoteRepository → IsarDataSource
+GetNoteByIdUseCase → NoteRepository  (resolves mention eTagRefs per note)
 ```
 
 **Widgets:**
-- `NoteCard` — single note display (text/image/link/reference type)
-- `NoteCardActions` — vote, save, comment, share
-- `ChannelFilterChip` — horizontal filter bar at top
-- `NoteCardRenderer` — selects correct renderer by NoteType (Factory pattern)
+- `NoteCard` — single note display with inline reference chips; chips are tappable and navigate to `ThreadPage`
+- `_MentionRefs` — renders resolved mention notes as `_RefPreviewChip` cards
+- `_RefPreviewChip` — tappable chip; `Navigator.pushNamed(AppRoutes.thread, ref.id)`
 
 ---
 
@@ -726,26 +731,32 @@ GetFeedUseCase → NoteRepository → IsarDataSource
 **Key Classes:**
 ```
 BrahmaCreateBloc
-  ├── BrahmaCreateState (idle | composing | referencesAdded | graphPreview | submitting | success | failure)
-  ├── UpdateContentEvent
-  ├── AddReferenceEvent
-  ├── RemoveReferenceEvent
-  ├── AttachImageEvent
-  ├── TagUserEvent
-  ├── PreviewReferenceGraphEvent
-  └── SubmitNoteEvent
+  ├── BrahmaCreateState (idle | submitting | success | error | loadingDrafts)
+  ├── SubmitNoteEvent       — sign + publish; embeds selectedMentions as e-tag 'mention'
+  ├── SaveDraftEvent        — persists content + selectedMentions.eTagRefs to Isar
+  ├── LoadDraftsEvent
+  ├── DeleteDraftEvent
+  ├── PublishDraftEvent     — restores mention e-tags from DraftEntity.eTagRefs
+  ├── SearchMentionsEvent   — full-text search over local notes
+  ├── AddMentionEvent
+  ├── RemoveMentionEvent
+  └── ClearMentionSearchEvent
 
-CreateNoteUseCase → NoteRepository + RelayRepository
-AddNoteReferenceUseCase → GraphRepository
-BuildNoteGraphUseCase → GraphRepository (for preview)
+PublishNoteUseCase → NoteRepository + EventQueue (relay)
+SaveDraftUseCase / GetDraftsUseCase / DeleteDraftUseCase → DraftRepository
+SearchNotesUseCase → NoteRepository
 ```
 
+**Draft + Mention persistence contract:**
+- `DraftEntity.eTagRefs` stores all reference IDs: `[rootEventId?, replyToEventId?, ...mentionIds]`
+- On `SaveDraftEvent`, `state.selectedMentions` map is included in `eTagRefs`
+- On `PublishDraftEvent`, mention IDs are recovered from `draft.eTagRefs` (excluding root/reply) and re-added as `['e', id, '', 'mention']` tags to the signed Nostr event
+
 **Widgets:**
-- `BrahmaEditorWidget` — rich text editor
-- `ReferencePickerWidget` — search and attach note references
-- `GraphPreviewWidget` — mini graph before posting
-- `ImageAttachmentWidget` — attach/preview images
-- `UserTagWidget` — tag search and selection
+- `NoteComposeCard` — text input with mention chips display + action buttons
+- `MentionSearchSheet` — bottom sheet to search and attach note references
+- `GraphPreviewCard` — live hashtag graph preview while composing
+- `DraftList` — list of saved drafts with publish/delete actions
 
 ---
 
@@ -1391,24 +1402,26 @@ enum DownloadStatus { idle, downloading, paused, completed, failed }
 ### Key State Shapes
 
 ```dart
-// Vishnu Feed State
+// Vishnu Feed State (actual implementation)
 class VishnuFeedState {
-  final FeedStatus status;
+  final VishnuFeedStatus status;   // initial | loading | loaded | loadingMore | error
   final List<NoteEntity> notes;
-  final int? activeChannelId;
+  final Map<String, ProfileEntity> profiles;   // pubkey → profile
+  final Map<String, int> replyCounts;          // noteId → reply count
+  final Set<String> savedIds;                  // bookmarked note IDs
+  final Map<String, List<NoteEntity>> mentionedNotes; // noteId → resolved mention notes
   final bool hasMore;
-  final String? error;
+  final String? errorMessage;
 }
 
-// Brahma Create State
+// Brahma Create State (actual implementation)
 class BrahmaCreateState {
-  final CreateStatus status;
-  final String content;
-  final List<NoteEntity> references;
-  final String? imageUrl;
-  final List<String> taggedUsers;
-  final GraphData? graphPreview;
-  final String? error;
+  final BrahmaCreateStatus status;  // idle | submitting | success | error | loadingDrafts
+  final List<DraftEntity> drafts;
+  final List<NoteEntity> selectedMentions;  // mention e-tags to embed in note
+  final List<NoteEntity> mentionResults;    // search results from MentionSearchSheet
+  final bool isMentionSearching;
+  final String? errorMessage;
 }
 
 // Shiv AI State

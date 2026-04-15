@@ -62,7 +62,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                 expanded: _privacyExpanded,
                 onToggle: () =>
                     setState(() => _privacyExpanded = !_privacyExpanded),
-                child: _PrivacyPolicyContent(),
+                child: const _PrivacyPolicyContent(),
               ),
 
               const SizedBox(height: 16),
@@ -74,7 +74,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                 expanded: _termsExpanded,
                 onToggle: () =>
                     setState(() => _termsExpanded = !_termsExpanded),
-                child: _TermsContent(),
+                child: const _TermsContent(),
               ),
 
               const SizedBox(height: 32),
@@ -107,17 +107,17 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.mail_outline_rounded,
                           size: 16,
                           color: AppColors.primary,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           AppConstants.kPrivacyEmail,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -134,7 +134,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               Center(
                 child: Text(
                   l10n.appVersion,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.4,

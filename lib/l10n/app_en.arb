@@ -108,8 +108,20 @@
   "brahmaTagPeople": "Tag People",
   "@brahmaTagPeople": { "description": "Tooltip for tag-people button" },
 
-  "brahmaReferenceNote": "Reference Note",
-  "@brahmaReferenceNote": { "description": "Tooltip for reference-note button" },
+  "brahmaReferenceNote": "Mention a Note",
+  "@brahmaReferenceNote": { "description": "Tooltip for the mention icon in the compose bar" },
+
+  "brahmaMentionSheetTitle": "Mention a Note",
+  "@brahmaMentionSheetTitle": { "description": "Title of the mention-search bottom sheet" },
+
+  "brahmaMentionSearchHint": "Search notes…",
+  "@brahmaMentionSearchHint": { "description": "Hint text in the mention search field" },
+
+  "brahmaMentionEmpty": "No notes found",
+  "@brahmaMentionEmpty": { "description": "Empty state in mention search results" },
+
+  "brahmaMentionSelected": "Mentioned",
+  "@brahmaMentionSelected": { "description": "Badge shown on an already-selected note in the search sheet" },
 
   "brahmaCreateNote": "Create Note",
   "@brahmaCreateNote": { "description": "Submit button in the compose card" },
@@ -146,6 +158,15 @@
 
   "vishnuThread": "THREAD",
   "@vishnuThread": { "description": "Thread indicator badge on note cards" },
+
+  "vishnuReferences": "{count, plural, one{1 REFERENCE} other{{count} REFERENCES}}",
+  "@vishnuReferences": {
+    "description": "Reference count badge on note cards",
+    "placeholders": { "count": { "type": "num", "format": "compact" } }
+  },
+
+  "vishnuReferenceUnavailable": "Referenced note not available",
+  "@vishnuReferenceUnavailable": { "description": "Shown when a referenced note is not in local Isar" },
 
   "homeShivTitle": "Shiv — AI Assistant",
   "@homeShivTitle": { "description": "Placeholder title for the Shiv tab" },
@@ -227,8 +248,8 @@
   "followedNoteFollowing": "Following",
   "@followedNoteFollowing": { "description": "Following badge on note header card" },
 
-  "followedNoteReferencedBy": "Referenced By",
-  "@followedNoteReferencedBy": { "description": "Section header for the referencedBy grid" },
+  "followedNoteReferencedBy": "Replies",
+  "@followedNoteReferencedBy": { "description": "Section header for the replies list on followed-note detail" },
 
   "followedNoteReferences": "References",
   "@followedNoteReferences": { "description": "Section header for the references list" },
@@ -798,5 +819,17 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+
+  "savedNotesTitle": "Saved Notes",
+  "@savedNotesTitle": { "description": "Page title for the saved notes list" },
+
+  "savedNotesSearch": "Search saved notes…",
+  "@savedNotesSearch": { "description": "Placeholder for saved notes search bar" },
+
+  "savedNotesEmpty": "Nothing saved yet",
+  "@savedNotesEmpty": { "description": "Empty state headline on saved notes page" },
+
+  "savedNotesEmptySub": "Bookmark notes from your feed to read them later.",
+  "@savedNotesEmptySub": { "description": "Empty state sub-text on saved notes page" }
 }
