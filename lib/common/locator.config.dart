@@ -356,17 +356,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i561.GetAllFollowedNotesUseCase>(),
       ),
     );
-    gh.factory<_i118.ThreadBloc>(
-      () => _i118.ThreadBloc(
-        gh<_i475.GetNoteByIdUseCase>(),
-        gh<_i475.GetRepliesUseCase>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i475.GetReplyCountUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-      ),
-    );
     gh.factory<_i334.ShivAIBloc>(
       () => _i334.ShivAIBloc(
         gh<_i604.GetConversationsUseCase>(),
@@ -376,8 +365,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i604.SaveMessageUseCase>(),
         gh<_i604.UpdateMessageContentUseCase>(),
         gh<_i604.UpdateConversationTitleUseCase>(),
+        gh<_i604.UpdateActiveLeafUseCase>(),
         gh<_i761.AIModelRunner>(),
         gh<_i1067.RagPipeline>(),
+      ),
+    );
+    gh.factory<_i118.ThreadBloc>(
+      () => _i118.ThreadBloc(
+        gh<_i475.GetNoteByIdUseCase>(),
+        gh<_i475.GetRepliesUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i475.GetReplyCountUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
       ),
     );
     gh.factory<_i53.SelectAIModelCubit>(

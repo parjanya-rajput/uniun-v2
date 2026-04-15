@@ -1,5 +1,6 @@
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/shiv/scored_note.dart';
+import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 
 /// Data loaded once per session from Isar.
 /// Personalises every prompt even when the user has zero saved notes.
@@ -52,10 +53,30 @@ class PromptBuilder {
     }
 
     buf.writeln('Answer concisely and helpfully.');
+    buf.writeln('If you reason before answering, keep your thinking brief — do not over-reason.');
 
     print('🤖 System instruction built — name: $name, bio: $bio');
 
     return buf.toString().trimRight();
+  }
+
+  // ── Branch context (called on branch switch) ──────────────────────────────
+
+  /// Summarises a branch's conversation for injection into the system instruction
+  /// when the user switches branches. Takes the last 6 messages (3 exchanges)
+  /// and truncates each to 120 chars so the context stays compact.
+  String buildBranchContextSummary(List<ShivMessageEntity> branch) {
+    if (branch.isEmpty) return '';
+    final recent = branch.length > 6 ? branch.sublist(branch.length - 6) : branch;
+    final buf = StringBuffer('\n[Previous conversation context on this branch]\n');
+    for (final m in recent) {
+      final role = m.role.name == 'user' ? 'User' : 'Shiv';
+      final content = m.content.trim();
+      final preview = content.length > 120 ? '${content.substring(0, 120)}…' : content;
+      buf.writeln('$role: $preview');
+    }
+    buf.write('[Continue naturally from this context]');
+    return buf.toString();
   }
 
   // ── Per-turn (called each message) ─────────────────────────────────────────

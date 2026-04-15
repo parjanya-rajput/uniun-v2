@@ -55,7 +55,7 @@ extension ShivAIEventPatterns on ShivAIEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadConversations value)?  loadConversations,TResult Function( _CreateConversation value)?  createConversation,TResult Function( _OpenConversation value)?  openConversation,TResult Function( _CloseConversation value)?  closeConversation,TResult Function( _DeleteConversation value)?  deleteConversation,TResult Function( _SendMessage value)?  sendMessage,TResult Function( _TokenReceived value)?  tokenReceived,TResult Function( _StreamDone value)?  streamDone,TResult Function( _StreamError value)?  streamError,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadConversations value)?  loadConversations,TResult Function( _CreateConversation value)?  createConversation,TResult Function( _OpenConversation value)?  openConversation,TResult Function( _CloseConversation value)?  closeConversation,TResult Function( _DeleteConversation value)?  deleteConversation,TResult Function( _SendMessage value)?  sendMessage,TResult Function( _TokenReceived value)?  tokenReceived,TResult Function( _StreamDone value)?  streamDone,TResult Function( _StreamError value)?  streamError,TResult Function( _SwitchBranch value)?  switchBranch,TResult Function( _CreateBranchFrom value)?  createBranchFrom,TResult Function( _SelectGraphNode value)?  selectGraphNode,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadConversations() when loadConversations != null:
@@ -67,7 +67,10 @@ return deleteConversation(_that);case _SendMessage() when sendMessage != null:
 return sendMessage(_that);case _TokenReceived() when tokenReceived != null:
 return tokenReceived(_that);case _StreamDone() when streamDone != null:
 return streamDone(_that);case _StreamError() when streamError != null:
-return streamError(_that);case _:
+return streamError(_that);case _SwitchBranch() when switchBranch != null:
+return switchBranch(_that);case _CreateBranchFrom() when createBranchFrom != null:
+return createBranchFrom(_that);case _SelectGraphNode() when selectGraphNode != null:
+return selectGraphNode(_that);case _:
   return orElse();
 
 }
@@ -85,7 +88,7 @@ return streamError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadConversations value)  loadConversations,required TResult Function( _CreateConversation value)  createConversation,required TResult Function( _OpenConversation value)  openConversation,required TResult Function( _CloseConversation value)  closeConversation,required TResult Function( _DeleteConversation value)  deleteConversation,required TResult Function( _SendMessage value)  sendMessage,required TResult Function( _TokenReceived value)  tokenReceived,required TResult Function( _StreamDone value)  streamDone,required TResult Function( _StreamError value)  streamError,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadConversations value)  loadConversations,required TResult Function( _CreateConversation value)  createConversation,required TResult Function( _OpenConversation value)  openConversation,required TResult Function( _CloseConversation value)  closeConversation,required TResult Function( _DeleteConversation value)  deleteConversation,required TResult Function( _SendMessage value)  sendMessage,required TResult Function( _TokenReceived value)  tokenReceived,required TResult Function( _StreamDone value)  streamDone,required TResult Function( _StreamError value)  streamError,required TResult Function( _SwitchBranch value)  switchBranch,required TResult Function( _CreateBranchFrom value)  createBranchFrom,required TResult Function( _SelectGraphNode value)  selectGraphNode,}){
 final _that = this;
 switch (_that) {
 case _LoadConversations():
@@ -97,7 +100,10 @@ return deleteConversation(_that);case _SendMessage():
 return sendMessage(_that);case _TokenReceived():
 return tokenReceived(_that);case _StreamDone():
 return streamDone(_that);case _StreamError():
-return streamError(_that);case _:
+return streamError(_that);case _SwitchBranch():
+return switchBranch(_that);case _CreateBranchFrom():
+return createBranchFrom(_that);case _SelectGraphNode():
+return selectGraphNode(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -114,7 +120,7 @@ return streamError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadConversations value)?  loadConversations,TResult? Function( _CreateConversation value)?  createConversation,TResult? Function( _OpenConversation value)?  openConversation,TResult? Function( _CloseConversation value)?  closeConversation,TResult? Function( _DeleteConversation value)?  deleteConversation,TResult? Function( _SendMessage value)?  sendMessage,TResult? Function( _TokenReceived value)?  tokenReceived,TResult? Function( _StreamDone value)?  streamDone,TResult? Function( _StreamError value)?  streamError,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadConversations value)?  loadConversations,TResult? Function( _CreateConversation value)?  createConversation,TResult? Function( _OpenConversation value)?  openConversation,TResult? Function( _CloseConversation value)?  closeConversation,TResult? Function( _DeleteConversation value)?  deleteConversation,TResult? Function( _SendMessage value)?  sendMessage,TResult? Function( _TokenReceived value)?  tokenReceived,TResult? Function( _StreamDone value)?  streamDone,TResult? Function( _StreamError value)?  streamError,TResult? Function( _SwitchBranch value)?  switchBranch,TResult? Function( _CreateBranchFrom value)?  createBranchFrom,TResult? Function( _SelectGraphNode value)?  selectGraphNode,}){
 final _that = this;
 switch (_that) {
 case _LoadConversations() when loadConversations != null:
@@ -126,7 +132,10 @@ return deleteConversation(_that);case _SendMessage() when sendMessage != null:
 return sendMessage(_that);case _TokenReceived() when tokenReceived != null:
 return tokenReceived(_that);case _StreamDone() when streamDone != null:
 return streamDone(_that);case _StreamError() when streamError != null:
-return streamError(_that);case _:
+return streamError(_that);case _SwitchBranch() when switchBranch != null:
+return switchBranch(_that);case _CreateBranchFrom() when createBranchFrom != null:
+return createBranchFrom(_that);case _SelectGraphNode() when selectGraphNode != null:
+return selectGraphNode(_that);case _:
   return null;
 
 }
@@ -143,7 +152,7 @@ return streamError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadConversations,TResult Function()?  createConversation,TResult Function( String conversationId)?  openConversation,TResult Function()?  closeConversation,TResult Function( String conversationId)?  deleteConversation,TResult Function( String text)?  sendMessage,TResult Function( String token)?  tokenReceived,TResult Function()?  streamDone,TResult Function( String message)?  streamError,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadConversations,TResult Function()?  createConversation,TResult Function( String conversationId)?  openConversation,TResult Function()?  closeConversation,TResult Function( String conversationId)?  deleteConversation,TResult Function( String text)?  sendMessage,TResult Function( String token)?  tokenReceived,TResult Function()?  streamDone,TResult Function( String message)?  streamError,TResult Function( String leafMessageId)?  switchBranch,TResult Function( String parentMessageId)?  createBranchFrom,TResult Function( String? messageId)?  selectGraphNode,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadConversations() when loadConversations != null:
 return loadConversations();case _CreateConversation() when createConversation != null:
@@ -154,7 +163,10 @@ return deleteConversation(_that.conversationId);case _SendMessage() when sendMes
 return sendMessage(_that.text);case _TokenReceived() when tokenReceived != null:
 return tokenReceived(_that.token);case _StreamDone() when streamDone != null:
 return streamDone();case _StreamError() when streamError != null:
-return streamError(_that.message);case _:
+return streamError(_that.message);case _SwitchBranch() when switchBranch != null:
+return switchBranch(_that.leafMessageId);case _CreateBranchFrom() when createBranchFrom != null:
+return createBranchFrom(_that.parentMessageId);case _SelectGraphNode() when selectGraphNode != null:
+return selectGraphNode(_that.messageId);case _:
   return orElse();
 
 }
@@ -172,7 +184,7 @@ return streamError(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadConversations,required TResult Function()  createConversation,required TResult Function( String conversationId)  openConversation,required TResult Function()  closeConversation,required TResult Function( String conversationId)  deleteConversation,required TResult Function( String text)  sendMessage,required TResult Function( String token)  tokenReceived,required TResult Function()  streamDone,required TResult Function( String message)  streamError,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadConversations,required TResult Function()  createConversation,required TResult Function( String conversationId)  openConversation,required TResult Function()  closeConversation,required TResult Function( String conversationId)  deleteConversation,required TResult Function( String text)  sendMessage,required TResult Function( String token)  tokenReceived,required TResult Function()  streamDone,required TResult Function( String message)  streamError,required TResult Function( String leafMessageId)  switchBranch,required TResult Function( String parentMessageId)  createBranchFrom,required TResult Function( String? messageId)  selectGraphNode,}) {final _that = this;
 switch (_that) {
 case _LoadConversations():
 return loadConversations();case _CreateConversation():
@@ -183,7 +195,10 @@ return deleteConversation(_that.conversationId);case _SendMessage():
 return sendMessage(_that.text);case _TokenReceived():
 return tokenReceived(_that.token);case _StreamDone():
 return streamDone();case _StreamError():
-return streamError(_that.message);case _:
+return streamError(_that.message);case _SwitchBranch():
+return switchBranch(_that.leafMessageId);case _CreateBranchFrom():
+return createBranchFrom(_that.parentMessageId);case _SelectGraphNode():
+return selectGraphNode(_that.messageId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,7 +215,7 @@ return streamError(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadConversations,TResult? Function()?  createConversation,TResult? Function( String conversationId)?  openConversation,TResult? Function()?  closeConversation,TResult? Function( String conversationId)?  deleteConversation,TResult? Function( String text)?  sendMessage,TResult? Function( String token)?  tokenReceived,TResult? Function()?  streamDone,TResult? Function( String message)?  streamError,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadConversations,TResult? Function()?  createConversation,TResult? Function( String conversationId)?  openConversation,TResult? Function()?  closeConversation,TResult? Function( String conversationId)?  deleteConversation,TResult? Function( String text)?  sendMessage,TResult? Function( String token)?  tokenReceived,TResult? Function()?  streamDone,TResult? Function( String message)?  streamError,TResult? Function( String leafMessageId)?  switchBranch,TResult? Function( String parentMessageId)?  createBranchFrom,TResult? Function( String? messageId)?  selectGraphNode,}) {final _that = this;
 switch (_that) {
 case _LoadConversations() when loadConversations != null:
 return loadConversations();case _CreateConversation() when createConversation != null:
@@ -211,7 +226,10 @@ return deleteConversation(_that.conversationId);case _SendMessage() when sendMes
 return sendMessage(_that.text);case _TokenReceived() when tokenReceived != null:
 return tokenReceived(_that.token);case _StreamDone() when streamDone != null:
 return streamDone();case _StreamError() when streamError != null:
-return streamError(_that.message);case _:
+return streamError(_that.message);case _SwitchBranch() when switchBranch != null:
+return switchBranch(_that.leafMessageId);case _CreateBranchFrom() when createBranchFrom != null:
+return createBranchFrom(_that.parentMessageId);case _SelectGraphNode() when selectGraphNode != null:
+return selectGraphNode(_that.messageId);case _:
   return null;
 
 }
@@ -678,6 +696,204 @@ as String,
 }
 
 /// @nodoc
+
+
+class _SwitchBranch implements ShivAIEvent {
+  const _SwitchBranch(this.leafMessageId);
+  
+
+ final  String leafMessageId;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SwitchBranchCopyWith<_SwitchBranch> get copyWith => __$SwitchBranchCopyWithImpl<_SwitchBranch>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SwitchBranch&&(identical(other.leafMessageId, leafMessageId) || other.leafMessageId == leafMessageId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,leafMessageId);
+
+@override
+String toString() {
+  return 'ShivAIEvent.switchBranch(leafMessageId: $leafMessageId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SwitchBranchCopyWith<$Res> implements $ShivAIEventCopyWith<$Res> {
+  factory _$SwitchBranchCopyWith(_SwitchBranch value, $Res Function(_SwitchBranch) _then) = __$SwitchBranchCopyWithImpl;
+@useResult
+$Res call({
+ String leafMessageId
+});
+
+
+
+
+}
+/// @nodoc
+class __$SwitchBranchCopyWithImpl<$Res>
+    implements _$SwitchBranchCopyWith<$Res> {
+  __$SwitchBranchCopyWithImpl(this._self, this._then);
+
+  final _SwitchBranch _self;
+  final $Res Function(_SwitchBranch) _then;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? leafMessageId = null,}) {
+  return _then(_SwitchBranch(
+null == leafMessageId ? _self.leafMessageId : leafMessageId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _CreateBranchFrom implements ShivAIEvent {
+  const _CreateBranchFrom(this.parentMessageId);
+  
+
+ final  String parentMessageId;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CreateBranchFromCopyWith<_CreateBranchFrom> get copyWith => __$CreateBranchFromCopyWithImpl<_CreateBranchFrom>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateBranchFrom&&(identical(other.parentMessageId, parentMessageId) || other.parentMessageId == parentMessageId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,parentMessageId);
+
+@override
+String toString() {
+  return 'ShivAIEvent.createBranchFrom(parentMessageId: $parentMessageId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CreateBranchFromCopyWith<$Res> implements $ShivAIEventCopyWith<$Res> {
+  factory _$CreateBranchFromCopyWith(_CreateBranchFrom value, $Res Function(_CreateBranchFrom) _then) = __$CreateBranchFromCopyWithImpl;
+@useResult
+$Res call({
+ String parentMessageId
+});
+
+
+
+
+}
+/// @nodoc
+class __$CreateBranchFromCopyWithImpl<$Res>
+    implements _$CreateBranchFromCopyWith<$Res> {
+  __$CreateBranchFromCopyWithImpl(this._self, this._then);
+
+  final _CreateBranchFrom _self;
+  final $Res Function(_CreateBranchFrom) _then;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? parentMessageId = null,}) {
+  return _then(_CreateBranchFrom(
+null == parentMessageId ? _self.parentMessageId : parentMessageId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _SelectGraphNode implements ShivAIEvent {
+  const _SelectGraphNode(this.messageId);
+  
+
+ final  String? messageId;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SelectGraphNodeCopyWith<_SelectGraphNode> get copyWith => __$SelectGraphNodeCopyWithImpl<_SelectGraphNode>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelectGraphNode&&(identical(other.messageId, messageId) || other.messageId == messageId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,messageId);
+
+@override
+String toString() {
+  return 'ShivAIEvent.selectGraphNode(messageId: $messageId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SelectGraphNodeCopyWith<$Res> implements $ShivAIEventCopyWith<$Res> {
+  factory _$SelectGraphNodeCopyWith(_SelectGraphNode value, $Res Function(_SelectGraphNode) _then) = __$SelectGraphNodeCopyWithImpl;
+@useResult
+$Res call({
+ String? messageId
+});
+
+
+
+
+}
+/// @nodoc
+class __$SelectGraphNodeCopyWithImpl<$Res>
+    implements _$SelectGraphNodeCopyWith<$Res> {
+  __$SelectGraphNodeCopyWithImpl(this._self, this._then);
+
+  final _SelectGraphNode _self;
+  final $Res Function(_SelectGraphNode) _then;
+
+/// Create a copy of ShivAIEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? messageId = freezed,}) {
+  return _then(_SelectGraphNode(
+freezed == messageId ? _self.messageId : messageId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$ShivAIState {
 
  ShivChatStatus get status; List<ShivConversationEntity> get conversations; ShivConversationEntity? get activeConversation; List<ShivMessageEntity> get messages;/// The streaming assistant message being built token-by-token.
@@ -687,7 +903,11 @@ mixin _$ShivAIState {
 /// 0 = embedding model not loaded or no matching notes found.
 /// Shown as a debug badge in the chat header.
  int get ragContextCount;/// True while the embedding model is loading on first Shiv tab open.
- bool get isRagInitializing;
+ bool get isRagInitializing;/// messageId of the node currently selected in the graph panel.
+/// null = no node selected / panel closed.
+ String? get selectedNodeMessageId;/// All messages for the active conversation (flat list, all branches).
+/// Used by the tree view to build the full graph.
+ List<ShivMessageEntity> get allMessages;
 /// Create a copy of ShivAIState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -698,16 +918,16 @@ $ShivAIStateCopyWith<ShivAIState> get copyWith => _$ShivAIStateCopyWithImpl<Shiv
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShivAIState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.conversations, conversations)&&(identical(other.activeConversation, activeConversation) || other.activeConversation == activeConversation)&&const DeepCollectionEquality().equals(other.messages, messages)&&(identical(other.streamingContent, streamingContent) || other.streamingContent == streamingContent)&&(identical(other.streamingMessageId, streamingMessageId) || other.streamingMessageId == streamingMessageId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.ragContextCount, ragContextCount) || other.ragContextCount == ragContextCount)&&(identical(other.isRagInitializing, isRagInitializing) || other.isRagInitializing == isRagInitializing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShivAIState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.conversations, conversations)&&(identical(other.activeConversation, activeConversation) || other.activeConversation == activeConversation)&&const DeepCollectionEquality().equals(other.messages, messages)&&(identical(other.streamingContent, streamingContent) || other.streamingContent == streamingContent)&&(identical(other.streamingMessageId, streamingMessageId) || other.streamingMessageId == streamingMessageId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.ragContextCount, ragContextCount) || other.ragContextCount == ragContextCount)&&(identical(other.isRagInitializing, isRagInitializing) || other.isRagInitializing == isRagInitializing)&&(identical(other.selectedNodeMessageId, selectedNodeMessageId) || other.selectedNodeMessageId == selectedNodeMessageId)&&const DeepCollectionEquality().equals(other.allMessages, allMessages));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,status,const DeepCollectionEquality().hash(conversations),activeConversation,const DeepCollectionEquality().hash(messages),streamingContent,streamingMessageId,errorMessage,ragContextCount,isRagInitializing);
+int get hashCode => Object.hash(runtimeType,status,const DeepCollectionEquality().hash(conversations),activeConversation,const DeepCollectionEquality().hash(messages),streamingContent,streamingMessageId,errorMessage,ragContextCount,isRagInitializing,selectedNodeMessageId,const DeepCollectionEquality().hash(allMessages));
 
 @override
 String toString() {
-  return 'ShivAIState(status: $status, conversations: $conversations, activeConversation: $activeConversation, messages: $messages, streamingContent: $streamingContent, streamingMessageId: $streamingMessageId, errorMessage: $errorMessage, ragContextCount: $ragContextCount, isRagInitializing: $isRagInitializing)';
+  return 'ShivAIState(status: $status, conversations: $conversations, activeConversation: $activeConversation, messages: $messages, streamingContent: $streamingContent, streamingMessageId: $streamingMessageId, errorMessage: $errorMessage, ragContextCount: $ragContextCount, isRagInitializing: $isRagInitializing, selectedNodeMessageId: $selectedNodeMessageId, allMessages: $allMessages)';
 }
 
 
@@ -718,7 +938,7 @@ abstract mixin class $ShivAIStateCopyWith<$Res>  {
   factory $ShivAIStateCopyWith(ShivAIState value, $Res Function(ShivAIState) _then) = _$ShivAIStateCopyWithImpl;
 @useResult
 $Res call({
- ShivChatStatus status, List<ShivConversationEntity> conversations, ShivConversationEntity? activeConversation, List<ShivMessageEntity> messages, String? streamingContent, String? streamingMessageId, String? errorMessage, int ragContextCount, bool isRagInitializing
+ ShivChatStatus status, List<ShivConversationEntity> conversations, ShivConversationEntity? activeConversation, List<ShivMessageEntity> messages, String? streamingContent, String? streamingMessageId, String? errorMessage, int ragContextCount, bool isRagInitializing, String? selectedNodeMessageId, List<ShivMessageEntity> allMessages
 });
 
 
@@ -735,7 +955,7 @@ class _$ShivAIStateCopyWithImpl<$Res>
 
 /// Create a copy of ShivAIState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? conversations = null,Object? activeConversation = freezed,Object? messages = null,Object? streamingContent = freezed,Object? streamingMessageId = freezed,Object? errorMessage = freezed,Object? ragContextCount = null,Object? isRagInitializing = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? conversations = null,Object? activeConversation = freezed,Object? messages = null,Object? streamingContent = freezed,Object? streamingMessageId = freezed,Object? errorMessage = freezed,Object? ragContextCount = null,Object? isRagInitializing = null,Object? selectedNodeMessageId = freezed,Object? allMessages = null,}) {
   return _then(_self.copyWith(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ShivChatStatus,conversations: null == conversations ? _self.conversations : conversations // ignore: cast_nullable_to_non_nullable
@@ -746,7 +966,9 @@ as String?,streamingMessageId: freezed == streamingMessageId ? _self.streamingMe
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,ragContextCount: null == ragContextCount ? _self.ragContextCount : ragContextCount // ignore: cast_nullable_to_non_nullable
 as int,isRagInitializing: null == isRagInitializing ? _self.isRagInitializing : isRagInitializing // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,selectedNodeMessageId: freezed == selectedNodeMessageId ? _self.selectedNodeMessageId : selectedNodeMessageId // ignore: cast_nullable_to_non_nullable
+as String?,allMessages: null == allMessages ? _self.allMessages : allMessages // ignore: cast_nullable_to_non_nullable
+as List<ShivMessageEntity>,
   ));
 }
 /// Create a copy of ShivAIState
@@ -843,10 +1065,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing,  String? selectedNodeMessageId,  List<ShivMessageEntity> allMessages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShivAIState() when $default != null:
-return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing);case _:
+return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing,_that.selectedNodeMessageId,_that.allMessages);case _:
   return orElse();
 
 }
@@ -864,10 +1086,10 @@ return $default(_that.status,_that.conversations,_that.activeConversation,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing,  String? selectedNodeMessageId,  List<ShivMessageEntity> allMessages)  $default,) {final _that = this;
 switch (_that) {
 case _ShivAIState():
-return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing);case _:
+return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing,_that.selectedNodeMessageId,_that.allMessages);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -884,10 +1106,10 @@ return $default(_that.status,_that.conversations,_that.activeConversation,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ShivChatStatus status,  List<ShivConversationEntity> conversations,  ShivConversationEntity? activeConversation,  List<ShivMessageEntity> messages,  String? streamingContent,  String? streamingMessageId,  String? errorMessage,  int ragContextCount,  bool isRagInitializing,  String? selectedNodeMessageId,  List<ShivMessageEntity> allMessages)?  $default,) {final _that = this;
 switch (_that) {
 case _ShivAIState() when $default != null:
-return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing);case _:
+return $default(_that.status,_that.conversations,_that.activeConversation,_that.messages,_that.streamingContent,_that.streamingMessageId,_that.errorMessage,_that.ragContextCount,_that.isRagInitializing,_that.selectedNodeMessageId,_that.allMessages);case _:
   return null;
 
 }
@@ -899,7 +1121,7 @@ return $default(_that.status,_that.conversations,_that.activeConversation,_that.
 
 
 class _ShivAIState implements ShivAIState {
-  const _ShivAIState({this.status = ShivChatStatus.idle, final  List<ShivConversationEntity> conversations = const [], this.activeConversation, final  List<ShivMessageEntity> messages = const [], this.streamingContent, this.streamingMessageId, this.errorMessage, this.ragContextCount = 0, this.isRagInitializing = false}): _conversations = conversations,_messages = messages;
+  const _ShivAIState({this.status = ShivChatStatus.idle, final  List<ShivConversationEntity> conversations = const [], this.activeConversation, final  List<ShivMessageEntity> messages = const [], this.streamingContent, this.streamingMessageId, this.errorMessage, this.ragContextCount = 0, this.isRagInitializing = false, this.selectedNodeMessageId, final  List<ShivMessageEntity> allMessages = const []}): _conversations = conversations,_messages = messages,_allMessages = allMessages;
   
 
 @override@JsonKey() final  ShivChatStatus status;
@@ -930,6 +1152,20 @@ class _ShivAIState implements ShivAIState {
 @override@JsonKey() final  int ragContextCount;
 /// True while the embedding model is loading on first Shiv tab open.
 @override@JsonKey() final  bool isRagInitializing;
+/// messageId of the node currently selected in the graph panel.
+/// null = no node selected / panel closed.
+@override final  String? selectedNodeMessageId;
+/// All messages for the active conversation (flat list, all branches).
+/// Used by the tree view to build the full graph.
+ final  List<ShivMessageEntity> _allMessages;
+/// All messages for the active conversation (flat list, all branches).
+/// Used by the tree view to build the full graph.
+@override@JsonKey() List<ShivMessageEntity> get allMessages {
+  if (_allMessages is EqualUnmodifiableListView) return _allMessages;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_allMessages);
+}
+
 
 /// Create a copy of ShivAIState
 /// with the given fields replaced by the non-null parameter values.
@@ -941,16 +1177,16 @@ _$ShivAIStateCopyWith<_ShivAIState> get copyWith => __$ShivAIStateCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShivAIState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._conversations, _conversations)&&(identical(other.activeConversation, activeConversation) || other.activeConversation == activeConversation)&&const DeepCollectionEquality().equals(other._messages, _messages)&&(identical(other.streamingContent, streamingContent) || other.streamingContent == streamingContent)&&(identical(other.streamingMessageId, streamingMessageId) || other.streamingMessageId == streamingMessageId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.ragContextCount, ragContextCount) || other.ragContextCount == ragContextCount)&&(identical(other.isRagInitializing, isRagInitializing) || other.isRagInitializing == isRagInitializing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShivAIState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._conversations, _conversations)&&(identical(other.activeConversation, activeConversation) || other.activeConversation == activeConversation)&&const DeepCollectionEquality().equals(other._messages, _messages)&&(identical(other.streamingContent, streamingContent) || other.streamingContent == streamingContent)&&(identical(other.streamingMessageId, streamingMessageId) || other.streamingMessageId == streamingMessageId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.ragContextCount, ragContextCount) || other.ragContextCount == ragContextCount)&&(identical(other.isRagInitializing, isRagInitializing) || other.isRagInitializing == isRagInitializing)&&(identical(other.selectedNodeMessageId, selectedNodeMessageId) || other.selectedNodeMessageId == selectedNodeMessageId)&&const DeepCollectionEquality().equals(other._allMessages, _allMessages));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,status,const DeepCollectionEquality().hash(_conversations),activeConversation,const DeepCollectionEquality().hash(_messages),streamingContent,streamingMessageId,errorMessage,ragContextCount,isRagInitializing);
+int get hashCode => Object.hash(runtimeType,status,const DeepCollectionEquality().hash(_conversations),activeConversation,const DeepCollectionEquality().hash(_messages),streamingContent,streamingMessageId,errorMessage,ragContextCount,isRagInitializing,selectedNodeMessageId,const DeepCollectionEquality().hash(_allMessages));
 
 @override
 String toString() {
-  return 'ShivAIState(status: $status, conversations: $conversations, activeConversation: $activeConversation, messages: $messages, streamingContent: $streamingContent, streamingMessageId: $streamingMessageId, errorMessage: $errorMessage, ragContextCount: $ragContextCount, isRagInitializing: $isRagInitializing)';
+  return 'ShivAIState(status: $status, conversations: $conversations, activeConversation: $activeConversation, messages: $messages, streamingContent: $streamingContent, streamingMessageId: $streamingMessageId, errorMessage: $errorMessage, ragContextCount: $ragContextCount, isRagInitializing: $isRagInitializing, selectedNodeMessageId: $selectedNodeMessageId, allMessages: $allMessages)';
 }
 
 
@@ -961,7 +1197,7 @@ abstract mixin class _$ShivAIStateCopyWith<$Res> implements $ShivAIStateCopyWith
   factory _$ShivAIStateCopyWith(_ShivAIState value, $Res Function(_ShivAIState) _then) = __$ShivAIStateCopyWithImpl;
 @override @useResult
 $Res call({
- ShivChatStatus status, List<ShivConversationEntity> conversations, ShivConversationEntity? activeConversation, List<ShivMessageEntity> messages, String? streamingContent, String? streamingMessageId, String? errorMessage, int ragContextCount, bool isRagInitializing
+ ShivChatStatus status, List<ShivConversationEntity> conversations, ShivConversationEntity? activeConversation, List<ShivMessageEntity> messages, String? streamingContent, String? streamingMessageId, String? errorMessage, int ragContextCount, bool isRagInitializing, String? selectedNodeMessageId, List<ShivMessageEntity> allMessages
 });
 
 
@@ -978,7 +1214,7 @@ class __$ShivAIStateCopyWithImpl<$Res>
 
 /// Create a copy of ShivAIState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? conversations = null,Object? activeConversation = freezed,Object? messages = null,Object? streamingContent = freezed,Object? streamingMessageId = freezed,Object? errorMessage = freezed,Object? ragContextCount = null,Object? isRagInitializing = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? conversations = null,Object? activeConversation = freezed,Object? messages = null,Object? streamingContent = freezed,Object? streamingMessageId = freezed,Object? errorMessage = freezed,Object? ragContextCount = null,Object? isRagInitializing = null,Object? selectedNodeMessageId = freezed,Object? allMessages = null,}) {
   return _then(_ShivAIState(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ShivChatStatus,conversations: null == conversations ? _self._conversations : conversations // ignore: cast_nullable_to_non_nullable
@@ -989,7 +1225,9 @@ as String?,streamingMessageId: freezed == streamingMessageId ? _self.streamingMe
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,ragContextCount: null == ragContextCount ? _self.ragContextCount : ragContextCount // ignore: cast_nullable_to_non_nullable
 as int,isRagInitializing: null == isRagInitializing ? _self.isRagInitializing : isRagInitializing // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,selectedNodeMessageId: freezed == selectedNodeMessageId ? _self.selectedNodeMessageId : selectedNodeMessageId // ignore: cast_nullable_to_non_nullable
+as String?,allMessages: null == allMessages ? _self._allMessages : allMessages // ignore: cast_nullable_to_non_nullable
+as List<ShivMessageEntity>,
   ));
 }
 

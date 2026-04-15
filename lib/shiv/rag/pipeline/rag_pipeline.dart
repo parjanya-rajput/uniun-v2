@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -87,6 +88,11 @@ class RagPipeline {
       contextCount: relevantNotes.length,
     );
   }
+
+  /// Builds a compact summary of [branch] messages for system instruction
+  /// injection when the user switches branches. Delegates to [PromptBuilder].
+  String buildBranchContextSummary(List<ShivMessageEntity> branch) =>
+      _promptBuilder.buildBranchContextSummary(branch);
 
   /// Clear the personalisation cache (call when profile changes or on logout).
   void clearCache() => _personalization = null;

@@ -725,6 +725,24 @@
   "shivBranchTreeComingSoon": "Branch tree — coming in Phase 4",
   "@shivBranchTreeComingSoon": { "description": "Snackbar shown when tapping the branch tree button" },
 
+  "shivConversationTree": "Conversation Tree",
+  "@shivConversationTree": { "description": "Title of the branch tree page" },
+
+  "shivNodeOpenBranch": "Open Branch",
+  "@shivNodeOpenBranch": { "description": "Button to open the selected branch in chat" },
+
+  "shivNodeContinueFromHere": "Continue From Here",
+  "@shivNodeContinueFromHere": { "description": "Button to set selected node as active branch point" },
+
+  "shivNodeNewBranch": "New Branch",
+  "@shivNodeNewBranch": { "description": "Button to fork a new branch from selected node" },
+
+  "shivActiveBranch": "Active Branch",
+  "@shivActiveBranch": { "description": "Badge label on the active branch node panel" },
+
+  "shivNodeMessages": "{count} msgs",
+  "@shivNodeMessages": { "description": "Message count shown in node panel", "placeholders": { "count": { "type": "int" } } },
+
   "shivDefaultConversationTitle": "New conversation",
   "@shivDefaultConversationTitle": { "description": "Default title for a newly created conversation" },
 
@@ -733,6 +751,18 @@
 
   "shivEmptyBody": "Ask Shiv anything — your saved notes\ngive it context about what you know.",
   "@shivEmptyBody": { "description": "Empty chat state body text" },
+
+  "shivEmptyTreeTitle": "No messages yet",
+  "@shivEmptyTreeTitle": { "description": "Tree view empty state heading" },
+
+  "shivEmptyTreeBody": "Start a conversation to see the\nbranch tree here.",
+  "@shivEmptyTreeBody": { "description": "Tree view empty state body text" },
+
+  "shivThinking": "Thinking…",
+  "@shivThinking": { "description": "Label shown while the model is in a thinking/reasoning block" },
+
+  "shivThinkingLabel": "Reasoning",
+  "@shivThinkingLabel": { "description": "Collapsed section header for the model's internal thinking" },
 
   "shivInputHint": "Ask Shiv anything…",
   "@shivInputHint": { "description": "Hint text inside the Shiv chat input field" },

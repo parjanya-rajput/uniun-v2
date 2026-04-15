@@ -1480,6 +1480,42 @@ abstract class AppLocalizations {
   /// **'Branch tree — coming in Phase 4'**
   String get shivBranchTreeComingSoon;
 
+  /// Title of the branch tree page
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation Tree'**
+  String get shivConversationTree;
+
+  /// Button to open the selected branch in chat
+  ///
+  /// In en, this message translates to:
+  /// **'Open Branch'**
+  String get shivNodeOpenBranch;
+
+  /// Button to set selected node as active branch point
+  ///
+  /// In en, this message translates to:
+  /// **'Continue From Here'**
+  String get shivNodeContinueFromHere;
+
+  /// Button to fork a new branch from selected node
+  ///
+  /// In en, this message translates to:
+  /// **'New Branch'**
+  String get shivNodeNewBranch;
+
+  /// Badge label on the active branch node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Active Branch'**
+  String get shivActiveBranch;
+
+  /// Message count shown in node panel
+  ///
+  /// In en, this message translates to:
+  /// **'{count} msgs'**
+  String shivNodeMessages(int count);
+
   /// Default title for a newly created conversation
   ///
   /// In en, this message translates to:
@@ -1497,6 +1533,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask Shiv anything — your saved notes\ngive it context about what you know.'**
   String get shivEmptyBody;
+
+  /// Tree view empty state heading
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet'**
+  String get shivEmptyTreeTitle;
+
+  /// Tree view empty state body text
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation to see the\nbranch tree here.'**
+  String get shivEmptyTreeBody;
+
+  /// Label shown while the model is in a thinking/reasoning block
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get shivThinking;
+
+  /// Collapsed section header for the model's internal thinking
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning'**
+  String get shivThinkingLabel;
 
   /// Hint text inside the Shiv chat input field
   ///

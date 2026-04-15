@@ -755,6 +755,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shivBranchTreeComingSoon => 'Branch tree — coming in Phase 4';
 
   @override
+  String get shivConversationTree => 'Conversation Tree';
+
+  @override
+  String get shivNodeOpenBranch => 'Open Branch';
+
+  @override
+  String get shivNodeContinueFromHere => 'Continue From Here';
+
+  @override
+  String get shivNodeNewBranch => 'New Branch';
+
+  @override
+  String get shivActiveBranch => 'Active Branch';
+
+  @override
+  String shivNodeMessages(int count) {
+    return '$count msgs';
+  }
+
+  @override
   String get shivDefaultConversationTitle => 'New conversation';
 
   @override
@@ -763,6 +783,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shivEmptyBody =>
       'Ask Shiv anything — your saved notes\ngive it context about what you know.';
+
+  @override
+  String get shivEmptyTreeTitle => 'No messages yet';
+
+  @override
+  String get shivEmptyTreeBody =>
+      'Start a conversation to see the\nbranch tree here.';
+
+  @override
+  String get shivThinking => 'Thinking…';
+
+  @override
+  String get shivThinkingLabel => 'Reasoning';
 
   @override
   String get shivInputHint => 'Ask Shiv anything…';
