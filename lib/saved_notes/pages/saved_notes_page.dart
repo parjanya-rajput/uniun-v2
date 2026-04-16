@@ -65,13 +65,6 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
         ),
         iconTheme: const IconThemeData(color: AppColors.onSurface),
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => context.read<SavedNotesCubit>().load(),
-            tooltip: 'Refresh',
-          ),
-        ],
       ),
       body: BlocBuilder<SavedNotesCubit, SavedNotesState>(
         builder: (context, state) {

@@ -19,6 +19,7 @@ import 'package:uniun/onboarding/pages/splash_page.dart';
 import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
+import 'package:uniun/graph/pages/graph_page.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +76,7 @@ class UniunApp extends StatelessWidget {
             ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
+        AppRoutes.graph: (_) => const GraphPage(),
       },
     );
   }
