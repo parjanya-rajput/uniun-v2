@@ -77,7 +77,7 @@ Nostr Relay Network
 Unread badges for Channels and DMs are NOT implemented by marking all messages read on channel open. Instead, `ChannelReadStateModel` and `DMReadStateModel` each store a `lastReadEventId`. As the user scrolls, the last visible event ID is reported to the BLoC which updates `lastReadEventId`. `unreadCount = messages with createdAt after lastReadEventId`. This gives scroll-position resume (like Telegram's "you are here" marker) and a "jump to first unread" feature for free. The SyncEngine updates these models when new messages arrive.
 
 **Finding 002 — On-Device LLM via flutter_gemma**:
-Shiv uses `flutter_gemma` as the single LLM backend. No Strategy pattern for multiple backends in v1 — that adds complexity with no user benefit. `FlutterGemmaPlugin.instance.getResponseStream(prompt)` for token streaming. Model file is downloaded on first launch (~1.5GB for Gemma 2B, ~5GB for Gemma 7B). Gemma 2B runs on any modern phone with 4GB+ RAM.
+Shiv uses `flutter_gemma ^0.13.1` as the single LLM backend. No Strategy pattern — one backend, no unnecessary abstraction. API: `FlutterGemma.getActiveModel(maxTokens:)` → `model.createChat()` → `InferenceChat`. Each user turn: `chat.addQuery(Message.text(text:))` + `chat.generateChatResponseAsync()` streams `TextResponse` tokens. `InferenceChat` manages conversation history internally — never rebuild history in our own prompt. The system instruction is prepended to the first user turn directly (Qwen chat templates ignore the `systemInstruction` param in `createChat()`). Supported models: Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B — user-selectable from `AIModelSelectionPage`.
 
 **Finding 003 — Feed + Chat Use Same Scroll Model**:
 Both the Vishnu feed and Channel/DM chat use the same `lastReadEventId` + chronological pagination pattern. Feed is chronological-only for v1 (no ranking algorithm). Pagination uses Isar's `createdLessThan(before)` cursor pattern. No separate architecture is needed for feed vs chat scroll.
@@ -254,30 +254,50 @@ Note composition and publishing.
 
 ### Shiv — AI Assistant
 
-On-device AI assistant using GraphRAG over the user's saved notes.
+On-device AI assistant using RAG over the user's own notes. Fully implemented.
 
-**RAG pipeline (standard vector phase):**
-1. User saves a note → `EmbeddingService` converts content to a float vector (`List<double>`, 384 or 768 dimensions) → stored in `SavedNoteModel.embedding` in Isar.
-2. User asks Shiv a question → same embedding model converts question to vector.
-3. `VectorSearchService` loads all saved note embeddings from Isar into memory → computes cosine similarity → returns top-K `ScoredNote` objects.
-4. `PromptBuilder` assembles prompt: system prompt + top-K note contents + user question.
-5. `AIModelRunner` (wrapping `FlutterGemmaPlugin`) streams the answer token-by-token via `getResponseStream()`.
+**Model selection:**
+- `AIModelSelectionPage` + `SelectAIModelCubit` — user picks from supported models (Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B).
+- Selection stored in `AppSettingsModel` (Isar singleton). `AIModelRunner.hasActiveModel()` checks `FlutterGemma.hasActiveModel()`.
+- `ShivPage` redirects to `AIModelSelectionPage` if no model is active.
 
-**GraphRAG phase (on top of vector):**
-- After vector retrieval, BFS-traverse the note graph from seed notes: follow `eTagRefs` edges, collect same-`tTags` notes, pull reply chains.
-- Verbalize the subgraph into the prompt context before sending to Gemma.
-- Enables multi-hop queries ("find notes connected to this concept") and global queries ("what are my main interests?").
+**RAG pipeline (two-phase per InferenceChat design):**
 
-**Why only saved notes:** Regular notes are cleaned up after 7 days by `CleanupManager`. Saved notes are the user's explicit personal knowledge base. Embeddings are only generated on save — not for every note seen.
+Phase 1 — session open (once per conversation):
+1. `RagPipeline.init()` — loads `EmbeddingService` (all-MiniLM-L6-v2 via tflite_flutter, ~80MB TFLite model).
+2. `RagPipeline.buildSystemInstruction()` — loads active user profile + own notes → `PromptBuilder` emits Shiv persona + user name/bio/interests as a static system instruction string.
+3. `AIModelRunner.initChat(systemInstruction:)` — opens an `InferenceChat` session via `flutter_gemma ^0.13.1`. The system instruction is prepended to the first user turn because Qwen templates ignore the systemInstruction parameter from `createChat()`.
 
-**Models:**
-- Embedding model: `all-MiniLM-L6-v2` (~80MB) or `nomic-embed-text` (~270MB)
-- LLM: Gemma 2B (~1.5GB) or Gemma 7B (~5GB) via `flutter_gemma`
+Phase 2 — each user message:
+1. `RagPipeline.buildMessage(userQuestion:)` → `EmbeddingService.embed(query)` → `VectorSearchService.search()` (cosine similarity, top-K) → `PromptBuilder.buildUserMessage()` emits RAG context + question.
+2. `AIModelRunner.sendAndStream(message)` → `chat.addQuery()` + `chat.generateChatResponseAsync()` → streams `TextResponse` tokens.
+3. `InferenceChat` manages conversation history internally — we never duplicate it in our own prompt.
+
+**Conversation persistence:**
+- `ShivConversationModel` (Isar) — conversationId, title, activeLeafMessageId (branch pointer), createdAt, updatedAt.
+- `ShivMessageModel` (Isar) — messageId, conversationId, parentId (linked-list for branching), role (user/assistant), content, createdAt.
+- Tree structure: parentId chain allows future branch-tree view. Current UI shows linear (activeLeaf) path.
+- Auto-title: first user message → first 40 chars become the conversation title via `UpdateConversationTitleUseCase`.
 
 **BLoC**: `ShivAIBloc`
-- `SendMessageEvent` → RAG pipeline → streaming state updates
-- `SelectModelEvent` → `SelectAIModelUseCase`
-- `LoadConversationsEvent`, `CreateConversationEvent`, `DeleteConversationEvent`
+- `LoadConversations` → `RagPipeline.init()` + `GetConversationsUseCase`
+- `CreateConversation` → `CreateConversationUseCase` → prepends to list immediately
+- `OpenConversation` → `GetMessagesUseCase` + `AIModelRunner.initChat()`
+- `SendMessage` → `SaveMessageUseCase` (user) → `RagPipeline.buildMessage()` → `AIModelRunner.sendAndStream()` → token events → `UpdateMessageContentUseCase` (assistant)
+- `DeleteConversation` → `DeleteConversationUseCase`
+- `TokenReceived`, `StreamDone`, `StreamError` — internal streaming events
+
+**Use cases** (`lib/domain/usecases/shiv_usecases.dart`):
+`GetConversationsUseCase`, `CreateConversationUseCase`, `DeleteConversationUseCase`, `GetMessagesUseCase`, `SaveMessageUseCase`, `UpdateMessageContentUseCase`, `UpdateConversationTitleUseCase`, `UpdateActiveLeafUseCase`
+
+**UI structure** (`lib/shiv/`):
+- `shiv/pages/shiv_page.dart` — model check → landing or active chat
+- `shiv/chat/pages/shiv_chat_page.dart` — message list + streaming bubble
+- `shiv/chat/widgets/shiv_history_drawer.dart` — side drawer (Scaffold.drawer), lists conversations
+- `shiv/chat/widgets/shiv_conversation_tile.dart` — dismissible tile, swipe-to-delete
+- `shiv/chat/widgets/shiv_input_composer.dart` — send bar with streaming lock
+- `shiv/chat/widgets/shiv_message_bubble.dart` — user/assistant bubbles with streaming support
+- `shiv/model_select/` — model picker UI (cubit + page + widgets)
 
 ### Channels — Public Chat (NIP-28)
 
@@ -532,7 +552,8 @@ Core identity, feed, threading, followed notes, settings, and onboarding are all
 | Settings — profile edit, identity, storage, style, alerts | ✅ Done |
 | SavedNote — full note copy stored in Isar (not just ID) | ✅ Done |
 | Brahma create note — BLoC, compose page, graph preview | ✅ Done |
-| Channels (NIP-28), DMs (NIP-17), Shiv AI | 🔲 Pending |
+| Shiv AI — model selection, RAG pipeline, conversation persistence, chat UI | ✅ Done |
+| Channels (NIP-28), DMs (NIP-17) | 🔲 Pending |
 
 **NIP-09 (event deletion) is permanently excluded.** Notes are forever — this is a core product principle, not a gap. Never add a `deleted` field, Kind 5 event handling, or any soft-delete mechanism anywhere in the codebase.
 

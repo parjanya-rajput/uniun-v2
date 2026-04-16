@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/shiv/chat/pages/shiv_chat_page.dart';
-import 'package:uniun/shiv/chat/pages/shiv_history_page.dart';
+import 'package:uniun/shiv/chat/widgets/shiv_history_drawer.dart';
 import 'package:uniun/shiv/model_select/pages/ai_model_selection_page.dart';
 import 'package:uniun/shiv/services/ai_model_runner.dart';
 
@@ -19,7 +21,14 @@ import 'package:uniun/shiv/services/ai_model_runner.dart';
 ///
 /// Redirects to the AI model selection screen if no model is installed.
 class ShivPage extends StatefulWidget {
-  const ShivPage({super.key});
+  const ShivPage({
+    super.key,
+    required this.currentIndex,
+    required this.onSwitchTab,
+  });
+
+  final int currentIndex;
+  final Future<void> Function(int) onSwitchTab;
 
   @override
   State<ShivPage> createState() => _ShivPageState();
@@ -27,6 +36,7 @@ class ShivPage extends StatefulWidget {
 
 class _ShivPageState extends State<ShivPage> {
   bool? _hasModel;
+  bool _drawerOpen = false;
 
   @override
   void initState() {
@@ -43,13 +53,16 @@ class _ShivPageState extends State<ShivPage> {
     }
   }
 
+  void _onDrawerChanged(bool isOpen) {
+    if (_drawerOpen != isOpen) setState(() => _drawerOpen = isOpen);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Show model selection if no model exists
+    // Show model selection if no model exists — no FloatingNav (back button is the nav)
     if (_hasModel == false) {
       return WillPopScope(
         onWillPop: () async {
-          // When returning from model selection, re-check for model
           await _checkModel();
           return false;
         },
@@ -57,17 +70,39 @@ class _ShivPageState extends State<ShivPage> {
       );
     }
 
-    // Show Shiv UI once model exists
+    // Show Shiv UI once model exists — FloatingNav overlaid via Stack
     if (_hasModel == true) {
-      return BlocProvider(
-        create: (_) =>
-            getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
-        child: const _ShivRoot(),
+      return Stack(
+        children: [
+          BlocProvider(
+            create: (_) =>
+                getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
+            child: _ShivRoot(onDrawerChanged: _onDrawerChanged),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
+            child: KeyboardVisibilityBuilder(
+              builder: (context, isKeyboardVisible) => AnimatedSlide(
+                offset: (isKeyboardVisible || _drawerOpen)
+                    ? const Offset(0, 1.5)
+                    : Offset.zero,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeInOut,
+                child: FloatingNav(
+                  currentIndex: widget.currentIndex,
+                  onTap: widget.onSwitchTab,
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     // Loading state
-    return Scaffold(
+    return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
       ),
@@ -76,7 +111,8 @@ class _ShivPageState extends State<ShivPage> {
 }
 
 class _ShivRoot extends StatelessWidget {
-  const _ShivRoot();
+  const _ShivRoot({required this.onDrawerChanged});
+  final ValueChanged<bool> onDrawerChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -86,9 +122,9 @@ class _ShivRoot extends StatelessWidget {
           (curr.activeConversation == null),
       builder: (context, state) {
         if (state.activeConversation != null) {
-          return const ShivChatPage();
+          return ShivChatPage(onDrawerChanged: onDrawerChanged);
         }
-        return const _ShivLanding();
+        return _ShivLanding(onDrawerChanged: onDrawerChanged);
       },
     );
   }
@@ -97,7 +133,8 @@ class _ShivRoot extends StatelessWidget {
 // ── Landing screen (no active conversation) ───────────────────────────────────
 
 class _ShivLanding extends StatelessWidget {
-  const _ShivLanding();
+  const _ShivLanding({required this.onDrawerChanged});
+  final ValueChanged<bool> onDrawerChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +143,12 @@ class _ShivLanding extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLowest,
-      body: Column(
+      drawer: const ShivHistoryDrawer(),
+      onDrawerChanged: onDrawerChanged,
+      // Builder gives a context that IS a descendant of this Scaffold,
+      // so Scaffold.of(ctx).openDrawer() targets the right Scaffold.
+      body: Builder(
+        builder: (ctx) => Column(
         children: [
           // Header
           Container(
@@ -157,11 +199,11 @@ class _ShivLanding extends StatelessWidget {
                     ],
                   ),
                 ),
-                // History
+                // History — ctx is a descendant of this Scaffold so openDrawer works
                 _HeaderIcon(
                   icon: Icons.history_rounded,
                   tooltip: l10n.shivConversationsTooltip,
-                  onTap: () => ShivHistoryPage.show(context),
+                  onTap: () => Scaffold.of(ctx).openDrawer(),
                 ),
                 // Tree (disabled on landing — no active conversation)
                 _HeaderIcon(
@@ -227,12 +269,13 @@ class _ShivLanding extends StatelessWidget {
                       );
                     }
                   },
-                  onHistory: () => ShivHistoryPage.show(context),
+                  onHistory: () => Scaffold.of(ctx).openDrawer(),
                 );
               },
             ),
           ),
         ],
+        ), // close Builder
       ),
     );
   }

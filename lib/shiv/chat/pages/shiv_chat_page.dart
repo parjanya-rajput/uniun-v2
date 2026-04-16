@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/shiv/chat/bloc/shiv_ai_bloc.dart';
-import 'package:uniun/shiv/chat/pages/shiv_history_page.dart';
+import 'package:uniun/shiv/chat/widgets/shiv_history_drawer.dart';
 import 'package:uniun/shiv/chat/widgets/shiv_input_composer.dart';
 import 'package:uniun/shiv/chat/widgets/shiv_message_bubble.dart';
 
@@ -11,7 +11,8 @@ import 'package:uniun/shiv/chat/widgets/shiv_message_bubble.dart';
 /// Header: SHIV title + thread title + history icon + tree icon.
 /// No branch/continue buttons in bubbles — that's handled via the tree view.
 class ShivChatPage extends StatefulWidget {
-  const ShivChatPage({super.key});
+  const ShivChatPage({super.key, required this.onDrawerChanged});
+  final ValueChanged<bool> onDrawerChanged;
 
   @override
   State<ShivChatPage> createState() => _ShivChatPageState();
@@ -54,12 +55,17 @@ class _ShivChatPageState extends State<ShivChatPage> {
           child: Scaffold(
             backgroundColor: AppColors.surfaceContainerLowest,
             resizeToAvoidBottomInset: false,
-            body: Column(
+            drawer: const ShivHistoryDrawer(),
+            onDrawerChanged: widget.onDrawerChanged,
+            // Builder gives a context descended from this Scaffold so
+            // Scaffold.of(ctx).openDrawer() targets the correct drawer.
+            body: Builder(
+              builder: (ctx) => Column(
               children: [
                 _ShivChatHeader(
                   threadTitle: conv?.title ?? l10n.shivDefaultConversationTitle,
                   ragContextCount: state.ragContextCount,
-                  onHistoryTap: () => ShivHistoryPage.show(context),
+                  onHistoryTap: () => Scaffold.of(ctx).openDrawer(),
                   onTreeTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -97,6 +103,7 @@ class _ShivChatPageState extends State<ShivChatPage> {
                       context.read<ShivAIBloc>().add(ShivAIEvent.sendMessage(text)),
                 ),
               ],
+              ), // close Builder
             ),
           ),
         );

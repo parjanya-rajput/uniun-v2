@@ -24,6 +24,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final GetMessagesUseCase _getMessages;
   final SaveMessageUseCase _saveMessage;
   final UpdateMessageContentUseCase _updateMessageContent;
+  final UpdateConversationTitleUseCase _updateConversationTitle;
   final AIModelRunner _runner;
   final RagPipeline _rag;
 
@@ -36,6 +37,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     this._getMessages,
     this._saveMessage,
     this._updateMessageContent,
+    this._updateConversationTitle,
     this._runner,
     this._rag,
   ) : super(const ShivAIState()) {
@@ -81,6 +83,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         emit(state.copyWith(
           status: ShivChatStatus.chatIdle,
           activeConversation: conv,
+          conversations: [conv, ...state.conversations],
           messages: [],
           ragContextCount: 0,
           errorMessage: null,
@@ -161,11 +164,27 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     );
     await _saveMessage.call(userMsg);
 
+    // Auto-title the conversation from the first user message (like ChatGPT).
+    final isFirstMessage = state.messages.isEmpty;
+    ShivConversationEntity updatedConv = conv;
+    if (isFirstMessage) {
+      final title = text.length > 40 ? '${text.substring(0, 40)}…' : text;
+      await _updateConversationTitle.call((conv.conversationId, title));
+      updatedConv = conv.copyWith(title: title);
+      final updatedList = state.conversations.map((c) {
+        return c.conversationId == conv.conversationId ? updatedConv : c;
+      }).toList();
+      emit(state.copyWith(
+        activeConversation: updatedConv,
+        conversations: updatedList,
+      ));
+    }
+
     // 2 — Placeholder assistant message.
     final assistantMsgId = const Uuid().v4();
     final placeholderMsg = ShivMessageEntity(
       messageId: assistantMsgId,
-      conversationId: conv.conversationId,
+      conversationId: updatedConv.conversationId,
       parentId: userMsgId,
       role: MessageRole.assistant,
       content: '',

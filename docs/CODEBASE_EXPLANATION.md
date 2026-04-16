@@ -1,709 +1,280 @@
-# Uniun Codebase Complete Guide
-## An Easy-to-Understand Explanation of BLoC Architecture & Layered Design
+# UNIUN Codebase Guide
+## BLoC Architecture & Layered Design — UNIUN-Specific
 
 ---
 
-## Part 1: What is Uniun?
+## Part 1: What is UNIUN?
 
-**Uniun** is a **community-based social platform app** (like Reddit) where:
-- Users can join/create communities
-- Users can post, comment, and interact with content
-- Users can search for communities, posts, and people
-- Posts and comments can be voted on, saved, and discussed
+**UNIUN** is a **decentralized, offline-first social and knowledge network** built on the Nostr protocol. Everything is a **Note** (Nostr Kind 1 event). There are no posts, comments, threads, or users as separate concepts — a user IS their public key, and a note is the only unit of content.
 
-Think of it like **Reddit** - communities with posts, comments, and voting.
+Four modules:
+- **Vishnu** — chronological note feed
+- **Brahma** — create/publish notes
+- **Shiv** — on-device AI assistant (RAG over saved notes)
+- **Channels + DMs** — public chat (NIP-28) and direct messages (NIP-17)
 
----
-
-## Part 2: Why This Code Structure? (The "Layered" Concept)
-
-### The Problem Without Layers:
-If you write all code mixed together, it becomes messy:
-```
-UI directly talks to Database
-UI directly has business rules
-Database changes break UI
-Hard to test, hard to maintain
-```
-
-### The Solution: "Layered Architecture"
-Separate concerns into **3 independent layers**:
-
-```
-┌─────────────────────────────────────────┐
-│  PRESENTATION LAYER (What users see)    │
-│  Pages, UI Components, State Management │
-│  (BLoC, Cubit)                          │
-└────────────────┬────────────────────────┘
-                 │ (Only communicates via)
-                 ↓
-┌─────────────────────────────────────────┐
-│  DOMAIN LAYER (Business rules)          │
-│  Entities, Use Cases, Abstract Repos    │
-│  (The "What should happen" logic)       │
-└────────────────┬────────────────────────┘
-                 │ (Only communicates via)
-                 ↓
-┌─────────────────────────────────────────┐
-│  DATA LAYER (Getting/Saving data)       │
-│  API calls, Database, Models            │
-│  (The "How to get data" logic)          │
-└─────────────────────────────────────────┘
-```
-
-**Benefits:**
-- Each layer can be changed independently
-- Easy to test each layer separately
-- Easy to switch from API to another data source
-- Business logic doesn't depend on UI changes
+All data is stored locally in **Isar** and synced via the **EmbeddedServer** (a Dart isolate — not written by this team).
 
 ---
 
-## Part 3: Detailed Explanation of 3 Layers
+## Part 2: The 3-Layer Architecture
 
-### LAYER 1: DATA LAYER (`lib/data/`)
-**Job:** Get data from API or database, save it locally
-
-**How it works:**
 ```
-RemoteDataSource (API calls)
-       ↓
-Models (Convert JSON to Dart objects)
-       ↓
-RepositoryImpl (Uses RemoteDataSource)
-       ↓
-Local Cache (Save data locally)
-```
-
-**Simple Example:**
-```
-User wants to search communities
-    ↓
-RemoteDataSource calls: GET /api/search?q=python
-    ↓
-API returns: {"id": 1, "name": "Python", ...}
-    ↓
-CommunityModel converts JSON to Dart object
-    ↓
-CommunityRepositoryImpl receives it
-    ↓
-Save to local database ([Isar](docs/ISAR_DB.md))
-    ↓
-Return to Domain Layer
+┌──────────────────────────────────────┐
+│  PRESENTATION  (BLoC + UI widgets)   │
+│  Pages, BLoCs, Cubits                │
+└─────────────────┬────────────────────┘
+                  │ calls use cases
+                  ↓
+┌──────────────────────────────────────┐
+│  DOMAIN  (business rules)            │
+│  Entities, Use Cases, Repo Interfaces│
+└─────────────────┬────────────────────┘
+                  │ implemented by
+                  ↓
+┌──────────────────────────────────────┐
+│  DATA  (storage)                     │
+│  Isar models, Repository impls       │
+└──────────────────────────────────────┘
+         ↑ written to by EmbeddedServer
 ```
 
-**Key Files:**
-- `lib/data/datasources/remote_datasource.dart` - Makes API calls
-- `lib/data/datasources/local_datasource.dart` - Handles offline data
-- `lib/data/models/` - Convert API responses to Dart objects
-- `lib/data/repositories/` - Combine remote + local data
+**Rules that NEVER break:**
+- Presentation never imports Isar directly — only calls use cases.
+- Domain never imports Flutter or Isar — pure Dart.
+- Data layer returns `Either<Failure, T>` — never throws raw exceptions to callers.
 
 ---
 
-### LAYER 2: DOMAIN LAYER (`lib/domain/`)
-**Job:** Define business rules (WHAT should happen)
+## Part 3: Each Layer in Detail
 
-**How it works:**
+### DATA LAYER (`lib/data/`)
+
+Isar `@Collection` models (mutable) + repository implementations.
+
 ```
-UseCase (Business operations)
-    ↓
-Entity (Clean domain object)
-    ↓
-Repository (Abstract interface)
-    ↓
-(Doesn't know HOW data is fetched)
-```
-
-**Simple Example:**
-```
-User wants to "join a community"
-
-UseCase (CommunityUseCase) says:
-  - "To join a community, call the repository"
-  - "Tell me if it succeeded or failed"
-
-Entity (CommunityEntity) defines:
-  - What a community is: id, name, description, members...
-
-RepositoryInterface says:
-  - "I will join a community, but I won't tell you HOW"
-  - (The Data Layer will implement this)
+NoteModel (Isar)       → NoteRepositoryImpl
+SavedNoteModel (Isar)  → SavedNoteRepositoryImpl
+ShivConversationModel  → ShivRepositoryImpl
+ShivMessageModel       → ShivRepositoryImpl
+EventQueueModel        → (read by EmbeddedServer's WebSocketService)
+DmConversationModel    → (pending: DmRepositoryImpl)
+DmMessageModel         → (pending: DmRepositoryImpl)
+AppSettingsModel       → AIModelRepositoryImpl
+AIModelSelectionModel  → AIModelRepositoryImpl
 ```
 
-**Key Files:**
-- `lib/domain/entities/` - Clean data objects (NOT from API)
-- `lib/domain/usecases/` - Business logic operations
-- `lib/domain/repositories/` - Abstract interfaces (what Data Layer must implement)
-- `lib/domain/inputs/` - Parameters for use cases
+All writes: `isar.writeTxn(() async { ... })`.
+All reads: direct Isar query — no transaction needed.
+Duplicate saves are idempotent (check before insert).
+
+### DOMAIN LAYER (`lib/domain/`)
+
+Freezed entities + abstract repository interfaces + use cases.
+
+```
+NoteEntity             ← NoteModel.toDomain()
+SavedNoteEntity        ← SavedNoteModel.toDomain()
+ShivConversationEntity ← ShivConversationModel.toDomain()
+ShivMessageEntity      ← ShivMessageModel.toDomain()
+AIModelEntity          ← AIModelSelectionModel.toDomain()
+ScoredNote             ← (vector search result, not an Isar model)
+```
+
+Use cases extend `UseCase<ReturnType, InputType>` or `NoParamsUseCase<ReturnType>`.
+Results: always `Either<Failure, T>`.
+Grouped by feature in one file (SRP = class level, not file level):
+- `note_usecases.dart`, `shiv_usecases.dart`, `ai_model_usecases.dart`, `vector_usecases.dart`, `saved_note_usecases.dart`
+
+### PRESENTATION LAYER (feature folders)
+
+BLoCs and pages. NO Isar imports. All data via use cases.
+
+Event transformers (bloc_concurrency):
+- `droppable()` — queries (load, open)
+- `sequential()` — writes (save, delete, send message)
+- `restartable()` — user typing (search input)
 
 ---
 
-### LAYER 3: PRESENTATION LAYER (Feature modules)
-**Job:** Show data to users, handle user interactions, manage UI state
+## Part 4: BLoC Pattern — Concrete Example (Shiv AI)
 
-**How it works:**
-```
-User taps screen
-    ↓
-BLoC receives Event
-    ↓
-BLoC calls UseCase
-    ↓
-UseCase calls Repository
-    ↓
-Data Layer returns result
-    ↓
-BLoC creates new State
-    ↓
-UI rebuilds with new State
-```
-
-**Key Files:**
-- `lib/search/` - Search feature
-- `lib/community/` - Community feature
-- `lib/posts/` - Posts feature
-- `lib/user/` - Login/signup feature
-
----
-
-## Part 4: Understanding BLoC (State Management)
-
-### What is BLoC?
-
-**BLoC = Business Logic Component**
-
-It's the middleman between UI and Data:
-```
-User Action (tap button) → BLoC → Data Layer → BLoC → UI Update
-```
-
-### BLoC has 3 Main Parts:
-
-#### 1. **EVENTS** (What user does)
-```dart
-// lib/search/bloc/search_event.dart
-
-class StartSearchEvent extends SearchEvent {
-  final String query;
-  // User typed text and hit search
-}
-
-class VoteCommentEvent extends SearchEvent {
-  final int commentId;
-  final bool upvote;
-  // User voted on a comment
-}
-```
-
-#### 2. **BLOC** (Does the work)
-```dart
-// lib/search/bloc/search_bloc.dart
-
-class SearchBloc extends Bloc<SearchEvent, SearchState> {
-
-  SearchBloc() : super(initialState) {
-    // When StartSearchEvent happens, run _startSearch method
-    on<StartSearchEvent>(_startSearchEvent);
-    on<VoteCommentEvent>(_voteCommentEvent);
-  }
-
-  // Handle the event and change state
-  _startSearchEvent(StartSearchEvent event, Emitter emit) async {
-    emit(SearchState(status: loading));
-
-    final result = await searchUseCase.searchEverything(event.query);
-
-    result.fold(
-      (failure) => emit(SearchState(status: failure)),
-      (data) => emit(SearchState(status: success, results: data))
-    );
-  }
-}
-```
-
-#### 3. **STATES** (What changed)
-```dart
-// lib/search/bloc/search_state.dart
-
-class SearchState {
-  final SearchStatus status; // initial, loading, success, failure, empty
-  final List<Community> communities;
-  final List<Post> posts;
-  final List<Comment> comments;
-
-  // When BLoC emits new state, UI rebuilds
-}
-```
-
-### BLoC Flow (Visual Example):
+User sends "What do my notes say about Nostr?":
 
 ```
-┌─────────────────────────────────────────────────┐
-│ USER INTERFACE (SearchPage)                     │
-│  User types "python" and hits search button     │
-└────────────────┬────────────────────────────────┘
-                 │
-                 ↓ (Sends Event)
-┌─────────────────────────────────────────────────┐
-│ BLOC (SearchBloc)                               │
-│  1. Receives: StartSearchEvent("python")        │
-│  2. Calls: searchUseCase.search("python")       │
-│  3. Gets result from Repository                 │
-│  4. Creates new State: SearchState(             │
-│        status: success,                         │
-│        communities: [...],                      │
-│        posts: [...]                             │
-│     )                                           │
-└────────────────┬────────────────────────────────┘
-                 │
-                 ↓ (Emits State)
-┌─────────────────────────────────────────────────┐
-│ UI REBUILDS (SearchPage)                        │
-│  Shows search results using new State           │
-└─────────────────────────────────────────────────┘
+ShivChatPage
+  ↓ context.read<ShivAIBloc>().add(ShivAIEvent.sendMessage("What do my notes…"))
+
+ShivAIBloc._onSendMessage:
+  1. emit(state.copyWith(status: streaming, streamingContent: ''))
+  2. SaveMessageUseCase(userMessage)         → Isar write
+  3. RagPipeline.buildMessage(userQuestion)  → embed query → cosine search → prompt
+  4. AIModelRunner.sendAndStream(prompt)     → InferenceChat stream
+  5. each token → add(_TokenReceived(token)) → emit(state.copyWith(streamingContent: ...))
+  6. _StreamDone → UpdateMessageContentUseCase(assistantMessage) → emit idle
+
+ShivChatPage (BlocConsumer):
+  - listenWhen: messages.length changed → scrollToBottom
+  - builder: renders ListView of ShivMessageBubble
+    - last bubble gets streamingContent while status == streaming
 ```
 
 ---
 
-## Part 5: Complete Example - Search Module
+## Part 5: EventQueueModel — Outbound Relay Queue
 
-Let's trace what happens when user searches for "python":
-
-### Step 1: User Types "python" and Hits Search
+`EventQueueModel` is the durable outbound queue for signed Nostr events.
 
 ```dart
-// lib/search/pages/search_page.dart
-GestureDetector(
-  onTap: () {
-    context.read<SearchBloc>().add(
-      StartSearchEvent(
-        query: "python",
-        searchType: SearchType.all // Search everywhere
-      )
-    );
-  },
-  child: Text("Search")
-)
-```
-
-### Step 2: SearchBloc Receives Event
-
-```dart
-// lib/search/bloc/search_bloc.dart
-on<StartSearchEvent>(_searchEvent);
-
-_searchEvent(StartSearchEvent event, Emitter emit) async {
-  // Emit loading state - UI shows spinner
-  emit(state.copyWith(status: SearchStatus.loading));
-
-  // Tell Repository to search
-  final result = await _searchUseCase.search(event.query);
-
-  result.fold(
-    // If failed
-    (failure) {
-      emit(state.copyWith(
-        status: SearchStatus.failure,
-        message: failure.message
-      ));
-    },
-    // If success
-    (searchResults) {
-      emit(state.copyWith(
-        status: SearchStatus.success,
-        communities: searchResults.communities,
-        posts: searchResults.posts,
-        comments: searchResults.comments,
-        users: searchResults.users
-      ));
-    }
-  );
+@Collection() @Name('EventQueue')
+class EventQueueModel {
+  Id id = Isar.autoIncrement;    // ordered cursor — each WebSocketService
+                                  // tracks its own _lastSentQueueId
+  String eventId;                 // Nostr SHA256 event ID (unique)
+  String authorPubkey, sig, content;
+  int kind;
+  List<String> eTagRefs, pTagRefs, tTags;
+  String? rootEventId, replyToEventId;
+  DateTime created;
+  int sentCount;       // incremented by each relay on ["OK", id, true] ACK
+  DateTime enqueuedAt; // dequeue gate: sentCount >= relayCount AND age > 30min
 }
 ```
 
-### Step 3: SearchUseCase Calls Repository
+`toSerializedRelayMessage()` produces the NIP-01 wire format: `["EVENT", {...}]`.
 
-```dart
-// lib/domain/usecases/search_usecase.dart
-class SearchUseCase {
-  final SearchRepository repository;
+`populateFromNoteModel()` / `populateFromNoteEntity()` build a queue row from a published note.
 
-  Future<Either<Failure, SearchResults>> search(String query) async {
-    // UseCase doesn't know HOW to search
-    // It just calls Repository and returns result
-    return await repository.search(query);
-  }
-}
-```
-
-### Step 4: Repository Gets Data from API
-
-```dart
-// lib/data/repositories/search_repository_impl.dart
-class SearchRepositoryImpl implements SearchRepository {
-  final RemoteDataSource remoteDataSource;
-  final LocalDataSource localDataSource;
-
-  Future<Either<Failure, SearchResults>> search(String query) async {
-    try {
-      // Call API
-      final response = await remoteDataSource.search(query);
-
-      // Save to local database for offline access
-      await localDataSource.cacheSearchResults(response);
-
-      // Convert API response to domain objects
-      return Right(response.toDomain());
-
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    }
-  }
-}
-```
-
-### Step 5: RemoteDataSource Makes API Call
-
-```dart
-// lib/data/datasources/remote_datasource.dart
-class RemoteDataSourceImpl implements RemoteDataSource {
-  final ApiConsumer apiConsumer;
-
-  Future<SearchResultsModel> search(String query) async {
-    final response = await apiConsumer.get(
-      '/api/search?q=$query&type=all'
-    );
-
-    // API returns JSON, convert to Model
-    return SearchResultsModel.fromJson(response);
-  }
-}
-```
-
-### Step 6: API Returns Data
-
-```json
-{
-  "communities": [
-    {
-      "id": 1,
-      "name": "Python",
-      "description": "Programming in Python"
-    }
-  ],
-  "posts": [...],
-  "comments": [...]
-}
-```
-
-### Step 7: SearchResultsModel Converts JSON to Dart
-
-```dart
-// lib/data/models/search_results_model.dart
-class SearchResultsModel {
-  final List<CommunityModel> communities;
-  final List<PostModel> posts;
-  final List<CommentModel> comments;
-
-  factory SearchResultsModel.fromJson(Map<String, dynamic> json) {
-    return SearchResultsModel(
-      communities: List.from(json['communities']),
-      posts: List.from(json['posts']),
-      comments: List.from(json['comments']),
-    );
-  }
-
-  // Convert Model to Entity (domain object)
-  SearchResultsEntity toDomain() {
-    return SearchResultsEntity(
-      communities: communities.map((c) => c.toDomain()).toList(),
-      posts: posts.map((p) => p.toDomain()).toList(),
-      comments: comments.map((c) => c.toDomain()).toList(),
-    );
-  }
-}
-```
-
-### Step 8: BLoC Receives Entity and Creates State
-
-Entity comes back to SearchBloc:
-```dart
-SearchState(
-  status: SearchStatus.success,
-  communities: [CommunityEntity(id: 1, name: "Python", ...)],
-  posts: [...],
-  comments: [...]
-)
-```
-
-### Step 9: UI Rebuilds with New State
-
-```dart
-// lib/search/pages/search_page.dart
-BlocBuilder<SearchBloc, SearchState>(
-  builder: (context, state) {
-    if (state.status == SearchStatus.loading) {
-      return CircularProgressIndicator();
-    }
-
-    if (state.status == SearchStatus.success) {
-      return Column(
-        children: [
-          // Show communities
-          ...state.communities.map((c) =>
-            CommunityCard(community: c)
-          ),
-          // Show posts
-          ...state.posts.map((p) =>
-            PostCard(post: p)
-          ),
-        ]
-      );
-    }
-
-    return Text("Failed to load");
-  }
-)
-```
-
-### User Sees Results! ✅
+**Who reads it:** EmbeddedServer's `WebSocketService` (separate team — do not modify).
+**Who writes it:** `PublishNoteUseCase` → `EventQueueRepositoryImpl` (via `isar.writeTxn()`).
 
 ---
 
-## Part 6: Folder Structure Explained
+## Part 6: DM Data Models
+
+`DmConversationModel` and `DmMessageModel` are Isar collections for NIP-17 direct messages.
+
+```
+DmConversationModel — one row per 1:1 conversation (identified by the other party's pubkey)
+DmMessageModel      — one row per Kind 14 message within a conversation
+```
+
+UI (Channels + DMs BLoC) is pending. Schema is in place and `.g.dart` files are generated.
+
+---
+
+## Part 7: Folder Structure
 
 ```
 lib/
-├── main.dart                    # App entry point
+├── common/           # get_it locator, snackbar, shared widgets
+├── core/             # theme, router, enums, error types, usecase bases
+├── data/
+│   ├── datasources/
+│   │   └── isar_module.dart      # Isar singleton — ALL schemas registered here
+│   ├── models/                   # Isar @Collection models (mutable)
+│   └── repositories/             # Repository impls (@Injectable)
+├── domain/
+│   ├── entities/                 # @freezed abstract class entities
+│   ├── repositories/             # Abstract interfaces
+│   └── usecases/                 # Business logic (@lazySingleton, grouped by feature)
+├── l10n/             # Generated — all UI strings via AppLocalizations
 │
-├── common/                      # Shared across app
-│   ├── constants.dart          # App-wide constants
-│   ├── locator.dart            # Dependency injection setup
-│   ├── widgets/                # Reusable UI components
-│   └── snackbar.dart           # Notifications
+│── vishnu/           # Feed tab
+│   ├── bloc/
+│   ├── pages/
+│   └── widgets/
 │
-├── core/                        # Global infrastructure
-│   ├── api/                    # HTTP client (Dio)
-│   ├── theme/                  # Theme management
-│   ├── bloc/                   # Global states (auth, theme, etc)
-│   ├── error/                  # Error/Failure classes
-│   └── extensions/             # Helper methods for Dart types
+├── brahma/           # Create note tab
+│   ├── bloc/
+│   ├── pages/
+│   └── widgets/
 │
-├── data/                        # Data Layer
-│   ├── datasources/            # API calls & local database
-│   ├── models/                 # Convert JSON to Dart
-│   └── repositories/           # Combine data sources
+├── shiv/             # AI assistant tab
+│   ├── chat/
+│   │   ├── bloc/     # ShivAIBloc (events, state, freezed)
+│   │   ├── pages/    # ShivChatPage
+│   │   └── widgets/  # ShivHistoryDrawer, ShivConversationTile,
+│   │                 # ShivInputComposer, ShivMessageBubble
+│   ├── model_select/
+│   │   ├── cubit/    # SelectAIModelCubit
+│   │   ├── pages/    # AIModelSelectionPage
+│   │   └── widgets/  # ModelCard, ModelSelectionFooter
+│   ├── pages/        # ShivPage (root — model check + landing/chat switch)
+│   ├── rag/
+│   │   ├── embedding/  # EmbeddingService (TFLite, all-MiniLM-L6-v2)
+│   │   ├── pipeline/   # RagPipeline (orchestrator)
+│   │   ├── prompt/     # PromptBuilder
+│   │   └── retrieval/  # VectorSearchService (cosine similarity)
+│   └── services/
+│       └── ai_model_runner.dart  # AIModelRunner (InferenceChat wrapper)
 │
-├── domain/                      # Domain Layer
-│   ├── entities/               # Clean domain objects
-│   ├── repositories/           # Abstract interfaces
-│   ├── usecases/              # Business logic operations
-│   └── inputs/                # UseCase parameters
-│
-├── search/                      # Search Feature
-│   ├── bloc/                   # SearchBloc, SearchEvent, SearchState
-│   ├── pages/                  # Search UI pages
-│   ├── widgets/                # Search components
-│   └── utils/                  # Search utilities
-│
-├── community/                   # Community Feature
-│   ├── bloc/                   # CommunityCubit, FeedCubit
-│   ├── pages/                  # Community UI pages
-│   ├── widgets/                # Community components
-│   └── utils/                  # Community utilities
-│
-├── posts/                       # Posts Feature
-│   ├── bloc/                   # PostBloc, PostEvent, PostState
-│   ├── pages/                  # Post UI pages
-│   ├── widgets/                # Post components
-│   └── utils/                  # Post utilities
-│
-├── user/                        # User Feature (Login/Signup)
-│   ├── bloc/                   # LoginCubit, SignupCubit
-│   ├── pages/                  # Login/signup pages
-│   └── widgets/                # Form components
-│
-└── l10n/                        # Multi-language support
+├── channels/         # NIP-28 public channels (pending)
+├── dms/              # NIP-17 DMs (pending)
+├── settings/         # Profile edit, identity, storage
+└── onboarding/       # Welcome, key gen, import
 ```
 
 ---
 
-## Part 7: Key Concepts Simplified
+## Part 8: Key Concepts
 
-### 1. **Freezed** (Immutable Data)
+### Freezed entities (domain layer)
 ```dart
-// Most classes use @freezed to prevent accidental changes
 @freezed
-class CommunityEntity with _$CommunityEntity {
-  const factory CommunityEntity({
-    required int id,
-    required String name,
-    required String description,
-  }) = _CommunityEntity;
+abstract class ShivConversationEntity with _$ShivConversationEntity {
+  const factory ShivConversationEntity({
+    required String conversationId,
+    required String title,
+    String? activeLeafMessageId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _ShivConversationEntity;
 }
-
-// Cannot do: entity.name = "new name" ❌
-// Must do: entity.copyWith(name: "new name") ✅
+// copyWith() auto-generated — no manual mutation
 ```
 
-### 2. **Either** (Success OR Failure)
+### Either (success or failure)
 ```dart
-// Instead of: return (success, error)
-// Use Either<Failure, Success>
-
-Either<Failure, CommunityEntity> result = await repository.getCommunity(id);
-
+final result = await getConversations.call();
 result.fold(
-  (failure) => print("Error: ${failure.message}"),
-  (community) => print("Got: ${community.name}")
+  (failure) => emit(state.copyWith(status: error, errorMessage: failure.toString())),
+  (list)    => emit(state.copyWith(conversations: list)),
 );
 ```
 
-### 3. **UseCase** (Business Operation)
+### Injectable DI
 ```dart
-// Single responsibility: One use case = one business operation
-
-@injectable
-class SearchCommunityUseCase {
-  final SearchRepository repository;
-
-  // Input must be wrapped in a class
-  Future<Either<Failure, List<Community>>> call(
-    SearchInput input  // input.query, input.sortType
-  ) async {
-    return await repository.search(input.query);
-  }
-}
+@injectable          // for BLoCs and repos
+@lazySingleton       // for use cases and services
+@singleton           // for Isar instance only
 
 // Usage:
-final result = await useCase.call(SearchInput(query: "python"));
+getIt<ShivAIBloc>()  // auto-constructed with all dependencies
 ```
 
-### 4. **Injectable/Service Locator** (Dependency Injection)
+### Localization — all UI strings via l10n
 ```dart
-// Instead of: SearchBloc(SearchUseCase(Repository(...)))
-// Dependencies are auto-injected
-
-@injectable
-class SearchBloc extends Bloc<SearchEvent, SearchState> {
-  final SearchUseCase searchUseCase;
-
-  // Constructor auto-receives dependency
-  SearchBloc(this.searchUseCase) : super(initialState);
-}
-
-// Usage:
-final bloc = getIt<SearchBloc>(); // Auto-injected!
+final l10n = AppLocalizations.of(context)!;
+Text(l10n.shivName)  // never hardcode strings in widgets
 ```
+Add keys to `lib/l10n/app_en.arb`, then run `flutter gen-l10n`.
 
 ---
 
-## Part 8: How Everything Works Together (Big Picture)
+## Part 9: What's Built vs Pending
 
-```
-USER TAPS SEARCH BUTTON
-           ↓
-    SearchPage (UI)
-           ↓
-  context.read<SearchBloc>()
-           ↓
-   StartSearchEvent("python")
-           ↓
-      SearchBloc
-           ↓
-   SearchUseCase.search()
-           ↓
-   SearchRepository (abstract)
-           ↓
-   SearchRepositoryImpl
-           ↓
-   RemoteDataSource.search()
-           ↓
-    API: GET /search?q=python
-           ↓
-   JSON Response: {...}
-           ↓
-   SearchResultsModel.fromJson()
-           ↓
-   .toDomain() → Entity
-           ↓
-   BLoC emits SearchState(success: [...])
-           ↓
-   UI rebuilds with BlocBuilder
-           ↓
-USER SEES RESULTS ✅
-```
-
----
-
-## Part 9: Easy Analogy
-
-Think of the app like a **Restaurant**:
-
-- **PRESENTATION LAYER** = Customer at table
-  - Customer (User) orders food (clicks button)
-  - Sees the menu (UI)
-
-- **BLoC** = Waiter
-  - Takes order (Event)
-  - Brings food (State)
-  - Communicates between customer and kitchen
-
-- **DOMAIN LAYER** = Chef Manager
-  - Describes what a "pizza" is (Entity)
-  - Decides business rules: "To serve a pizza, get it from kitchen" (UseCase)
-
-- **DATA LAYER** = Kitchen
-  - Makes the pizza (RemoteDataSource)
-  - Stores extra pizzas (LocalDataSource)
-  - Packages pizza nicely (Model)
-
----
-
-## Part 10: Testing (Why Clean Architecture Helps)
-
-Each layer can be tested separately:
-
-```dart
-// Test UseCase (doesn't need UI or API)
-test('SearchUseCase returns communities', () async {
-  final mockRepository = MockSearchRepository();
-  final useCase = SearchUseCase(mockRepository);
-
-  final result = await useCase.search("python");
-
-  expect(result, Right([...]));
-});
-
-// Test BLoC (doesn't need real API)
-blocTest<SearchBloc, SearchState>(
-  'emits [loading, success] when search succeeds',
-  build: () => SearchBloc(mockUseCase),
-  act: (bloc) => bloc.add(StartSearchEvent(query: 'python')),
-  expect: () => [
-    SearchState(status: SearchStatus.loading),
-    SearchState(status: SearchStatus.success, communities: [...])
-  ],
-);
-```
-
----
-
-## Summary: Key Takeaways
-
-1. **Layered Architecture** = Separate concerns for maintainability
-2. **Data Layer** = Get/save data (API, database)
-3. **Domain Layer** = Define business rules
-4. **Presentation Layer** = Show UI, manage state with BLoC
-5. **BLoC** = Middleman between UI and data
-6. **Event** = What user does
-7. **State** = What changed
-8. **Entity** = Clean domain object
-9. **UseCase** = Business operation
-10. **Repository** = Abstract interface between Domain and Data
-
-This structure makes the code:
-- ✅ Easy to test
-- ✅ Easy to maintain
-- ✅ Easy to change
-- ✅ Easy to understand
+| Module | Status |
+|--------|--------|
+| Onboarding (welcome, key gen, import) | ✅ Done |
+| Home shell + nav | ✅ Done |
+| Vishnu feed (BLoC, NoteCard, pagination, save/unsave) | ✅ Done |
+| Thread view (BFS load, nested replies) | ✅ Done |
+| Followed notes (cubit, detail page) | ✅ Done |
+| Settings (profile edit, identity, storage) | ✅ Done |
+| Brahma create note (BLoC, compose, graph preview) | ✅ Done |
+| Shiv AI (model select, RAG, conversations, chat UI) | ✅ Done |
+| EventQueueModel + relay wire format | ✅ Done |
+| DM models (DmConversationModel, DmMessageModel) | ✅ Schema done |
+| Channels UI (NIP-28) | 🔲 Pending |
+| DMs UI (NIP-17) | 🔲 Pending |

@@ -85,169 +85,167 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final h = constraints.maxHeight;
-            final topGap = h < 680 ? 8.0 : 16.0;
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            OnboardingAppBar(onBack: () => Navigator.pop(context)),
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                OnboardingAppBar(onBack: () => Navigator.pop(context)),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  16,
+                  24,
+                  MediaQuery.of(context).viewInsets.bottom +
+                      MediaQuery.of(context).padding.bottom +
+                      24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.importTitle,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.6,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.importSubtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
 
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 24),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SizedBox(height: topGap),
-
                         Text(
-                          l10n.importTitle,
+                          l10n.importPrivateKeyLabel,
                           style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.6,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.importSubtitle,
-                          style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.3,
                             color: AppColors.onSurfaceVariant,
-                            height: 1.4,
                           ),
                         ),
-
-                        SizedBox(height: topGap + 8),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              l10n.importPrivateKeyLabel,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.3,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _pasteFromClipboard,
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.content_paste_rounded,
-                                      size: 13, color: AppColors.primary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    l10n.importPasteFromClipboard,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        TextField(
-                          controller: _controller,
-                          maxLines: 4,
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                            color: AppColors.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: l10n.importKeyHint,
-                            fillColor: AppColors.surfaceContainerLow,
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                        GestureDetector(
+                          onTap: _pasteFromClipboard,
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.security_rounded,
-                                  color: AppColors.primary, size: 16),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  l10n.importSecurityNote,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.onSurfaceVariant,
-                                    height: 1.4,
-                                  ),
+                              const Icon(Icons.content_paste_rounded,
+                                  size: 13, color: AppColors.primary),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.importPasteFromClipboard,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ],
+                    ),
 
-                        const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
-                        AnimatedOpacity(
-                          opacity: _canContinue ? 1.0 : 0.45,
-                          duration: const Duration(milliseconds: 150),
-                          child: GestureDetector(
-                            onTap: _canContinue ? _onContinue : null,
-                            child: Container(
-                              width: double.infinity,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: _canContinue
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.22),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ]
-                                    : null,
+                    TextField(
+                      controller: _controller,
+                      maxLines: 4,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                        color: AppColors.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: l10n.importKeyHint,
+                        fillColor: AppColors.surfaceContainerLow,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.security_rounded,
+                              color: AppColors.primary, size: 16),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.importSecurityNote,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.onSurfaceVariant,
+                                height: 1.4,
                               ),
-                              child: Center(
-                                child: Text(
-                                  l10n.importContinue,
-                                  style: const TextStyle(
-                                    color: AppColors.onPrimary,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    AnimatedOpacity(
+                      opacity: _canContinue ? 1.0 : 0.45,
+                      duration: const Duration(milliseconds: 150),
+                      child: GestureDetector(
+                        onTap: _canContinue ? _onContinue : null,
+                        child: Container(
+                          width: double.infinity,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: _canContinue
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.22),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              l10n.importContinue,
+                              style: const TextStyle(
+                                color: AppColors.onPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 16),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );

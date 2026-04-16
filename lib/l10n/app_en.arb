@@ -28,6 +28,9 @@
   "actionContinue": "Continue",
   "@actionContinue": { "description": "Continue button in onboarding" },
 
+  "actionDelete": "Delete",
+  "@actionDelete": { "description": "Delete button" },
+
   "actionSave": "Save",
   "@actionSave": { "description": "Save / bookmark action" },
 
@@ -119,6 +122,21 @@
 
   "brahmaInteractivePreview": "Interactive Preview",
   "@brahmaInteractivePreview": { "description": "Badge on the graph preview canvas" },
+
+  "brahmaDraft": "Draft",
+  "@brahmaDraft": { "description": "Save as draft button label" },
+
+  "brahmaDraftSaved": "Draft saved",
+  "@brahmaDraftSaved": { "description": "Feedback after saving a draft" },
+
+  "brahmaDrafts": "Drafts",
+  "@brahmaDrafts": { "description": "Section header for drafts list" },
+
+  "brahmaPublish": "Publish",
+  "@brahmaPublish": { "description": "Publish draft button in draft list" },
+
+  "brahmaTags": "tags",
+  "@brahmaTags": { "description": "Tag count display in draft item" },
 
   "vishnuNoNotes": "No notes yet",
   "@vishnuNoNotes": { "description": "Empty-feed heading" },
