@@ -415,32 +415,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiModelDownloadError => 'Download failed. Please try again.';
 
   @override
-  String get aiModelQwen25Name => 'Qwen 2.5 0.5B';
+  String get aiModelQwen25Name => 'Qwen3 0.6B';
 
   @override
   String get aiModelQwen25Desc =>
-      'Ultra-compact and fast. Works on any Android device with 3 GB+ RAM.';
+      'Compact multilingual chat with function calling. Works on any device with 3 GB+ RAM.';
 
   @override
   String get aiModelDeepSeekR1Name => 'DeepSeek R1';
 
   @override
   String get aiModelDeepSeekR1Desc =>
-      'Best reasoning and code generation for daily use. Requires 4 GB+ RAM.';
+      'High-performance reasoning and code generation. Requires 4 GB+ RAM.';
 
   @override
   String get aiModelGemma4E2bName => 'Gemma 4 E2B';
 
   @override
   String get aiModelGemma4E2bDesc =>
-      'Multimodal — handles text and images. Great for high-end devices with 6 GB+ RAM.';
+      'Next-gen multimodal chat — text, image, audio. Requires 6 GB+ RAM.';
 
   @override
   String get aiModelGemma4E4bName => 'Gemma 4 E4B';
 
   @override
   String get aiModelGemma4E4bDesc =>
-      'Maximum accuracy multimodal model. Best on flagship devices with 8 GB+ RAM.';
+      'Next-gen multimodal chat — text, image, audio. Best on flagship devices with 8 GB+ RAM.';
 
   @override
   String get aiEmbeddingSetupInProgress => 'Setting up AI features…';
@@ -867,4 +867,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get savedNotesEmptySub =>
       'Bookmark notes from your feed to read them later.';
+
+  @override
+  String get graphLegendSaved => 'Saved';
+
+  @override
+  String get graphLegendOwn => 'Own';
+
+  @override
+  String get graphLegendDraft => 'Draft';
+
+  @override
+  String get graphFabTextNote => 'Text note';
+
+  @override
+  String get graphFabReferenceNote => 'Reference note';
+
+  @override
+  String get graphDraftEdit => 'Edit';
+
+  @override
+  String get graphDraftDelete => 'Delete';
 }

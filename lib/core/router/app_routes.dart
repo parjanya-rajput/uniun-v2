@@ -13,4 +13,5 @@ abstract class AppRoutes {
   static const aiModelSelection = '/ai-model-selection';
   static const savedNotes = '/saved-notes';
   static const graph = '/graph';
+  static const brahmaCreate = '/brahma-create';
 }

@@ -29,7 +29,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   }
 
   Future<void> _init() async {
-    final models = _getAvailable.call();
+    final models = await _getAvailable.call();
     final activeResult = await _getActive.call();
     final activeId = activeResult.fold((_) => null, (m) => m?.modelId);
 

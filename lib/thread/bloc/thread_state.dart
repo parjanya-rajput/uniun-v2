@@ -12,6 +12,7 @@ class ThreadState {
     this.replies = const [],
     this.replyCounts = const {},
     this.nestedReplies = const {},
+    this.mentionedNotes = const [],
     this.replyText = '',
     this.replyingToId,
     this.replyingToName,
@@ -33,6 +34,8 @@ class ThreadState {
   final Map<String, int> replyCounts;
   /// replyId → its direct replies (one level of nesting)
   final Map<String, List<NoteEntity>> nestedReplies;
+  /// Notes referenced by the root note's mention e-tags (not root/reply markers).
+  final List<NoteEntity> mentionedNotes;
 
   final String replyText;
   /// null = composing a reply to the root note
@@ -56,6 +59,7 @@ class ThreadState {
     List<NoteEntity>? replies,
     Map<String, int>? replyCounts,
     Map<String, List<NoteEntity>>? nestedReplies,
+    List<NoteEntity>? mentionedNotes,
     String? replyText,
     Object? replyingToId = _sentinel,
     Object? replyingToName = _sentinel,
@@ -71,6 +75,7 @@ class ThreadState {
       replies: replies ?? this.replies,
       replyCounts: replyCounts ?? this.replyCounts,
       nestedReplies: nestedReplies ?? this.nestedReplies,
+      mentionedNotes: mentionedNotes ?? this.mentionedNotes,
       replyText: replyText ?? this.replyText,
       replyingToId: replyingToId == _sentinel
           ? this.replyingToId

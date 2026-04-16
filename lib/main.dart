@@ -19,7 +19,12 @@ import 'package:uniun/onboarding/pages/splash_page.dart';
 import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
-import 'package:uniun/graph/pages/graph_page.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
+import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
+import 'package:uniun/brahma/graph/pages/graph_page.dart';
+import 'package:uniun/brahma/graph/pages/graph_compose_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +81,34 @@ class UniunApp extends StatelessWidget {
             ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
-        AppRoutes.graph: (_) => const GraphPage(),
+        AppRoutes.graph: (_) => MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) =>
+                      getIt<GraphBloc>()..add(const LoadGraphEvent()),
+                ),
+                BlocProvider(
+                  create: (_) =>
+                      getIt<BrahmaCreateBloc>()..add(const LoadDraftsEvent()),
+                ),
+              ],
+              child: const GraphPage(),
+            ),
+        AppRoutes.brahmaCreate: (ctx) {
+              final args = ModalRoute.of(ctx)!.settings.arguments;
+              String? draftId;
+              bool autoPublish = false;
+              if (args is String?) {
+                draftId = args;
+              } else if (args is Map) {
+                draftId = args['draftId'] as String?;
+                autoPublish = args['autoPublish'] as bool? ?? false;
+              }
+              return GraphComposePage(
+                initialDraftId: draftId,
+                autoPublish: autoPublish,
+              );
+            },
       },
     );
   }

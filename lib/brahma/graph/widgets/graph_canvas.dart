@@ -2,99 +2,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
-
-// ── Multi-color palette ────────────────────────────────────────────────────────
-const _palette = [
-  Color(0xFF319BED),
-  Color(0xFF7C3AED),
-  Color(0xFF059669),
-  Color(0xFFD97706),
-  Color(0xFF0891B2),
-  Color(0xFFDB2777),
-  Color(0xFF65A30D),
-  Color(0xFF9333EA),
-];
-
-// ── Dot grid background — matches Shiv tree view ──────────────────────────────
-class _DotPatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.outlineVariant.withValues(alpha: 0.4)
-      ..strokeCap = StrokeCap.round;
-    const spacing = 24.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      for (double y = 0; y < size.height; y += spacing) {
-        canvas.drawCircle(Offset(x, y), 1, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DotPatternPainter old) => false;
-}
-
-// ── Edge painter ───────────────────────────────────────────────────────────────
-class _EdgePainter extends CustomPainter {
-  final Graph graph;
-  final String? selectedNodeId;
-
-  _EdgePainter({required this.graph, required this.selectedNodeId});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final edge in graph.edges) {
-      final srcId = edge.source.key!.value as String;
-      final destId = edge.destination.key!.value as String;
-
-      final srcCenter = Offset(
-        edge.source.x + edge.source.width / 2,
-        edge.source.y + edge.source.height / 2,
-      );
-      final destCenter = Offset(
-        edge.destination.x + edge.destination.width / 2,
-        edge.destination.y + edge.destination.height / 2,
-      );
-
-      final isHighlighted =
-          selectedNodeId != null &&
-          (srcId == selectedNodeId || destId == selectedNodeId);
-      final hasSelection = selectedNodeId != null;
-
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isHighlighted ? 2.5 : 1.2
-        ..color = isHighlighted
-            ? AppColors.primary.withValues(alpha: 0.9)
-            : hasSelection
-            ? AppColors.outline.withValues(alpha: 0.15)
-            : AppColors.primary.withValues(alpha: 0.3);
-
-      canvas.drawLine(srcCenter, destCenter, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_EdgePainter old) => true;
-}
+import 'package:uniun/brahma/graph/models/graph_node_type.dart';
+import 'package:uniun/brahma/graph/painters/dot_pattern_painter.dart';
+import 'package:uniun/brahma/graph/painters/edge_painter.dart';
+import 'package:uniun/brahma/graph/widgets/graph_header.dart';
 
 // ── Graph canvas ───────────────────────────────────────────────────────────────
 
 class GraphCanvas extends StatefulWidget {
   const GraphCanvas({
     super.key,
-    required this.notes,
+    required this.nodes,
     required this.adjacency,
-    required this.selectedNoteId,
+    required this.selectedNodeId,
     required this.onNodeTap,
     required this.onCanvasTap,
   });
 
-  final List<SavedNoteEntity> notes;
+  final List<GraphNodeData> nodes;
   final Map<String, Set<String>> adjacency;
-  final String? selectedNoteId;
-  final void Function(String eventId) onNodeTap;
+  final String? selectedNodeId;
+  final void Function(String nodeId) onNodeTap;
   final VoidCallback onCanvasTap;
 
   @override
@@ -104,34 +32,30 @@ class GraphCanvas extends StatefulWidget {
 class _GraphCanvasState extends State<GraphCanvas> {
   late Graph _graph;
   late FruchtermanReingoldAlgorithm _algorithm;
-  final Map<String, Color> _nodeColorMap = {};
   Timer? _timer;
   bool _initialized = false;
 
-  // Graph canvas dimensions — set once from screen size
   double _graphW = 400;
   double _graphH = 800;
 
   bool _isDragging = false;
-  static const _settleSteps = 180; // ~3 s of spring animation at 60 fps
+  static const _settleSteps = 180;
 
-  // Pinned node: stays at the dropped position during re-settle so attraction
-  // force cannot pull it back toward its neighbours (Obsidian-style behaviour).
   Node? _pinnedNode;
   Offset? _pinnedPosition;
 
   @override
   void initState() {
     super.initState();
-    _prepareGraph(widget.notes);
+    _prepareGraph(widget.nodes);
   }
 
-  void _prepareGraph(List<SavedNoteEntity> notes) {
+  void _prepareGraph(List<GraphNodeData> nodes) {
     _initialized = false;
     _isDragging = false;
     _timer?.cancel();
     _timer = null;
-    _graph = _buildGraph(notes);
+    _graph = _buildGraph(nodes);
     _algorithm = FruchtermanReingoldAlgorithm(
       FruchtermanReingoldConfiguration(
         iterations: 100,
@@ -143,33 +67,29 @@ class _GraphCanvasState extends State<GraphCanvas> {
         movementThreshold: 0.3,
       ),
     );
-    _nodeColorMap.clear();
-    for (int i = 0; i < notes.length; i++) {
-      _nodeColorMap[notes[i].eventId] = _palette[i % _palette.length];
-    }
   }
 
-  Graph _buildGraph(List<SavedNoteEntity> notes) {
+  Graph _buildGraph(List<GraphNodeData> nodes) {
     final g = Graph()..isTree = false;
     final nodeMap = <String, Node>{};
-    final savedIds = {for (final n in notes) n.eventId};
+    final allIds = {for (final n in nodes) n.eventId};
 
-    for (final note in notes) {
-      final connections = widget.adjacency[note.eventId]?.length ?? 0;
+    for (final n in nodes) {
+      final connections = widget.adjacency[n.eventId]?.length ?? 0;
       final sz = (46.0 + connections * 3.0).clamp(46.0, 70.0);
-      final node = Node.Id(note.eventId);
+      final node = Node.Id(n.eventId);
       node.size = Size(sz, sz);
-      nodeMap[note.eventId] = node;
+      nodeMap[n.eventId] = node;
       g.addNode(node);
     }
 
     final added = <String>{};
-    for (final note in notes) {
-      for (final ref in note.eTagRefs) {
-        if (savedIds.contains(ref) && ref != note.eventId) {
-          final key = ([note.eventId, ref]..sort()).join('|');
+    for (final n in nodes) {
+      for (final ref in n.eTagRefs) {
+        if (allIds.contains(ref) && ref != n.eventId) {
+          final key = ([n.eventId, ref]..sort()).join('|');
           if (added.add(key)) {
-            g.addEdge(nodeMap[note.eventId]!, nodeMap[ref]!);
+            g.addEdge(nodeMap[n.eventId]!, nodeMap[ref]!);
           }
         }
       }
@@ -182,8 +102,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
     _graphH = h;
     _algorithm.setDimensions(w, h);
     for (final node in _graph.nodes) {
-      final eventId = node.key!.value as String;
-      final connections = widget.adjacency[eventId]?.length ?? 0;
+      final nodeId = node.key!.value as String;
+      final connections = widget.adjacency[nodeId]?.length ?? 0;
       final sz = (46.0 + connections * 3.0).clamp(46.0, 70.0);
       node.size = Size(sz, sz);
     }
@@ -191,9 +111,6 @@ class _GraphCanvasState extends State<GraphCanvas> {
     _initialized = true;
   }
 
-  // Runs spring physics for [_settleSteps] frames then stops.
-  // If [pinned] is set, that node is locked at [pinnedAt] every frame so
-  // attraction force cannot drag it back toward its neighbours.
   void _runSettle({Node? pinned, Offset? pinnedAt}) {
     _pinnedNode = pinned;
     _pinnedPosition = pinnedAt;
@@ -202,7 +119,6 @@ class _GraphCanvasState extends State<GraphCanvas> {
     _timer = Timer.periodic(const Duration(milliseconds: 16), (t) {
       if (_isDragging) return;
       _algorithm.step(_graph);
-      // Re-lock the pinned node every frame — overrides whatever the algorithm moved it to.
       if (_pinnedNode != null && _pinnedPosition != null) {
         _pinnedNode!.position = _pinnedPosition!;
       }
@@ -220,8 +136,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
   @override
   void didUpdateWidget(GraphCanvas old) {
     super.didUpdateWidget(old);
-    if (old.notes != widget.notes) {
-      _prepareGraph(widget.notes);
+    if (old.nodes != widget.nodes) {
+      _prepareGraph(widget.nodes);
       setState(() {});
     }
   }
@@ -234,15 +150,15 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.notes.isEmpty) {
-      return Stack(
+    if (widget.nodes.isEmpty) {
+      return const Stack(
         children: [
-          Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
-          const Center(
+          Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
+          Center(
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Text(
-                'Save notes to build your knowledge graph.\n\nEdges appear when one saved note references another.',
+                'Save notes to build your knowledge graph.\n\nEdges appear when one note references another.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -257,10 +173,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
     return Stack(
       children: [
-        // ── Fixed dot background ─────────────────────────────────────────
-        Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
+        const Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
 
-        // ── Graph (unconstrained — full zoom + pan freedom) ──────────────
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onCanvasTap,
@@ -281,42 +195,40 @@ class _GraphCanvasState extends State<GraphCanvas> {
               }
 
               return InteractiveViewer(
-                // No constraints, no boundary — full freedom to zoom + pan
                 constrained: false,
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 minScale: 0.1,
                 maxScale: 6.0,
                 child: Stack(
-                  // Clip.none: nodes can be dragged anywhere — never clipped
                   clipBehavior: Clip.none,
                   children: [
-                    // Edges — CustomPaint sized to match initial graph area
                     CustomPaint(
                       size: Size(_graphW, _graphH),
-                      painter: _EdgePainter(
+                      painter: EdgePainter(
                         graph: _graph,
-                        selectedNodeId: widget.selectedNoteId,
+                        selectedNodeId: widget.selectedNodeId,
                       ),
                     ),
 
-                    // Nodes — Positioned at live algorithm positions
                     ..._graph.nodes.map((node) {
-                      final eventId = node.key!.value as String;
-                      final color = _nodeColorMap[eventId] ?? AppColors.primary;
+                      final nodeId = node.key!.value as String;
+                      final nodeData = widget.nodes
+                          .where((n) => n.eventId == nodeId)
+                          .firstOrNull;
+                      final color = nodeData != null
+                          ? graphNodeTypeColors[nodeData.type]!
+                          : AppColors.primary;
                       final connections =
-                          widget.adjacency[eventId]?.length ?? 0;
-                      final nodeSize = (46.0 + connections * 3.0).clamp(
-                        46.0,
-                        70.0,
-                      );
-                      final isSelected = widget.selectedNoteId == eventId;
+                          widget.adjacency[nodeId]?.length ?? 0;
+                      final nodeSize =
+                          (46.0 + connections * 3.0).clamp(46.0, 70.0);
+                      final isSelected = widget.selectedNodeId == nodeId;
                       final isConnected =
-                          widget.selectedNoteId != null &&
-                          (widget.adjacency[widget.selectedNoteId]?.contains(
-                                eventId,
-                              ) ??
+                          widget.selectedNodeId != null &&
+                          (widget.adjacency[widget.selectedNodeId]
+                                  ?.contains(nodeId) ??
                               false);
-                      final hasSelection = widget.selectedNoteId != null;
+                      final hasSelection = widget.selectedNodeId != null;
                       final opacity =
                           hasSelection && !isSelected && !isConnected
                           ? 0.25
@@ -326,23 +238,15 @@ class _GraphCanvasState extends State<GraphCanvas> {
                         left: node.x,
                         top: node.y,
                         child: GestureDetector(
-                          onTap: () => widget.onNodeTap(eventId),
-
-                          // Drag: physics pauses on start, resumes on end
-                          // No clamping — full freedom, nodes cross each other
-                          onPanStart: (_) {
-                            _isDragging = true;
-                          },
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => widget.onNodeTap(nodeId),
+                          onPanStart: (_) => _isDragging = true,
                           onPanUpdate: (details) {
-                            // Direct position update — zero physics interference
                             node.position = node.position + details.delta;
                             if (mounted) setState(() {});
                           },
                           onPanEnd: (_) {
                             _isDragging = false;
-                            // Re-settle surrounding nodes around the dropped
-                            // position. Pin this node so attraction cannot
-                            // pull it back toward its neighbours.
                             _runSettle(
                               pinned: node,
                               pinnedAt: Offset(node.x, node.y),
@@ -355,7 +259,6 @@ class _GraphCanvasState extends State<GraphCanvas> {
                               pinnedAt: Offset(node.x, node.y),
                             );
                           },
-
                           child: Opacity(
                             opacity: opacity,
                             child: Column(
@@ -367,25 +270,21 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                   height: nodeSize,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isSelected
-                                        ? color
-                                        : isConnected
+                                    color: isSelected || isConnected
                                         ? color
                                         : color.withValues(alpha: 0.85),
                                     border: isSelected
                                         ? Border.all(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.7,
-                                            ),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.7),
                                             width: 2.5,
                                           )
                                         : null,
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: color.withValues(
-                                                alpha: 0.55,
-                                              ),
+                                              color:
+                                                  color.withValues(alpha: 0.55),
                                               blurRadius: 18,
                                               spreadRadius: 4,
                                             ),
@@ -393,9 +292,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                         : isConnected
                                         ? [
                                             BoxShadow(
-                                              color: color.withValues(
-                                                alpha: 0.3,
-                                              ),
+                                              color:
+                                                  color.withValues(alpha: 0.3),
                                               blurRadius: 8,
                                             ),
                                           ]
@@ -406,7 +304,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                 SizedBox(
                                   width: 88,
                                   child: Text(
-                                    _labelFor(eventId),
+                                    _labelFor(nodeId),
                                     style: TextStyle(
                                       fontSize: 9,
                                       color: isSelected
@@ -438,10 +336,10 @@ class _GraphCanvasState extends State<GraphCanvas> {
     );
   }
 
-  String _labelFor(String eventId) {
+  String _labelFor(String nodeId) {
     try {
-      final note = widget.notes.firstWhere((n) => n.eventId == eventId);
-      final text = note.content.trim().replaceAll('\n', ' ');
+      final node = widget.nodes.firstWhere((n) => n.eventId == nodeId);
+      final text = node.content.trim().replaceAll('\n', ' ');
       return text.length > 30 ? '${text.substring(0, 30)}…' : text;
     } catch (_) {
       return '…';

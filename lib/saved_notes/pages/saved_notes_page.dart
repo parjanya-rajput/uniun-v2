@@ -165,8 +165,10 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                               onTap: () => Navigator.push(
                                 ctx,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      ThreadPage(noteId: filtered[i].eventId),
+                                  builder: (_) => ThreadPage(
+                                    noteId: filtered[i].eventId,
+                                    savedOnly: true,
+                                  ),
                                 ),
                               ).then((_) => cubit.load()),
                             );

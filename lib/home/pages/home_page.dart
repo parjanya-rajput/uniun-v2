@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/brahma/pages/brahma_create_page.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/vishnu/pages/vishnu_feed_page.dart';
 import 'package:uniun/shiv/pages/shiv_page.dart';
 
-/// App shell — standard Flutter Scaffold + Drawer + floating pill nav.
+/// App shell — standard Flutter Scaffold + floating pill nav.
 ///   0 = Vishnu (feed)
-///   1 = Brahma (create note)
+///   1 = Brahma (graph — pushed as a full-screen route)
 ///   2 = Shiv   (AI assistant)
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,6 +22,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final VishnuFeedBloc _vishnuFeedBloc;
   late final FollowedNotesCubit _followedNotesCubit;
+
+  // 0 = Vishnu, 2 = Shiv — index 1 navigates away so it never lives in the stack.
   int _currentIndex = 0;
 
   @override
@@ -39,6 +41,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _switchTab(int i) async {
+    if (i == 1) {
+      // Brahma tab → push graph as a full-screen route.
+      await Navigator.pushNamed(context, AppRoutes.graph);
+      // Refresh feed — picks up any notes published from the graph.
+      _vishnuFeedBloc.add(const RefreshFeedEvent());
+      return;
+    }
     if (i == 0 && _currentIndex != 0) {
       _vishnuFeedBloc.add(const RefreshFeedEvent());
     }
@@ -56,16 +65,11 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: AppColors.surfaceContainerLowest,
         resizeToAvoidBottomInset: false,
         body: IndexedStack(
-          index: _currentIndex,
+          index: _currentIndex == 2 ? 1 : 0,
           children: [
             VishnuFeedPage(
               currentIndex: _currentIndex,
               onSwitchTab: _switchTab,
-            ),
-            BrahmaCreatePage(
-              currentIndex: _currentIndex,
-              onSwitchTab: _switchTab,
-              onPublished: () => _switchTab(0),
             ),
             ShivPage(
               currentIndex: _currentIndex,

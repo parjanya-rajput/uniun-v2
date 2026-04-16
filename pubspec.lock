@@ -402,10 +402,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: ee100fe41bd5db66af233cccb434c05866760af47dbc515293be6382baee6aed
+      sha256: a80aa7caa6fddc939a72da172d1987d29073f87a1061fea676e5da2386536878
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.1"
+    version: "0.13.2"
   flutter_keyboard_visibility:
     dependency: "direct main"
     description:
@@ -1386,6 +1386,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.0"
+  system_info_plus:
+    dependency: "direct main"
+    description:
+      name: system_info_plus
+      sha256: df94187e95527f9cb459e6a9f6e0b1ea20c157d8029bc233de34b3c1e17e1c48
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   term_glyph:
     dependency: transitive
     description:

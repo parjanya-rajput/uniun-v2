@@ -42,7 +42,8 @@ dependencies:
   image_picker: ^1.2.1
   flutter_native_splash: ^2.3.10
   qr_flutter: ^4.1.0
-  flutter_gemma: ^0.13.1
+  flutter_gemma: ^0.13.2
+  system_info_plus: ^0.0.6
   http: ^1.4.0
   uuid: ^4.5.1
   graphview: ^1.5.1

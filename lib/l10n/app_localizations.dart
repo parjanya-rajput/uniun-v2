@@ -850,28 +850,28 @@ abstract class AppLocalizations {
   /// **'Download failed. Please try again.'**
   String get aiModelDownloadError;
 
-  /// Display name for Qwen 2.5 0.5B model
+  /// Display name for Qwen3 0.6B model
   ///
   /// In en, this message translates to:
-  /// **'Qwen 2.5 0.5B'**
+  /// **'Qwen3 0.6B'**
   String get aiModelQwen25Name;
 
-  /// Description for Qwen 2.5 0.5B model
+  /// Description for Qwen3 0.6B model
   ///
   /// In en, this message translates to:
-  /// **'Ultra-compact and fast. Works on any Android device with 3 GB+ RAM.'**
+  /// **'Compact multilingual chat with function calling. Works on any device with 3 GB+ RAM.'**
   String get aiModelQwen25Desc;
 
-  /// Display name for DeepSeek R1 1.5B model
+  /// Display name for DeepSeek R1 model
   ///
   /// In en, this message translates to:
   /// **'DeepSeek R1'**
   String get aiModelDeepSeekR1Name;
 
-  /// Description for DeepSeek R1 1.5B model
+  /// Description for DeepSeek R1 model
   ///
   /// In en, this message translates to:
-  /// **'Best reasoning and code generation for daily use. Requires 4 GB+ RAM.'**
+  /// **'High-performance reasoning and code generation. Requires 4 GB+ RAM.'**
   String get aiModelDeepSeekR1Desc;
 
   /// Display name for Gemma 4 E2B model
@@ -883,7 +883,7 @@ abstract class AppLocalizations {
   /// Description for Gemma 4 E2B model
   ///
   /// In en, this message translates to:
-  /// **'Multimodal — handles text and images. Great for high-end devices with 6 GB+ RAM.'**
+  /// **'Next-gen multimodal chat — text, image, audio. Requires 6 GB+ RAM.'**
   String get aiModelGemma4E2bDesc;
 
   /// Display name for Gemma 4 E4B model
@@ -895,7 +895,7 @@ abstract class AppLocalizations {
   /// Description for Gemma 4 E4B model
   ///
   /// In en, this message translates to:
-  /// **'Maximum accuracy multimodal model. Best on flagship devices with 8 GB+ RAM.'**
+  /// **'Next-gen multimodal chat — text, image, audio. Best on flagship devices with 8 GB+ RAM.'**
   String get aiModelGemma4E4bDesc;
 
   /// Progress label shown while the embedding model is downloading after first LLM install
@@ -1659,6 +1659,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bookmark notes from your feed to read them later.'**
   String get savedNotesEmptySub;
+
+  /// Graph legend label for saved notes (blue nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get graphLegendSaved;
+
+  /// Graph legend label for own published notes (green nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Own'**
+  String get graphLegendOwn;
+
+  /// Graph legend label for draft notes (amber nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get graphLegendDraft;
+
+  /// FAB option to create a plain text note from the graph
+  ///
+  /// In en, this message translates to:
+  /// **'Text note'**
+  String get graphFabTextNote;
+
+  /// FAB option to create a reference/mention note from the graph
+  ///
+  /// In en, this message translates to:
+  /// **'Reference note'**
+  String get graphFabReferenceNote;
+
+  /// Edit action on a draft node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get graphDraftEdit;
+
+  /// Delete action on a draft node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get graphDraftDelete;
 }
 
 class _AppLocalizationsDelegate

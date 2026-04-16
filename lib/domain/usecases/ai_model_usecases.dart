@@ -12,7 +12,7 @@ class GetAvailableAIModelsUseCase {
   final AIModelRepository _repository;
   const GetAvailableAIModelsUseCase(this._repository);
 
-  List<AIModelEntity> call() => _repository.getAvailableModels();
+  Future<List<AIModelEntity>> call() => _repository.getAvailableModels();
 }
 
 // ── GetActiveAIModelUseCase ───────────────────────────────────────────────────

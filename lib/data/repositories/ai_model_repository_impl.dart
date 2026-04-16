@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:system_info_plus/system_info_plus.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/data/models/app_settings_model.dart';
@@ -27,28 +28,30 @@ class AIModelRepositoryImpl implements AIModelRepository {
   //
   // Gemma 4 E2B/E4B use .litertlm (LiteRT-LM). All others use .task.
 
-  static final List<AIModelEntity> _catalog = [
-    const AIModelEntity(
+  // Base catalog — isRecommended is set dynamically in getAvailableModels()
+  // based on device RAM so users always see the right suggestion.
+  static const List<AIModelEntity> _catalog = [
+    AIModelEntity(
       modelId: AIModelId.qwen25_05b,
-      sizeLabel: '0.5 GB',
-      sizeBytes: 536870912,
+      sizeLabel: '586 MB',
+      sizeBytes: 614572032,
       tier: AIModelTier.lite,
       isRecommended: false,
       optimization: AIModelOptimization.cpu,
       downloadUrl:
           'https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
     ),
-    const AIModelEntity(
+    AIModelEntity(
       modelId: AIModelId.deepseekR1,
       sizeLabel: '1.7 GB',
       sizeBytes: 1825964032,
       tier: AIModelTier.balanced,
-      isRecommended: true,
+      isRecommended: false,
       optimization: AIModelOptimization.cpu,
       downloadUrl:
           'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/deepseek_q8_ekv1280.task',
     ),
-    const AIModelEntity(
+    AIModelEntity(
       modelId: AIModelId.gemma4E2b,
       sizeLabel: '2.4 GB',
       sizeBytes: 2576980377,
@@ -58,7 +61,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       downloadUrl:
           'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
     ),
-    const AIModelEntity(
+    AIModelEntity(
       modelId: AIModelId.gemma4E4b,
       sizeLabel: '4.3 GB',
       sizeBytes: 4617089638,
@@ -92,7 +95,32 @@ class AIModelRepositoryImpl implements AIModelRepository {
   };
 
   @override
-  List<AIModelEntity> getAvailableModels() => List.unmodifiable(_catalog);
+  Future<List<AIModelEntity>> getAvailableModels() async {
+    final recommended = await _recommendedModelId();
+    return _catalog
+        .map((m) => m.copyWith(isRecommended: m.modelId == recommended))
+        .toList();
+  }
+
+  /// Reads total physical RAM and returns the best-fit model ID.
+  /// Thresholds (conservative — model size + OS overhead):
+  ///   < 3 GB  → Qwen3 0.6B
+  ///   3–5 GB  → DeepSeek R1
+  ///   5–7 GB  → Gemma 4 E2B
+  ///   ≥ 7 GB  → Gemma 4 E4B
+  static Future<AIModelId> _recommendedModelId() async {
+    try {
+      // physicalMemory returns MB, or null on unsupported platforms.
+      final totalMb = await SystemInfoPlus.physicalMemory;
+      if (totalMb == null || totalMb <= 0) return AIModelId.deepseekR1;
+      if (totalMb < 3000) return AIModelId.qwen25_05b;
+      if (totalMb < 5000) return AIModelId.deepseekR1;
+      if (totalMb < 7000) return AIModelId.gemma4E2b;
+      return AIModelId.gemma4E4b;
+    } catch (_) {
+      return AIModelId.deepseekR1;
+    }
+  }
 
   // ── Active model ─────────────────────────────────────────────────────────────
 
