@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/core/isolate/embedded_server_bridge.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
@@ -29,8 +28,7 @@ class GetFeedUseCase
 // ── GetNoteByIdUseCase ────────────────────────────────────────────────────────
 
 @lazySingleton
-class GetNoteByIdUseCase
-    extends UseCase<Either<Failure, NoteEntity>, String> {
+class GetNoteByIdUseCase extends UseCase<Either<Failure, NoteEntity>, String> {
   final NoteRepository repository;
   const GetNoteByIdUseCase(this.repository);
 
@@ -63,8 +61,7 @@ class GetRepliesUseCase
 // ── SaveNoteUseCase ───────────────────────────────────────────────────────────
 
 @lazySingleton
-class SaveNoteUseCase
-    extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
+class SaveNoteUseCase extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   final NoteRepository repository;
   const SaveNoteUseCase(this.repository);
 
@@ -85,10 +82,7 @@ class MarkSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
   const MarkSeenUseCase(this.repository);
 
   @override
-  Future<Either<Failure, Unit>> call(
-    String eventId, {
-    bool cached = false,
-  }) {
+  Future<Either<Failure, Unit>> call(String eventId, {bool cached = false}) {
     return repository.markAsSeen(eventId);
   }
 }
@@ -135,10 +129,7 @@ class GetThreadReplyCountUseCase extends UseCase<Either<Failure, int>, String> {
   const GetThreadReplyCountUseCase(this._repository);
 
   @override
-  Future<Either<Failure, int>> call(
-    String rootEventId, {
-    bool cached = false,
-  }) {
+  Future<Either<Failure, int>> call(String rootEventId, {bool cached = false}) {
     return _repository.getThreadReplyCount(rootEventId);
   }
 }
@@ -174,19 +165,13 @@ class GetOwnNotesUseCase
 ///      the feed immediately (optimistic local display).
 ///   2. Enqueue in [EventQueueRepository] — the EmbeddedServer's WebSocketService
 ///      reads this collection and broadcasts events to connected relays.
-///   3. Ping [EmbeddedServerBridge] — signals EmbeddedServer to flush the queue now.
 @lazySingleton
 class PublishNoteUseCase
     extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   final NoteRepository _noteRepository;
   final EventQueueRepository _eventQueueRepository;
-  final EmbeddedServerBridge _bridge;
 
-  const PublishNoteUseCase(
-    this._noteRepository,
-    this._eventQueueRepository,
-    this._bridge,
-  );
+  const PublishNoteUseCase(this._noteRepository, this._eventQueueRepository);
 
   @override
   Future<Either<Failure, NoteEntity>> call(
@@ -222,8 +207,6 @@ class PublishNoteUseCase
       );
     }
 
-    // 3. Signal the EmbeddedServer isolate to flush the queue to relays now.
-    _bridge.notifyNewOutboundEvent();
     return saveResult;
   }
 }

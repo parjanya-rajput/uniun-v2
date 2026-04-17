@@ -61,17 +61,24 @@ class WebSocketService {
     _updateStatus(RelayStatus.reconnecting);
     try {
       _socket = WebSocketChannel.connect(Uri.parse(url));
-      _socketSub = _socket!.stream.listen(
-        _onMessage,
-        onError: (_) => _scheduleReconnect(),
-        onDone: _scheduleReconnect,
-        cancelOnError: true,
-      );
-      // Mark connected — relay handshake is implicit in WebSocket
-      _isConnected = true;
-      _reconnectAttempt = 0;
-      _updateStatus(RelayStatus.connected);
-      _processSendQueue();
+
+      // Wait for TCP/WebSocket readiness before marking connected.
+      // This prevents "connection refused" from surfacing as an unhandled error.
+      _socket!.ready.then((_) {
+        if (_disposed) return;
+        _socketSub = _socket!.stream.listen(
+          _onMessage,
+          onError: (_) => _scheduleReconnect(),
+          onDone: _scheduleReconnect,
+          cancelOnError: true,
+        );
+        _isConnected = true;
+        _reconnectAttempt = 0;
+        _updateStatus(RelayStatus.connected);
+        _processSendQueue();
+      }).catchError((_) {
+        _scheduleReconnect();
+      });
     } catch (_) {
       _scheduleReconnect();
     }

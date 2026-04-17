@@ -39,6 +39,7 @@ func main() {
 
 	relay.OnConnect = append(relay.OnConnect, func(_ context.Context) {
 		liveConnections++
+		Info("New connection", "connection", liveConnections)
 	})
 
 	relay.OnDisconnect = append(relay.OnDisconnect, func(_ context.Context) {
@@ -109,9 +110,18 @@ func main() {
 	relay.Shutdown(context.Background())
 }
 
-// RejectEvent — placeholder for application-level event rejection rules.
+// just logs event for now not rejects
+
 func RejectEvent(_ context.Context, event *nostr.Event) (reject bool, msg string) {
-	_ = event
+	Info(
+		"Received event",
+		"id", event.ID,
+		"kind", event.Kind,
+		"pubkey", event.PubKey,
+		"created_at", event.CreatedAt,
+		"content", event.Content,
+		"tags", event.Tags,
+	)
 	return false, ""
 }
 
