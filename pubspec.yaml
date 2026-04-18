@@ -49,6 +49,7 @@ dependencies:
   graphview: ^1.5.1
   tflite_flutter: ^0.12.0
   flutter_keyboard_visibility: ^6.0.0
+  disk_space_plus: ^0.2.6
 
 dev_dependencies:
   flutter_test:

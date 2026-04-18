@@ -348,19 +348,83 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storageUsage => 'Storage Usage';
 
   @override
-  String get storageOptimizing => 'Optimizing for offline-first experience.';
+  String get storageNoteData => 'Note Data';
 
   @override
-  String get storageClearCache => 'Clear Cache';
+  String get storageAiModels => 'AI Models';
 
   @override
-  String get storageResetData => 'Reset Local Data';
+  String get storageAiModelsSubtitle => 'Downloaded model files';
+
+  @override
+  String get storageTotal => 'Total';
+
+  @override
+  String storageNotes(int count) {
+    return '$count notes';
+  }
+
+  @override
+  String get storageRemoveData => 'Remove Data';
+
+  @override
+  String get storageDeleteDialogTitle => 'Delete Feed Notes';
+
+  @override
+  String storageDeleteDialogBody(int count) {
+    return 'This will delete $count feed notes from local storage.\n\nYour own notes, saved notes, and followed notes will NOT be affected.';
+  }
+
+  @override
+  String get storageDeleteConfirm => 'Delete';
+
+  @override
+  String storageDeleteSuccess(int count) {
+    return 'Deleted $count notes';
+  }
+
+  @override
+  String get storageNothingToDelete => 'No feed notes to delete';
+
+  @override
+  String get storageChatHistory => 'Chat History';
+
+  @override
+  String get storageOther => 'Other';
+
+  @override
+  String get storageDeleteFeedNotes => 'Delete Feed Notes';
+
+  @override
+  String storageDeleteFeedNotesSubtitle(int count) {
+    return '$count feed notes · your own, saved, and followed notes are not affected';
+  }
+
+  @override
+  String get storageDeleteChatHistory => 'Delete Chat History';
+
+  @override
+  String get storageDeleteChatHistorySubtitle =>
+      'All Shiv conversations and messages';
+
+  @override
+  String get storageDeleteChatHistorySuccess => 'Chat history deleted';
+
+  @override
+  String get storageDeleteChatHistoryDialogBody =>
+      'This will permanently delete all Shiv conversations and messages. This cannot be undone.';
 
   @override
   String get styleTheme => 'Theme';
 
   @override
   String get styleThemeLight => 'Light';
+
+  @override
+  String get styleThemeDark => 'Dark';
+
+  @override
+  String get styleThemeSystem => 'System';
 
   @override
   String get styleAccent => 'Accent';
@@ -410,6 +474,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelAlreadyActive => 'Active';
+
+  @override
+  String get aiModelDownloaded => 'Downloaded';
+
+  @override
+  String get aiModelSetActive => 'Set as Active';
 
   @override
   String get aiModelDownloadError => 'Download failed. Please try again.';
@@ -755,6 +825,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shivLandingBody => 'Your on-device AI.\nThink in threads.';
+
+  @override
+  String get shivNoModelBody =>
+      'Download an AI model to start chatting with Shiv. Everything runs on your device — no internet needed after setup.';
+
+  @override
+  String get shivSetUpAi => 'Set up AI';
 
   @override
   String get shivNewConversation => 'New Conversation';

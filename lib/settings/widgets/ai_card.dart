@@ -4,6 +4,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/settings/cubit/storage_cubit.dart';
 import 'package:uniun/shiv/model_select/cubit/select_ai_model_cubit.dart';
 import 'package:uniun/shiv/model_select/utils/ai_model_l10n.dart';
 
@@ -39,16 +40,15 @@ class _AICardContent extends StatelessWidget {
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(24),
           ),
-          child: Column(
-            children: [
-              // Model selector row
+          child: // Model selector row
               GestureDetector(
                 onTap: () async {
                   await Navigator.of(context)
                       .pushNamed(AppRoutes.aiModelSelection);
-                  // Refresh active model state after returning
+                  // Refresh active model state + storage stats after returning.
                   if (context.mounted) {
                     context.read<SelectAIModelCubit>().refresh();
+                    context.read<StorageCubit>().loadStats();
                   }
                 },
                 child: Row(
@@ -84,35 +84,6 @@ class _AICardContent extends StatelessWidget {
                   ],
                 ),
               ),
-
-              Divider(
-                height: 32,
-                color: AppColors.surfaceContainer.withValues(alpha: 0.5),
-              ),
-
-              // Clear AI cache
-              GestureDetector(
-                onTap: () {
-                  // TODO: clear AI cache
-                },
-                child: Row(
-                  children: [
-                    const Icon(Icons.delete_sweep_rounded,
-                        color: Color(0xFFBA1A1A), size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.aiClearCache,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFBA1A1A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         );
       },
     );

@@ -344,20 +344,74 @@
   "storageUsage": "Storage Usage",
   "@storageUsage": { "description": "Storage card section heading" },
 
-  "storageOptimizing": "Optimizing for offline-first experience.",
-  "@storageOptimizing": { "description": "Storage card subtitle" },
+  "storageNoteData": "Note Data",
+  "@storageNoteData": { "description": "Storage bar chart row — notes stored in local DB" },
 
-  "storageClearCache": "Clear Cache",
-  "@storageClearCache": { "description": "Storage card button" },
+  "storageAiModels": "AI Models",
+  "@storageAiModels": { "description": "Storage bar chart row — downloaded AI model files" },
 
-  "storageResetData": "Reset Local Data",
-  "@storageResetData": { "description": "Storage card destructive button" },
+  "storageAiModelsSubtitle": "Downloaded model files",
+  "@storageAiModelsSubtitle": { "description": "Subtitle for AI models storage row" },
+
+  "storageTotal": "Total",
+  "@storageTotal": { "description": "Storage total row label" },
+
+  "storageNotes": "{count} notes",
+  "@storageNotes": { "description": "Note count label", "placeholders": { "count": { "type": "int" } } },
+
+  "storageRemoveData": "Remove Data",
+  "@storageRemoveData": { "description": "Storage card button — opens removal dialog" },
+
+  "storageDeleteDialogTitle": "Delete Feed Notes",
+  "@storageDeleteDialogTitle": { "description": "Title of the delete feed notes confirmation dialog" },
+
+  "storageDeleteDialogBody": "This will delete {count} feed notes from local storage.\n\nYour own notes, saved notes, and followed notes will NOT be affected.",
+  "@storageDeleteDialogBody": { "description": "Body of the delete feed notes dialog", "placeholders": { "count": { "type": "int" } } },
+
+  "storageDeleteConfirm": "Delete",
+  "@storageDeleteConfirm": { "description": "Confirm button in delete dialog" },
+
+  "storageDeleteSuccess": "Deleted {count} notes",
+  "@storageDeleteSuccess": { "description": "Snackbar shown after successful deletion", "placeholders": { "count": { "type": "int" } } },
+
+  "storageNothingToDelete": "No feed notes to delete",
+  "@storageNothingToDelete": { "description": "Shown when there are 0 deletable notes" },
+
+  "storageChatHistory": "Chat History",
+  "@storageChatHistory": { "description": "Legend label for chat history storage" },
+
+  "storageOther": "Other",
+  "@storageOther": { "description": "Legend label for miscellaneous app files (caches, config, assets)" },
+
+  "storageDeleteFeedNotes": "Delete Feed Notes",
+  "@storageDeleteFeedNotes": { "description": "Bottom sheet option to delete feed notes" },
+
+  "storageDeleteFeedNotesSubtitle": "{count} feed notes · your own, saved, and followed notes are not affected",
+  "@storageDeleteFeedNotesSubtitle": { "description": "Subtitle for delete feed notes option", "placeholders": { "count": { "type": "int" } } },
+
+  "storageDeleteChatHistory": "Delete Chat History",
+  "@storageDeleteChatHistory": { "description": "Bottom sheet option to delete chat history" },
+
+  "storageDeleteChatHistorySubtitle": "All Shiv conversations and messages",
+  "@storageDeleteChatHistorySubtitle": { "description": "Subtitle for delete chat history option" },
+
+  "storageDeleteChatHistorySuccess": "Chat history deleted",
+  "@storageDeleteChatHistorySuccess": { "description": "Snackbar shown after deleting chat history" },
+
+  "storageDeleteChatHistoryDialogBody": "This will permanently delete all Shiv conversations and messages. This cannot be undone.",
+  "@storageDeleteChatHistoryDialogBody": { "description": "Confirmation dialog body for chat history deletion" },
 
   "styleTheme": "Theme",
   "@styleTheme": { "description": "Style card row — theme" },
 
   "styleThemeLight": "Light",
-  "@styleThemeLight": { "description": "Current theme value" },
+  "@styleThemeLight": { "description": "Light theme option label" },
+
+  "styleThemeDark": "Dark",
+  "@styleThemeDark": { "description": "Dark theme option label" },
+
+  "styleThemeSystem": "System",
+  "@styleThemeSystem": { "description": "System default theme option label" },
 
   "styleAccent": "Accent",
   "@styleAccent": { "description": "Style card row — accent color" },
@@ -408,6 +462,12 @@
 
   "aiModelAlreadyActive": "Active",
   "@aiModelAlreadyActive": { "description": "Badge shown on already-downloaded active model card" },
+
+  "aiModelDownloaded": "Downloaded",
+  "@aiModelDownloaded": { "description": "Badge shown on downloaded but inactive model card" },
+
+  "aiModelSetActive": "Set as Active",
+  "@aiModelSetActive": { "description": "Footer button when selected model is downloaded but not active" },
 
   "aiModelDownloadError": "Download failed. Please try again.",
   "@aiModelDownloadError": { "description": "Snackbar when model download fails" },
@@ -719,6 +779,12 @@
 
   "shivLandingBody": "Your on-device AI.\nThink in threads.",
   "@shivLandingBody": { "description": "Shiv landing screen body subtitle" },
+
+  "shivNoModelBody": "Download an AI model to start chatting with Shiv. Everything runs on your device — no internet needed after setup.",
+  "@shivNoModelBody": { "description": "Shiv no-model placeholder body text" },
+
+  "shivSetUpAi": "Set up AI",
+  "@shivSetUpAi": { "description": "Button to open AI model selection" },
 
   "shivNewConversation": "New Conversation",
   "@shivNewConversation": { "description": "Button label to create a new Shiv conversation" },

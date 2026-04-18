@@ -35,6 +35,7 @@ import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
 import 'package:uniun/data/repositories/shiv_repository_impl.dart' as _i412;
+import 'package:uniun/data/repositories/storage_repository_impl.dart' as _i209;
 import 'package:uniun/data/repositories/subscription_record_repository_impl.dart'
     as _i364;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
@@ -53,6 +54,7 @@ import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
 import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
+import 'package:uniun/domain/repositories/storage_repository.dart' as _i240;
 import 'package:uniun/domain/repositories/subscription_record_repository.dart'
     as _i194;
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
@@ -64,6 +66,7 @@ import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
 import 'package:uniun/domain/usecases/shiv_usecases.dart' as _i604;
+import 'package:uniun/domain/usecases/storage_usecases.dart' as _i58;
 import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
@@ -71,6 +74,7 @@ import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_de
     as _i464;
 import 'package:uniun/settings/cubit/edit_profile_cubit.dart' as _i195;
 import 'package:uniun/settings/cubit/settings_cubit.dart' as _i731;
+import 'package:uniun/settings/cubit/storage_cubit.dart' as _i888;
 import 'package:uniun/shiv/chat/bloc/shiv_ai_bloc.dart' as _i334;
 import 'package:uniun/shiv/model_select/cubit/select_ai_model_cubit.dart'
     as _i53;
@@ -227,6 +231,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
       () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
     );
+    gh.factory<_i240.StorageRepository>(
+      () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.lazySingleton<_i475.GetFeedUseCase>(
       () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
     );
@@ -264,6 +271,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetProfileUseCase>(),
       ),
     );
+    gh.lazySingleton<_i58.GetStorageStatsUseCase>(
+      () => _i58.GetStorageStatsUseCase(gh<_i240.StorageRepository>()),
+    );
+    gh.lazySingleton<_i58.DeleteFeedNotesUseCase>(
+      () => _i58.DeleteFeedNotesUseCase(gh<_i240.StorageRepository>()),
+    );
+    gh.lazySingleton<_i58.DeleteAllChatHistoryUseCase>(
+      () => _i58.DeleteAllChatHistoryUseCase(gh<_i240.StorageRepository>()),
+    );
     gh.lazySingleton<_i894.GetAvailableAIModelsUseCase>(
       () => _i894.GetAvailableAIModelsUseCase(gh<_i646.AIModelRepository>()),
     );
@@ -277,6 +293,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i894.ClearActiveAIModelUseCase>(
       () => _i894.ClearActiveAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.GetDownloadedModelIdsUseCase>(
+      () => _i894.GetDownloadedModelIdsUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.DeleteAIModelUseCase>(
+      () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
     gh.lazySingleton<_i756.EmbedAndStoreNoteUseCase>(
       () => _i756.EmbedAndStoreNoteUseCase(
@@ -344,10 +366,28 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
+    gh.factory<_i53.SelectAIModelCubit>(
+      () => _i53.SelectAIModelCubit(
+        gh<_i894.GetAvailableAIModelsUseCase>(),
+        gh<_i894.GetActiveAIModelUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+        gh<_i894.DownloadAndActivateAIModelUseCase>(),
+        gh<_i894.DeleteAIModelUseCase>(),
+        gh<_i113.EmbeddingModelDownloader>(),
+      ),
+    );
     gh.factory<_i731.SettingsCubit>(
       () => _i731.SettingsCubit(
         gh<_i799.GetActiveUserUseCase>(),
         gh<_i391.GetOwnProfileUseCase>(),
+      ),
+    );
+    gh.factory<_i888.StorageCubit>(
+      () => _i888.StorageCubit(
+        gh<_i58.GetStorageStatsUseCase>(),
+        gh<_i58.DeleteFeedNotesUseCase>(),
+        gh<_i58.DeleteAllChatHistoryUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
       ),
     );
     gh.lazySingleton<_i799.GetActiveUserProfileUseCase>(
@@ -373,14 +413,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i537.DeleteDraftUseCase>(),
         gh<_i475.SearchNotesUseCase>(),
         gh<_i475.GetNoteByIdUseCase>(),
-      ),
-    );
-    gh.factory<_i53.SelectAIModelCubit>(
-      () => _i53.SelectAIModelCubit(
-        gh<_i894.GetAvailableAIModelsUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
-        gh<_i894.DownloadAndActivateAIModelUseCase>(),
-        gh<_i113.EmbeddingModelDownloader>(),
       ),
     );
     gh.factory<_i536.GraphBloc>(

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:system_info_plus/system_info_plus.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
@@ -185,6 +187,24 @@ class AIModelRepositoryImpl implements AIModelRepository {
     }
 
     final params = _gemmaParams[modelId]!;
+    final filename = _filename(modelId);
+
+    // Already on disk — skip download, just activate.
+    if (await FlutterGemma.isModelInstalled(filename)) {
+      try {
+        await _isar.writeTxn(() async {
+          final settings =
+              await _isar.appSettingsModels.get(1) ?? AppSettingsModel();
+          settings.activeModelId = modelId;
+          await _isar.appSettingsModels.put(settings);
+        });
+        yield AIModelDownloadEvent.complete(modelId);
+      } catch (e) {
+        yield AIModelDownloadEvent.failed(e.toString());
+      }
+      return;
+    }
+
     final progressController = StreamController<int>();
 
     FlutterGemma.installModel(
@@ -242,4 +262,73 @@ class AIModelRepositoryImpl implements AIModelRepository {
       yield AIModelDownloadEvent.failed(e.toString());
     }
   }
+
+  // ── Downloaded models ────────────────────────────────────────────────────────
+
+  static String _filename(AIModelId id) {
+    final entry = _catalog.firstWhere((m) => m.modelId == id);
+    return p.basename(Uri.parse(entry.downloadUrl).path);
+  }
+
+  @override
+  Future<Set<AIModelId>> getDownloadedModelIds() async {
+    final downloaded = <AIModelId>{};
+    for (final model in _catalog) {
+      final filename = _filename(model.modelId);
+      if (await FlutterGemma.isModelInstalled(filename)) {
+        downloaded.add(model.modelId);
+      }
+    }
+    return downloaded;
+  }
+
+  @override
+  Future<int> getDownloadedModelsSizeBytes() async {
+    int total = 0;
+    for (final model in _catalog) {
+      final filename = _filename(model.modelId);
+      if (await FlutterGemma.isModelInstalled(filename)) {
+        total += model.sizeBytes;
+      }
+    }
+    return total;
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteModel(AIModelId modelId) async {
+    try {
+      final filename = _filename(modelId);
+      // Use flutter_gemma's uninstall to clear both the file and internal
+      // metadata so isModelInstalled() returns false afterwards.
+      try {
+        await FlutterGemma.uninstallModel(filename);
+      } catch (_) {
+        // Fallback: manual file delete in case metadata was already gone.
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File(p.join(dir.path, filename));
+        if (file.existsSync()) await file.delete();
+      }
+
+      await _isar.writeTxn(() async {
+        final record = await _isar.aIModelSelectionModels
+            .filter()
+            .modelIdEqualTo(modelId)
+            .findFirst();
+        if (record != null) {
+          await _isar.aIModelSelectionModels.delete(record.id);
+        }
+        // If this was the active model, clear it.
+        final settings = await _isar.appSettingsModels.get(1);
+        if (settings?.activeModelId == modelId) {
+          settings!.activeModelId = null;
+          await _isar.appSettingsModels.put(settings);
+        }
+      });
+
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
 }

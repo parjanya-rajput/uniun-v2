@@ -15,4 +15,15 @@ abstract class AIModelRepository {
 
   /// Removes the active model selection (does not delete the file).
   Future<Either<Failure, Unit>> clearActiveModel();
+
+  /// Returns IDs of all models whose files are present on disk.
+  Future<Set<AIModelId>> getDownloadedModelIds();
+
+  /// Returns total bytes used by all downloaded model files (from catalog sizeBytes).
+  Future<int> getDownloadedModelsSizeBytes();
+
+  /// Deletes the model file from disk and removes it from Isar.
+  /// If it was the active model, clears the active selection too.
+  Future<Either<Failure, Unit>> deleteModel(AIModelId modelId);
+
 }

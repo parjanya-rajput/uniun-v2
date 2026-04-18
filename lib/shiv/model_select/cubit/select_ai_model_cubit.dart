@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:path/path.dart' as p;
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/shiv/rag/embedding/embedding_model_downloader.dart';
@@ -14,7 +16,9 @@ part 'select_ai_model_cubit.freezed.dart';
 class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   final GetAvailableAIModelsUseCase _getAvailable;
   final GetActiveAIModelUseCase _getActive;
+  final GetDownloadedModelIdsUseCase _getDownloaded;
   final DownloadAndActivateAIModelUseCase _download;
+  final DeleteAIModelUseCase _deleteModel;
   final EmbeddingModelDownloader _embeddingDownloader;
 
   StreamSubscription<AIModelDownloadEvent>? _downloadSub;
@@ -22,7 +26,9 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   SelectAIModelCubit(
     this._getAvailable,
     this._getActive,
+    this._getDownloaded,
     this._download,
+    this._deleteModel,
     this._embeddingDownloader,
   ) : super(const SelectAIModelState()) {
     _init();
@@ -32,10 +38,12 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     final models = await _getAvailable.call();
     final activeResult = await _getActive.call();
     final activeId = activeResult.fold((_) => null, (m) => m?.modelId);
+    final downloadedIds = await _getDownloaded.call();
 
     emit(state.copyWith(
       models: models,
       activeModelId: activeId,
+      downloadedModelIds: downloadedIds,
       selectedModelId: activeId ??
           models.where((m) => m.isRecommended).firstOrNull?.modelId ??
           models.firstOrNull?.modelId,
@@ -122,6 +130,60 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
         status: SelectAIModelStatus.error,
         errorMessage: e.toString(),
       )),
+    );
+  }
+
+  Future<void> cancelDownload() async {
+    if (state.status != SelectAIModelStatus.downloading) return;
+    final modelId = state.selectedModelId;
+    await _downloadSub?.cancel();
+    _downloadSub = null;
+
+    // Attempt to clean up any partial file. flutter_gemma 0.13.x has no
+    // HTTP cancel API — the background request may continue briefly, but
+    // we clear state + file so the UI and disk match.
+    if (modelId != null) {
+      final entry = state.models
+          .where((m) => m.modelId == modelId)
+          .firstOrNull;
+      if (entry != null) {
+        final filename = p.basename(Uri.parse(entry.downloadUrl).path);
+        try {
+          await FlutterGemma.uninstallModel(filename);
+        } catch (_) {}
+      }
+    }
+
+    if (isClosed) return;
+    emit(state.copyWith(
+      status: SelectAIModelStatus.initial,
+      downloadProgress: 0.0,
+      errorMessage: null,
+    ));
+  }
+
+  Future<void> deleteModel(AIModelId modelId) async {
+    if (state.deletingModelId != null) return;
+    emit(state.copyWith(deletingModelId: modelId));
+    final result = await _deleteModel.call(modelId);
+    result.fold(
+      (f) => emit(state.copyWith(
+        deletingModelId: null,
+        errorMessage: f.toString(),
+      )),
+      (_) async {
+        final downloadedIds = await _getDownloaded.call();
+        final activeId = state.activeModelId == modelId ? null : state.activeModelId;
+        emit(state.copyWith(
+          deletingModelId: null,
+          downloadedModelIds: downloadedIds,
+          activeModelId: activeId,
+          // If we deleted the selected model, fall back to first available.
+          selectedModelId: state.selectedModelId == modelId
+              ? (state.models.firstOrNull?.modelId)
+              : state.selectedModelId,
+        ));
+      },
     );
   }
 
