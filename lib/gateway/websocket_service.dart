@@ -6,6 +6,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -20,6 +21,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 ///  - Receive incoming Nostr events and write them directly to [NoteModel].
 ///  - Update [RelayModel.status] on every connection state change.
 class WebSocketService {
+  /// NIP-01 [REQ] subscription id for kind-1 notes from this relay.
+  static const _kind1FeedSubscriptionId = 'feed_notes';
+
+  /// NIP-01 [REQ] id for followed-note thread refs (`#e` = followed root ids).
+  static const _followedNoteRefsSubscriptionId = 'followed_note_refs';
+
   final String url;
   final bool read;
   final bool write;
@@ -43,14 +50,18 @@ class WebSocketService {
   /// EventQueueModel.id of the event currently in-flight.
   int? _pendingQueueId;
 
+  /// Dedupes [`FollowedNoteModel`] bumps when the same kind-1 `EVENT` is
+  /// delivered twice (e.g. matches both `feed_notes` and `followed_note_refs`).
+  final Set<String> _processedFollowReferenceBumps = {};
+
   WebSocketService({
     required this.url,
     required this.read,
     required this.write,
     required Isar isar,
     required int startFromQueueId,
-  })  : _isar = isar,
-        _lastSentQueueId = startFromQueueId;
+  }) : _isar = isar,
+       _lastSentQueueId = startFromQueueId;
 
   bool get isConnected => _isConnected;
 
@@ -64,24 +75,71 @@ class WebSocketService {
 
       // Wait for TCP/WebSocket readiness before marking connected.
       // This prevents "connection refused" from surfacing as an unhandled error.
-      _socket!.ready.then((_) {
-        if (_disposed) return;
-        _socketSub = _socket!.stream.listen(
-          _onMessage,
-          onError: (_) => _scheduleReconnect(),
-          onDone: _scheduleReconnect,
-          cancelOnError: true,
-        );
-        _isConnected = true;
-        _reconnectAttempt = 0;
-        _updateStatus(RelayStatus.connected);
-        _processSendQueue();
-      }).catchError((_) {
-        _scheduleReconnect();
-      });
+      _socket!.ready
+          .then((_) {
+            if (_disposed) return;
+            _socketSub = _socket!.stream.listen(
+              _onMessage,
+              onError: (_) => _scheduleReconnect(),
+              onDone: _scheduleReconnect,
+              cancelOnError: true,
+            );
+            _isConnected = true;
+            _reconnectAttempt = 0;
+            _updateStatus(RelayStatus.connected);
+            _subscribeKind1Feed();
+            unawaited(_subscribeFollowedNoteRefs());
+            _processSendQueue();
+          })
+          .catchError((_) {
+            _scheduleReconnect();
+          });
     } catch (_) {
       _scheduleReconnect();
     }
+  }
+
+  /// Sends [REQ] for kind1 notes (NIP-01). Live matching [EVENT]s follow until [CLOSE].
+  void _subscribeKind1Feed() {
+    if (!read || _disposed || _socket == null) return;
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        _kind1FeedSubscriptionId,
+        {
+          'kinds': [1],
+        },
+      ]),
+    );
+  }
+
+  /// Refreshes the `#e`-filtered [REQ] for all rows in [FollowedNoteModel].
+  ///
+  /// Called after connect and whenever [CentralRelayManager] observes follow
+  /// list changes. Safe to call when not yet connected (no-op).
+  Future<void> resyncFollowedNoteSubscriptions() async {
+    await _subscribeFollowedNoteRefs();
+  }
+
+  Future<void> _subscribeFollowedNoteRefs() async {
+    if (!read || _disposed || _socket == null || !_isConnected) return;
+
+    _socket!.sink.add(jsonEncode(['CLOSE', _followedNoteRefsSubscriptionId]));
+
+    final followed = await _isar.followedNoteModels.where().findAll();
+    if (followed.isEmpty) return;
+
+    final eRefs = followed.map((f) => f.eventId).toList();
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        _followedNoteRefsSubscriptionId,
+        {
+          'kinds': [1],
+          '#e': eRefs,
+        },
+      ]),
+    );
   }
 
   void disconnect() {
@@ -110,6 +168,9 @@ class WebSocketService {
 
   /// Called by [CentralRelayManager] when a new item is enqueued.
   void onNewQueueItem() => _processSendQueue();
+
+  /// Called by [CentralRelayManager] when [FollowedNoteModel] rows change.
+  void onFollowedNotesChanged() => unawaited(_subscribeFollowedNoteRefs());
 
   Future<void> _processSendQueue() async {
     // Guard: only send if this relay is a write relay, connected, and idle.
@@ -143,10 +204,12 @@ class WebSocketService {
     switch (type) {
       case 'OK':
         _handleOk(data);
+        break;
       case 'EVENT':
         if (read && data.length >= 3) {
-          _storeIncomingEvent(data[2] as Map<String, dynamic>);
+          unawaited(_handleIncomingKind1Event(data[2] as Map<String, dynamic>));
         }
+        break;
       case 'EOSE':
         // End of stored events — no action needed in v1.
         break;
@@ -184,6 +247,11 @@ class WebSocketService {
     _processSendQueue();
   }
 
+  Future<void> _handleIncomingKind1Event(Map<String, dynamic> event) async {
+    await _storeIncomingEvent(event);
+    await _bumpFollowedReferenceCountsIfNeeded(event);
+  }
+
   /// Parses an incoming Nostr event map and persists it to [NoteModel].
   ///
   /// Idempotent — skips if [eventId] already exists.
@@ -206,6 +274,61 @@ class WebSocketService {
       await _isar.noteModels.put(model);
     });
     // Isar watcher in Isolate 1 fires automatically — Flutter UI updates.
+  }
+
+  Future<void> _bumpFollowedReferenceCountsIfNeeded(
+    Map<String, dynamic> event,
+  ) async {
+    final kind = event['kind'] as int?;
+    if (kind != 1) return;
+
+    final incomingId = event['id'] as String?;
+    if (incomingId == null || incomingId.isEmpty) return;
+
+    final eRefs = _extractEtagIdsFromEventMap(event);
+    if (eRefs.isEmpty) return;
+
+    final followed = await _isar.followedNoteModels.where().findAll();
+    if (followed.isEmpty) return;
+
+    final followedRoots = followed.map((f) => f.eventId).toSet();
+    final refsToIncrement = <String>{};
+
+    for (final ref in eRefs) {
+      if (!followedRoots.contains(ref)) continue;
+      if (ref == incomingId) continue;
+      final dedupeKey = '$ref|$incomingId';
+      if (_processedFollowReferenceBumps.contains(dedupeKey)) continue;
+      _processedFollowReferenceBumps.add(dedupeKey);
+      refsToIncrement.add(ref);
+    }
+    if (refsToIncrement.isEmpty) return;
+
+    await _isar.writeTxn(() async {
+      for (final ref in refsToIncrement) {
+        final fresh = await _isar.followedNoteModels
+            .where()
+            .eventIdEqualTo(ref)
+            .findFirst();
+        if (fresh == null) continue;
+        fresh.newReferenceCount = fresh.newReferenceCount + 1;
+        await _isar.followedNoteModels.put(fresh);
+      }
+    });
+  }
+
+  List<String> _extractEtagIdsFromEventMap(Map<String, dynamic> event) {
+    final rawTags = (event['tags'] as List<dynamic>? ?? []);
+    final out = <String>[];
+    for (final rawTag in rawTags) {
+      if (rawTag is! List || rawTag.isEmpty) continue;
+      final tagName = rawTag[0] as String?;
+      if (tagName != 'e' || rawTag.length < 2) continue;
+      final id = rawTag[1] as String?;
+      if (id == null || id.isEmpty) continue;
+      out.add(id);
+    }
+    return out;
   }
 
   NoteModel _parseNoteModel(Map<String, dynamic> event) {
@@ -261,10 +384,7 @@ class WebSocketService {
 
   void _updateStatus(RelayStatus status) {
     _isar.writeTxn(() async {
-      final relay = await _isar.relayModels
-          .where()
-          .urlEqualTo(url)
-          .findFirst();
+      final relay = await _isar.relayModels.where().urlEqualTo(url).findFirst();
       if (relay == null) return;
       relay.status = status;
       if (status == RelayStatus.connected) {

@@ -53,15 +53,34 @@ class NoteRepositoryImpl extends NoteRepository {
   @override
   Future<Either<Failure, List<NoteEntity>>> getReplies(String eventId) async {
     try {
-      // Direct replies only — notes where this event is the immediate parent.
-      // Using replyToEventId (indexed) is precise; eTagRefs would also match
-      // mentions which are not replies.
-      final replies = await isar.noteModels
+      // Direct children of this root: NIP-10 "reply" parent, or root-only
+      // e-tags (["e", root, "", "root"]) where replyToEventId stays null.
+      // Thread reply counts use rootEventId; those notes must appear here too.
+      final byReplyTo = await isar.noteModels
           .filter()
           .replyToEventIdEqualTo(eventId)
           .sortByCreated()
           .findAll();
-      return Right(replies.map((n) => n.toDomain()).toList());
+
+      final rootTagOnly = await isar.noteModels
+          .filter()
+          .rootEventIdEqualTo(eventId)
+          .replyToEventIdIsNull()
+          .sortByCreated()
+          .findAll();
+
+      final byEventId = <String, NoteModel>{};
+      for (final n in byReplyTo) {
+        if (n.eventId != eventId) byEventId[n.eventId] = n;
+      }
+      for (final n in rootTagOnly) {
+        if (n.eventId != eventId) byEventId[n.eventId] = n;
+      }
+
+      final merged = byEventId.values.toList()
+        ..sort((a, b) => a.created.compareTo(b.created));
+
+      return Right(merged.map((n) => n.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
