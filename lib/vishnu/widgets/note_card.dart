@@ -17,7 +17,6 @@ class NoteCard extends StatefulWidget {
     this.isSaved = false,
     this.onFollowTap,
     this.onSaveTap,
-    this.mentionedNotes = const [],
   });
 
   final NoteEntity note;
@@ -27,12 +26,7 @@ class NoteCard extends StatefulWidget {
   final bool isFollowed;
   final bool isSaved;
   final VoidCallback? onFollowTap;
-  /// Called when user taps save — parent is responsible for persisting.
   final VoidCallback? onSaveTap;
-  /// Notes referenced by this note's mention e-tags that were found in local
-  /// Isar. Populated by the parent feed. May be a partial list if some
-  /// referenced notes are not yet cached locally.
-  final List<NoteEntity> mentionedNotes;
 
   @override
   State<NoteCard> createState() => _NoteCardState();
@@ -61,13 +55,12 @@ class _NoteCardState extends State<NoteCard> {
         profile?.username ??
         _shortName(widget.note.authorPubkey);
 
-    // Reference count — eTagRefs that are not threading markers and are cached locally
-    final mentionIds = widget.note.eTagRefs
+    // Outgoing references — eTagRefs that are not NIP-10 root/reply markers.
+    final refCount = widget.note.eTagRefs
         .where((id) =>
             id != widget.note.rootEventId && id != widget.note.replyToEventId)
-        .toSet();
-    final byId = {for (final n in widget.mentionedNotes) n.id: n};
-    final refCount = mentionIds.where((id) => byId.containsKey(id)).length;
+        .toSet()
+        .length;
 
     return InkWell(
       onTap: widget.onTap,
@@ -189,7 +182,7 @@ class _NoteCardState extends State<NoteCard> {
                         onTap: widget.onTap,
                       ),
 
-                      // Reference count — only shown when locally cached refs exist
+                      // Reference count — shown when the note references others
                       if (refCount > 0) ...[
                         const SizedBox(width: 20),
                         _ActionChip(
@@ -199,6 +192,7 @@ class _NoteCardState extends State<NoteCard> {
                           onTap: widget.onTap,
                         ),
                       ],
+
                       const SizedBox(width: 20),
 
                       // Save toggle — optimistic UI, parent persists
@@ -215,27 +209,6 @@ class _NoteCardState extends State<NoteCard> {
                           widget.onSaveTap?.call();
                         },
                       ),
-
-                      // Thread indicator (only for replies, not mentions)
-                      if (widget.note.rootEventId != null) ...[
-                        const Spacer(),
-                        Row(
-                          children: [
-                            const Icon(Icons.account_tree_rounded,
-                                size: 16, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              l10n.vishnuThread,
-                              style: const TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ],

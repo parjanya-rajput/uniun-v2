@@ -228,7 +228,6 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             replyCount: replyCount,
                             isFollowed: isFollowed,
                             isSaved: feedState.savedIds.contains(note.id),
-                            mentionedNotes: feedState.mentionedNotes[note.id] ?? const [],
                             onTap: () => Navigator.pushNamed(
                               context,
                               AppRoutes.thread,

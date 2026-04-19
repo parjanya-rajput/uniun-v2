@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/thread/bloc/thread_bloc.dart';
@@ -133,9 +132,12 @@ class _ThreadBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final root = state.rootNote!;
 
+    final hasTopContext =
+        state.parentChain.isNotEmpty || state.mentionedNotes.isNotEmpty;
+
     return CustomScrollView(
       slivers: [
-        // ── Parent context (ancestors above the focused note) ─────────────────
+        // ── Immediate NIP-10 parent (1 level only) ────────────────────────────
         if (state.parentChain.isNotEmpty)
           SliverPadding(
             padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
@@ -143,26 +145,36 @@ class _ThreadBody extends StatelessWidget {
               child: ThreadParentContext(
                 notes: state.parentChain,
                 profiles: state.profiles,
-                onNoteTap: (noteId) =>
-                    Navigator.pushNamed(context, AppRoutes.thread,
-                        arguments: noteId),
+                onNoteTap: (noteId) => Navigator.pushNamed(
+                    context, AppRoutes.thread,
+                    arguments: noteId),
               ),
             ),
           ),
 
-        // ── Reference chips (mention e-tags of the root note) ────────────────
+        // ── Outgoing references — rendered as sibling "parents" above the
+        //    root note. Each referenced note is an independent sibling; only
+        //    the last row connects down to the root card. ─────────────────────
         if (state.mentionedNotes.isNotEmpty)
           SliverPadding(
-            padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
+            padding: EdgeInsets.only(
+                top: state.parentChain.isEmpty ? 16 : 0, left: 20, right: 20),
             sliver: SliverToBoxAdapter(
-              child: _ThreadRefsSection(notes: state.mentionedNotes),
+              child: ThreadParentContext(
+                notes: state.mentionedNotes,
+                profiles: state.profiles,
+                isSiblingGroup: true,
+                onNoteTap: (noteId) => Navigator.pushNamed(
+                    context, AppRoutes.thread,
+                    arguments: noteId),
+              ),
             ),
           ),
 
         // ── Focused / root note card ───────────────────────────────────────────
         SliverPadding(
           padding: EdgeInsets.only(
-            top: state.parentChain.isEmpty ? 16 : 0,
+            top: hasTopContext ? 0 : 16,
             left: 20,
             right: 20,
           ),
@@ -224,80 +236,3 @@ class _ThreadBody extends StatelessWidget {
   }
 }
 
-// ── Reference chips shown above the root note in thread detail ────────────────
-
-class _ThreadRefsSection extends StatelessWidget {
-  const _ThreadRefsSection({required this.notes});
-  final List<NoteEntity> notes;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.link_rounded, size: 13, color: AppColors.primary),
-            SizedBox(width: 5),
-            Text(
-              'REFERENCES',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ...notes.map((ref) => _ThreadRefChip(note: ref)),
-      ],
-    );
-  }
-}
-
-class _ThreadRefChip extends StatelessWidget {
-  const _ThreadRefChip({required this.note});
-  final NoteEntity note;
-
-  @override
-  Widget build(BuildContext context) {
-    final preview = note.content.length > 80
-        ? '${note.content.substring(0, 80)}…'
-        : note.content;
-
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.thread, arguments: note.id),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.link_rounded, size: 13, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                preview,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF334155),
-                  height: 1.45,
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-}

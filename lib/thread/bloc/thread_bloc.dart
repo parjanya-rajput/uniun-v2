@@ -97,7 +97,8 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
     }));
 
-    // ── Load mention refs (e-tags that are not root/reply markers) ───────────
+    // ── Load mention refs (outgoing e-tag mentions — rendered above the root
+    //    note as sibling "parents" that this note references) ─────────────────
     final mentionIds = rootNote.eTagRefs
         .where((id) => id != rootNote.rootEventId && id != rootNote.replyToEventId)
         .toList();
@@ -109,24 +110,28 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       for (final r in mentionResults) {
         r.fold((_) {}, mentionedNotes.add);
       }
+      // Load profiles for mention authors in parallel
+      await Future.wait(mentionedNotes.map((m) async {
+        if (!profiles.containsKey(m.authorPubkey)) {
+          final pr = await _getProfile.call(m.authorPubkey);
+          pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
+        }
+      }));
     }
 
-    // ── Walk up the parent chain (max 2 levels) ───────────────────────────────
-    // Needed to display context above the focused note (X/Twitter style).
+    // ── Load immediate parent (1 level only, no grandparent) ─────────────────
     final parentChain = <NoteEntity>[];
-    var parentId = rootNote.replyToEventId;
-    var depth = 0;
-    while (parentId != null && depth < 2) {
-      final pr = await _getNoteById.call(parentId);
-      if (pr.isLeft()) break;
-      final parent = pr.getOrElse(() => throw StateError('unreachable'));
-      parentChain.insert(0, parent); // oldest first
-      if (!profiles.containsKey(parent.authorPubkey)) {
-        final pfr = await _getProfile.call(parent.authorPubkey);
+    final immediateParentId = rootNote.replyToEventId;
+    if (immediateParentId != null) {
+      final pr = await _getNoteById.call(immediateParentId);
+      pr.fold((_) {}, (parent) {
+        parentChain.add(parent);
+      });
+      if (parentChain.isNotEmpty &&
+          !profiles.containsKey(parentChain.first.authorPubkey)) {
+        final pfr = await _getProfile.call(parentChain.first.authorPubkey);
         pfr.fold((_) {}, (p) => profiles[p.pubkey] = p);
       }
-      parentId = parent.replyToEventId;
-      depth++;
     }
 
     emit(state.copyWith(
