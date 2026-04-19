@@ -24,6 +24,7 @@ import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/brahma/graph/pages/graph_page.dart';
 import 'package:uniun/brahma/graph/pages/graph_compose_page.dart';
+import 'package:uniun/gateway/gateway.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 Future<void> main() async {
@@ -43,6 +44,7 @@ Future<void> main() async {
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
 
+  GatewayBootstrap.start();
   runApp(const UniunApp());
 }
 
@@ -74,11 +76,11 @@ class UniunApp extends StatelessWidget {
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
         AppRoutes.followedNoteDetail: (ctx) => FollowedNoteDetailPage(
-              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-            ),
+          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.thread: (ctx) => ThreadPage(
-              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-            ),
+          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
         AppRoutes.graph: (_) => MultiBlocProvider(

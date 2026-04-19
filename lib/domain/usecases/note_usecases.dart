@@ -28,8 +28,7 @@ class GetFeedUseCase
 // ── GetNoteByIdUseCase ────────────────────────────────────────────────────────
 
 @lazySingleton
-class GetNoteByIdUseCase
-    extends UseCase<Either<Failure, NoteEntity>, String> {
+class GetNoteByIdUseCase extends UseCase<Either<Failure, NoteEntity>, String> {
   final NoteRepository repository;
   const GetNoteByIdUseCase(this.repository);
 
@@ -62,8 +61,7 @@ class GetRepliesUseCase
 // ── SaveNoteUseCase ───────────────────────────────────────────────────────────
 
 @lazySingleton
-class SaveNoteUseCase
-    extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
+class SaveNoteUseCase extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   final NoteRepository repository;
   const SaveNoteUseCase(this.repository);
 
@@ -84,10 +82,7 @@ class MarkSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
   const MarkSeenUseCase(this.repository);
 
   @override
-  Future<Either<Failure, Unit>> call(
-    String eventId, {
-    bool cached = false,
-  }) {
+  Future<Either<Failure, Unit>> call(String eventId, {bool cached = false}) {
     return repository.markAsSeen(eventId);
   }
 }
@@ -134,10 +129,7 @@ class GetThreadReplyCountUseCase extends UseCase<Either<Failure, int>, String> {
   const GetThreadReplyCountUseCase(this._repository);
 
   @override
-  Future<Either<Failure, int>> call(
-    String rootEventId, {
-    bool cached = false,
-  }) {
+  Future<Either<Failure, int>> call(String rootEventId, {bool cached = false}) {
     return _repository.getThreadReplyCount(rootEventId);
   }
 }

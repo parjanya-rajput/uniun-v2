@@ -59,9 +59,18 @@ class NoteRepositoryImpl extends NoteRepository {
   Future<Either<Failure, List<NoteEntity>>> getReplies(String eventId) async {
     try {
       // NIP-10 replies: this event is the immediate parent.
-      final standard = await isar.noteModels
+      final byReplyTo = await isar.noteModels
           .filter()
           .replyToEventIdEqualTo(eventId)
+          .sortByCreated()
+          .findAll();
+
+      // Root-only e-tag children (["e", root, "", "root"]) where
+      // replyToEventId stays null — must appear in the root's reply list too.
+      final rootTagOnly = await isar.noteModels
+          .filter()
+          .rootEventIdEqualTo(eventId)
+          .replyToEventIdIsNull()
           .sortByCreated()
           .findAll();
 
@@ -75,10 +84,12 @@ class NoteRepositoryImpl extends NoteRepository {
           .sortByCreated()
           .findAll();
 
-      final seen = <String>{};
-      final merged = [...standard, ...mentions]
-          .where((n) => seen.add(n.eventId))
-          .toList()
+      final byEventId = <String, NoteModel>{};
+      for (final n in [...byReplyTo, ...rootTagOnly, ...mentions]) {
+        if (n.eventId != eventId) byEventId[n.eventId] = n;
+      }
+
+      final merged = byEventId.values.toList()
         ..sort((a, b) => a.created.compareTo(b.created));
       return Right(merged.map((n) => n.toDomain()).toList());
     } catch (e) {
