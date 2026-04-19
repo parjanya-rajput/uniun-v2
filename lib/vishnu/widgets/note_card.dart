@@ -61,6 +61,14 @@ class _NoteCardState extends State<NoteCard> {
         profile?.username ??
         _shortName(widget.note.authorPubkey);
 
+    // Reference count — eTagRefs that are not threading markers and are cached locally
+    final mentionIds = widget.note.eTagRefs
+        .where((id) =>
+            id != widget.note.rootEventId && id != widget.note.replyToEventId)
+        .toSet();
+    final byId = {for (final n in widget.mentionedNotes) n.id: n};
+    final refCount = mentionIds.where((id) => byId.containsKey(id)).length;
+
     return InkWell(
       onTap: widget.onTap,
       child: Container(
@@ -155,13 +163,6 @@ class _NoteCardState extends State<NoteCard> {
                     ),
                   ],
 
-                  // ── Mention reference previews ─────────────────────────
-                  _MentionRefs(
-                    note: widget.note,
-                    mentionedNotes: widget.mentionedNotes,
-                    l10n: l10n,
-                  ),
-
                   const SizedBox(height: 12),
 
                   // ── Action row ────────────────────────────────────────
@@ -187,6 +188,17 @@ class _NoteCardState extends State<NoteCard> {
                         color: AppColors.onSurfaceVariant,
                         onTap: widget.onTap,
                       ),
+
+                      // Reference count — only shown when locally cached refs exist
+                      if (refCount > 0) ...[
+                        const SizedBox(width: 20),
+                        _ActionChip(
+                          icon: Icons.link_rounded,
+                          label: '$refCount',
+                          color: AppColors.onSurfaceVariant,
+                          onTap: widget.onTap,
+                        ),
+                      ],
                       const SizedBox(width: 20),
 
                       // Save toggle — optimistic UI, parent persists
@@ -268,57 +280,6 @@ class _ActionChip extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Mention reference previews ─────────────────────────────────────────────
-class _MentionRefs extends StatelessWidget {
-  const _MentionRefs({
-    required this.note,
-    required this.mentionedNotes,
-    required this.l10n,
-  });
-
-  final NoteEntity note;
-  final List<NoteEntity> mentionedNotes;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    // Mention IDs = all eTagRefs that are NOT the root or reply thread markers
-    final mentionIds = note.eTagRefs
-        .where((id) => id != note.rootEventId && id != note.replyToEventId)
-        .toList();
-
-    if (mentionIds.isEmpty) return const SizedBox.shrink();
-
-    // Only show refs that are actually cached locally — skip unresolved ones.
-    final byId = {for (final n in mentionedNotes) n.id: n};
-    final found = mentionIds
-        .map((id) => byId[id])
-        .whereType<NoteEntity>()
-        .toList();
-
-    if (found.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.link_rounded, size: 13, color: AppColors.primary),
-          const SizedBox(width: 4),
-          Text(
-            l10n.vishnuReferences(found.length),
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-              letterSpacing: 0.3,
             ),
           ),
         ],

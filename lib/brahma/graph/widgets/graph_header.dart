@@ -35,19 +35,14 @@ class GraphHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            color: AppColors.primary,
-            onPressed: () => Navigator.pop(context),
-          ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 16),
           Text(
             l10n.navBrahma,
             style: const TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-              letterSpacing: -0.3,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+              letterSpacing: 2,
             ),
           ),
           const Spacer(),

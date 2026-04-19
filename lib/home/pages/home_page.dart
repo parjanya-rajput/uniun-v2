@@ -43,9 +43,13 @@ class _HomePageState extends State<HomePage> {
   Future<void> _switchTab(int i) async {
     if (i == 1) {
       // Brahma tab → push graph as a full-screen route.
-      await Navigator.pushNamed(context, AppRoutes.graph);
-      // Refresh feed — picks up any notes published from the graph.
+      // Result is the tab index the user tapped from within the graph.
+      final targetTab = await Navigator.pushNamed(context, AppRoutes.graph);
       _vishnuFeedBloc.add(const RefreshFeedEvent());
+      // If the user tapped a different tab from inside the graph, switch to it.
+      if (targetTab is int && targetTab != 1) {
+        setState(() => _currentIndex = targetTab);
+      }
       return;
     }
     if (i == 0 && _currentIndex != 0) {

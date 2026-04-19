@@ -17,6 +17,7 @@ class GraphCanvas extends StatefulWidget {
     required this.selectedNodeId,
     required this.onNodeTap,
     required this.onCanvasTap,
+    this.onInteractingChanged,
   });
 
   final List<GraphNodeData> nodes;
@@ -24,6 +25,7 @@ class GraphCanvas extends StatefulWidget {
   final String? selectedNodeId;
   final void Function(String nodeId) onNodeTap;
   final VoidCallback onCanvasTap;
+  final ValueChanged<bool>? onInteractingChanged;
 
   @override
   State<GraphCanvas> createState() => _GraphCanvasState();
@@ -175,7 +177,11 @@ class _GraphCanvasState extends State<GraphCanvas> {
       children: [
         const Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
 
-        GestureDetector(
+        Listener(
+          onPointerDown: (_) => widget.onInteractingChanged?.call(true),
+          onPointerUp: (_) => widget.onInteractingChanged?.call(false),
+          onPointerCancel: (_) => widget.onInteractingChanged?.call(false),
+          child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onCanvasTap,
           child: LayoutBuilder(
@@ -331,7 +337,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
               );
             },
           ),
-        ),
+          ),  // GestureDetector
+        ),  // Listener
       ],
     );
   }
