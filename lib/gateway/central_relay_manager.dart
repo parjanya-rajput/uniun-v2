@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/gateway/websocket_service.dart';
 
@@ -12,7 +13,9 @@ import 'package:uniun/gateway/websocket_service.dart';
 ///     notify all [WebSocketService]s so they can send immediately.
 ///  2. **Isar watcher on [RelayModel]** — when Isolate 1 adds or removes a
 ///     relay at runtime, sync the [_services] map accordingly.
-///  3. **Dequeue timer** — every 5 minutes, delete queue entries that have
+///  3. **Isar watcher on [FollowedNoteModel]** — refresh `#e` [REQ] filters on
+///     all [WebSocketService]s when the user follows/unfollows notes.
+///  4. **Dequeue timer** — every 5 minutes, delete queue entries that have
 ///     been sent by every active write relay AND are older than 30 minutes.
 ///
 /// The Gateway isolate stays alive as long as [CentralRelayManager] holds
@@ -26,6 +29,7 @@ class CentralRelayManager {
   Timer? _dequeueTimer;
   StreamSubscription<void>? _queueWatcher;
   StreamSubscription<void>? _relayWatcher;
+  StreamSubscription<void>? _followedNotesWatcher;
 
   CentralRelayManager({required Isar isar}) : _isar = isar;
 
@@ -48,6 +52,12 @@ class CentralRelayManager {
     // 3. Watch RelayModel for runtime add/remove from Isolate 1.
     _relayWatcher = _isar.relayModels.watchLazy().listen((_) {
       _syncRelayServices();
+    });
+
+    _followedNotesWatcher = _isar.followedNoteModels.watchLazy().listen((_) {
+      for (final svc in _services.values) {
+        svc.onFollowedNotesChanged();
+      }
     });
 
     // 4. Start dequeue cleanup timer.
@@ -136,6 +146,7 @@ class CentralRelayManager {
   void stop() {
     _queueWatcher?.cancel();
     _relayWatcher?.cancel();
+    _followedNotesWatcher?.cancel();
     _dequeueTimer?.cancel();
     for (final svc in _services.values) {
       svc.disconnect();

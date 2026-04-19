@@ -20,6 +20,7 @@ import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/graph/pages/graph_page.dart';
+import 'package:uniun/gateway/gateway.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ Future<void> main() async {
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
 
+  GatewayBootstrap.start();
   runApp(const UniunApp());
 }
 
@@ -69,11 +71,11 @@ class UniunApp extends StatelessWidget {
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
         AppRoutes.followedNoteDetail: (ctx) => FollowedNoteDetailPage(
-              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-            ),
+          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.thread: (ctx) => ThreadPage(
-              noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-            ),
+          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
         AppRoutes.graph: (_) => const GraphPage(),

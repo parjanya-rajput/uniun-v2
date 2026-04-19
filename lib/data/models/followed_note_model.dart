@@ -14,7 +14,8 @@ class FollowedNoteModel {
   late String contentPreview;
   late DateTime followedAt;
 
-  // Incremented by SyncEngine when a new Kind 1 note arrives with #e = eventId.
+  /// Incremented in the gateway isolate when a kind **1** `EVENT` references
+  /// this [eventId] via an **e** tag (deduped across duplicate relay deliveries).
   late int newReferenceCount;
 }
 

@@ -1,10 +1,13 @@
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/notes/note_model.dart';
-import 'package:uniun/data/models/relay_model.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:isolate';
+import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/gateway/central_relay_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
+import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/models/relay_model.dart';
+
+const _defaultRelayUrl = 'ws://10.0.2.2:8080';
 
 /// Entry point for the Gateway isolate (Isolate 2).
 ///
@@ -19,90 +22,56 @@ import 'package:uniun/gateway/gateway_init_message.dart';
 /// [CentralRelayManager] holds active [Timer]s and stream subscriptions.
 /// No [SendPort] is needed — Isar is the shared message bus between isolates.
 Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
-  // Open a separate Isar handle pointing at the same DB file as Isolate 1.
-  // isar_community supports concurrent access from multiple isolates.
-  final isar = await Isar.open(
-    [NoteModelSchema, EventQueueModelSchema, RelayModelSchema],
-    directory: init.isarDirectory,
-    // Use the same instance name so it shares the same on-disk file.
-    name: Isar.defaultName,
-  );
+  try {
+    // 2. Attempt to open Isar
+    final isar = await Isar.open(
+      isarSchemas,
+      directory: init.isarDirectory,
+      name: Isar.defaultName,
+    );
 
-  final manager = CentralRelayManager(
-    isar: isar,
-  );
+    await _ensureDefaultRelay(isar);
 
-  await manager.start();
+    final manager = CentralRelayManager(isar: isar);
 
-  // The isolate's event loop is kept running by the timers and
-  // stream subscriptions held by [manager]. Nothing more to do here.
+    await manager.start();
+
+    print("Gateway isolate fully started!");
+  } catch (e, stackTrace) {
+    // 4. Catch and print any silent crashes
+    throw Exception("$e\n$stackTrace");
+  }
 }
 
-/// Frontend-facing API for explicit outbound queue inserts.
-///
-/// Gateway isolate reacts to new queue rows and sends them to write relays.
-class GatewayQueueFacade {
-  const GatewayQueueFacade._();
+Future<void> _ensureDefaultRelay(Isar isar) async {
+  final existing = await isar.relayModels.where().findFirst();
+  if (existing != null) return;
 
-  static Future<bool> enqueueNoteModel({
-    required Isar isar,
-    required NoteModel note,
-  }) async {
-    if (!_isValidSignedNote(
-      eventId: note.eventId,
-      sig: note.sig,
-      authorPubkey: note.authorPubkey,
-    )) {
-      return false;
-    }
+  final relay = RelayModel()
+    ..url = _defaultRelayUrl
+    ..read = true
+    ..write = true
+    ..status = RelayStatus.disconnected
+    ..lastConnectedAt = null;
 
-    final existing = await isar.eventQueueModels
-        .where()
-        .eventIdEqualTo(note.eventId)
-        .findFirst();
-    if (existing != null) return false;
+  await isar.writeTxn(() async {
+    await isar.relayModels.put(relay);
+  });
+}
 
-    await isar.writeTxn(() async {
-      await isar.eventQueueModels.put(
-        EventQueueModel().populateFromNoteModel(note),
-      );
-    });
+/// Bootstrap the Gateway isolate.
+class GatewayBootstrap {
+  static bool _started = false;
 
-    return true;
-  }
+  static Future<void> start() async {
+    if (_started) return;
+    _started = true;
 
-  static Future<bool> enqueueNoteEntity({
-    required Isar isar,
-    required NoteEntity note,
-  }) async {
-    if (!_isValidSignedNote(
-      eventId: note.id,
-      sig: note.sig,
-      authorPubkey: note.authorPubkey,
-    )) {
-      return false;
-    }
+    final dir = await getApplicationDocumentsDirectory();
 
-    final existing = await isar.eventQueueModels
-        .where()
-        .eventIdEqualTo(note.id)
-        .findFirst();
-    if (existing != null) return false;
-
-    await isar.writeTxn(() async {
-      await isar.eventQueueModels.put(
-        EventQueueModel().populateFromNoteEntity(note),
-      );
-    });
-
-    return true;
-  }
-
-  static bool _isValidSignedNote({
-    required String eventId,
-    required String sig,
-    required String authorPubkey,
-  }) {
-    return eventId.isNotEmpty && sig.isNotEmpty && authorPubkey.isNotEmpty;
+    Isolate.spawn(
+      gatewayEntryPoint,
+      GatewayInitMessage(isarDirectory: dir.path),
+    );
   }
 }
