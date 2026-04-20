@@ -174,11 +174,10 @@ class _NodePanelSlider extends StatelessWidget {
     final node = state.selectedNode;
     return AnimatedSlide(
       offset: node != null ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      child: AnimatedOpacity(
-        opacity: node != null ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 200),
+      child: IgnorePointer(
+        ignoring: node == null,
         child: node != null
             ? GraphNodePanel(
                 node: node,

@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/brahma/graph/painters/dot_pattern_painter.dart';
 import 'package:uniun/brahma/graph/painters/edge_painter.dart';
-import 'package:uniun/brahma/graph/widgets/graph_header.dart';
 
 // ── Graph canvas ───────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ class GraphCanvas extends StatefulWidget {
 
 class _GraphCanvasState extends State<GraphCanvas> {
   late Graph _graph;
-  late FruchtermanReingoldAlgorithm _algorithm;
   Timer? _timer;
   bool _initialized = false;
 
@@ -41,10 +40,27 @@ class _GraphCanvasState extends State<GraphCanvas> {
   double _graphH = 800;
 
   bool _isDragging = false;
-  static const _settleSteps = 180;
+  Node? _draggingNode;
+  final Set<Node> _pinned = {};
 
-  Node? _pinnedNode;
-  Offset? _pinnedPosition;
+  // ── d3-force-style simulation state ────────────────────────────────────────
+  static const double _linkDistance = 240;
+  static const double _chargeStrength = -4000;
+  static const double _centerStrength = 0.025;
+  static const double _collidePadding = 6;
+  // Each node widget is a circle + 5px gap + a 2-line label (~26px tall, 88px wide).
+  // Inflate the collision disc so the label of one node never overlaps the
+  // circle or label of another.
+  static const double _labelFootprint = 24;
+  static const int _collideIters = 3;
+  static const double _velocityDecay = 0.4;
+  static const double _alphaMin = 0.001;
+  static const double _alphaDecay = 0.0228;
+  static const double _reheatAlpha = 0.3;
+
+  double _alpha = 1.0;
+  final Map<Node, Offset> _velocity = {};
+  final Map<Node, int> _degree = {};
 
   @override
   void initState() {
@@ -55,20 +71,19 @@ class _GraphCanvasState extends State<GraphCanvas> {
   void _prepareGraph(List<GraphNodeData> nodes) {
     _initialized = false;
     _isDragging = false;
+    _draggingNode = null;
     _timer?.cancel();
     _timer = null;
+    _velocity.clear();
+    _degree.clear();
+    _pinned.clear();
+    _alpha = 1.0;
     _graph = _buildGraph(nodes);
-    _algorithm = FruchtermanReingoldAlgorithm(
-      FruchtermanReingoldConfiguration(
-        iterations: 100,
-        repulsionRate: 0.5,
-        repulsionPercentage: 0.5,
-        attractionRate: 0.15,
-        attractionPercentage: 0.45,
-        lerpFactor: 0.05,
-        movementThreshold: 0.3,
-      ),
-    );
+  }
+
+  double _sizeFor(String nodeId) {
+    final connections = widget.adjacency[nodeId]?.length ?? 0;
+    return (46.0 + connections * 3.0).clamp(46.0, 70.0);
   }
 
   Graph _buildGraph(List<GraphNodeData> nodes) {
@@ -77,8 +92,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
     final allIds = {for (final n in nodes) n.eventId};
 
     for (final n in nodes) {
-      final connections = widget.adjacency[n.eventId]?.length ?? 0;
-      final sz = (46.0 + connections * 3.0).clamp(46.0, 70.0);
+      final sz = _sizeFor(n.eventId);
       final node = Node.Id(n.eventId);
       node.size = Size(sz, sz);
       nodeMap[n.eventId] = node;
@@ -102,37 +116,194 @@ class _GraphCanvasState extends State<GraphCanvas> {
   void _initPhysics(double w, double h) {
     _graphW = w;
     _graphH = h;
-    _algorithm.setDimensions(w, h);
+    final rng = math.Random(42);
+    final cx = w / 2;
+    final cy = h / 2;
+    // Seed positions in a small random cluster near center so forces can spread.
     for (final node in _graph.nodes) {
       final nodeId = node.key!.value as String;
-      final connections = widget.adjacency[nodeId]?.length ?? 0;
-      final sz = (46.0 + connections * 3.0).clamp(46.0, 70.0);
+      final sz = _sizeFor(nodeId);
       node.size = Size(sz, sz);
+      final spread = math.min(w, h) * 1.0;
+      final r = spread * (0.6 + rng.nextDouble() * 0.5);
+      final a = rng.nextDouble() * 2 * math.pi;
+      node.position = Offset(cx + r * math.cos(a), cy + r * math.sin(a));
+      _velocity[node] = Offset.zero;
+      _degree[node] = 0;
     }
-    _algorithm.init(_graph);
+    for (final edge in _graph.edges) {
+      _degree[edge.source] = (_degree[edge.source] ?? 0) + 1;
+      _degree[edge.destination] = (_degree[edge.destination] ?? 0) + 1;
+    }
+    _alpha = 1.0;
     _initialized = true;
   }
 
-  void _runSettle({Node? pinned, Offset? pinnedAt}) {
-    _pinnedNode = pinned;
-    _pinnedPosition = pinnedAt;
-    _timer?.cancel();
-    int steps = 0;
-    _timer = Timer.periodic(const Duration(milliseconds: 16), (t) {
-      if (_isDragging) return;
-      _algorithm.step(_graph);
-      if (_pinnedNode != null && _pinnedPosition != null) {
-        _pinnedNode!.position = _pinnedPosition!;
+  // Node center from top-left position + size.
+  Offset _centerOf(Node n) =>
+      Offset(n.x + n.width / 2, n.y + n.height / 2);
+
+  void _setCenter(Node n, Offset c) {
+    n.position = Offset(c.dx - n.width / 2, c.dy - n.height / 2);
+  }
+
+  void _tick() {
+    final nodes = _graph.nodes;
+    if (nodes.isEmpty) return;
+
+    final forces = {for (final n in nodes) n: Offset.zero};
+    final cx = _graphW / 2;
+    final cy = _graphH / 2;
+
+    // 1. Many-body repulsion (charge)
+    for (int i = 0; i < nodes.length; i++) {
+      for (int j = i + 1; j < nodes.length; j++) {
+        final a = nodes[i];
+        final b = nodes[j];
+        final ca = _centerOf(a);
+        final cb = _centerOf(b);
+        var dx = ca.dx - cb.dx;
+        var dy = ca.dy - cb.dy;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < 1) {
+          dx = (math.Random().nextDouble() - 0.5) * 2;
+          dy = (math.Random().nextDouble() - 0.5) * 2;
+          d2 = dx * dx + dy * dy;
+        }
+        final d = math.sqrt(d2);
+        final f = _chargeStrength / d2;
+        final fx = (dx / d) * f;
+        final fy = (dy / d) * f;
+        forces[a] = forces[a]! - Offset(fx, fy);
+        forces[b] = forces[b]! + Offset(fx, fy);
       }
-      steps++;
-      if (steps >= _settleSteps) {
+    }
+
+    // 2. Link spring
+    for (final edge in _graph.edges) {
+      final a = edge.source;
+      final b = edge.destination;
+      final ca = _centerOf(a);
+      final cb = _centerOf(b);
+      final dx = cb.dx - ca.dx;
+      final dy = cb.dy - ca.dy;
+      final d = math.sqrt(dx * dx + dy * dy).clamp(0.01, double.infinity);
+      final degA = _degree[a] ?? 1;
+      final degB = _degree[b] ?? 1;
+      final strength = 1.0 / math.max(degA, degB);
+      final disp = (d - _linkDistance) * strength;
+      final fx = (dx / d) * disp;
+      final fy = (dy / d) * disp;
+      // Bias split by degree (d3 default): heavier node moves less.
+      final bias = degA / (degA + degB);
+      forces[a] = forces[a]! + Offset(fx * (1 - bias), fy * (1 - bias));
+      forces[b] = forces[b]! - Offset(fx * bias, fy * bias);
+    }
+
+    // 2b. Edge-avoidance — push nodes away from unrelated edges so no node
+    // sits on top of a line connecting two others.
+    for (final edge in _graph.edges) {
+      final s = edge.source;
+      final e = edge.destination;
+      final p1 = _centerOf(s);
+      final p2 = _centerOf(e);
+      final ex = p2.dx - p1.dx;
+      final ey = p2.dy - p1.dy;
+      final elen2 = ex * ex + ey * ey;
+      if (elen2 < 1) continue;
+      for (final n in nodes) {
+        if (n == s || n == e) continue;
+        final cn = _centerOf(n);
+        // Project cn onto segment p1→p2.
+        var t = ((cn.dx - p1.dx) * ex + (cn.dy - p1.dy) * ey) / elen2;
+        if (t < 0 || t > 1) continue; // only push when inside the span
+        final px = p1.dx + ex * t;
+        final py = p1.dy + ey * t;
+        var dx = cn.dx - px;
+        var dy = cn.dy - py;
+        var d2 = dx * dx + dy * dy;
+        final r = n.width / 2 + _labelFootprint + _collidePadding;
+        if (d2 > r * r) continue;
+        if (d2 < 0.01) {
+          dx = -ey;
+          dy = ex;
+          d2 = ex * ex + ey * ey;
+        }
+        final d = math.sqrt(d2);
+        final push = (r - d) * 0.3; // gentle shove
+        forces[n] = forces[n]! + Offset((dx / d) * push, (dy / d) * push);
+      }
+    }
+
+    // 3. Center pull
+    for (final n in nodes) {
+      final c = _centerOf(n);
+      forces[n] = forces[n]! +
+          Offset((cx - c.dx) * _centerStrength, (cy - c.dy) * _centerStrength);
+    }
+
+    // Integrate: velocity += force * alpha; velocity *= (1 - decay); pos += vel
+    for (final n in nodes) {
+      if (n == _draggingNode || _pinned.contains(n)) {
+        _velocity[n] = Offset.zero;
+        continue;
+      }
+      var v = (_velocity[n] ?? Offset.zero) + forces[n]! * _alpha;
+      v = v * (1 - _velocityDecay);
+      _velocity[n] = v;
+      _setCenter(n, _centerOf(n) + v);
+    }
+
+    // 4. Collide — hard non-overlap pass (iterated)
+    for (int iter = 0; iter < _collideIters; iter++) {
+      for (int i = 0; i < nodes.length; i++) {
+        for (int j = i + 1; j < nodes.length; j++) {
+          final a = nodes[i];
+          final b = nodes[j];
+          final ra = a.width / 2 + _labelFootprint;
+          final rb = b.width / 2 + _labelFootprint;
+          final minDist = ra + rb + _collidePadding;
+          final ca = _centerOf(a);
+          final cb = _centerOf(b);
+          var dx = cb.dx - ca.dx;
+          var dy = cb.dy - ca.dy;
+          var d2 = dx * dx + dy * dy;
+          final min2 = minDist * minDist;
+          if (d2 < min2 && d2 > 0) {
+            final d = math.sqrt(d2);
+            final overlap = (minDist - d) / 2;
+            final ox = (dx / d) * overlap;
+            final oy = (dy / d) * overlap;
+            if (a != _draggingNode && !_pinned.contains(a)) _setCenter(a, ca - Offset(ox, oy));
+            if (b != _draggingNode && !_pinned.contains(b)) _setCenter(b, cb + Offset(ox, oy));
+          } else if (d2 == 0) {
+            // Exact overlap — nudge apart.
+            if (b != _draggingNode && !_pinned.contains(b)) {
+              _setCenter(b, cb + const Offset(1, 0));
+            }
+          }
+        }
+      }
+    }
+
+    _alpha += (-_alpha) * _alphaDecay; // alpha += (alphaTarget - alpha) * decay; target = 0
+  }
+
+  void _startSimulation() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+      if (_alpha < _alphaMin && !_isDragging) {
         t.cancel();
-        _pinnedNode = null;
-        _pinnedPosition = null;
         return;
       }
+      _tick();
       if (mounted) setState(() {});
     });
+  }
+
+  void _reheat([double target = _reheatAlpha]) {
+    if (_alpha < target) _alpha = target;
+    if (_timer == null || !_timer!.isActive) _startSimulation();
   }
 
   @override
@@ -177,11 +348,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
       children: [
         const Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
 
-        Listener(
-          onPointerDown: (_) => widget.onInteractingChanged?.call(true),
-          onPointerUp: (_) => widget.onInteractingChanged?.call(false),
-          onPointerCancel: (_) => widget.onInteractingChanged?.call(false),
-          child: GestureDetector(
+        GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onCanvasTap,
           child: LayoutBuilder(
@@ -196,15 +363,22 @@ class _GraphCanvasState extends State<GraphCanvas> {
               if (!_initialized) {
                 _initPhysics(w, h);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _runSettle();
+                  if (mounted) _startSimulation();
                 });
               }
 
               return InteractiveViewer(
                 constrained: false,
-                boundaryMargin: const EdgeInsets.all(double.infinity),
-                minScale: 0.1,
-                maxScale: 6.0,
+                // Use a large but FINITE boundary margin — double.infinity can
+                // produce NaN scale values and trip the internal
+                // `scale != 0.0` assertion during pinch gestures.
+                boundaryMargin: const EdgeInsets.all(4000),
+                minScale: 0.3,
+                maxScale: 4.0,
+                onInteractionStart: (_) =>
+                    widget.onInteractingChanged?.call(true),
+                onInteractionEnd: (_) =>
+                    widget.onInteractingChanged?.call(false),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -224,10 +398,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       final color = nodeData != null
                           ? graphNodeTypeColors[nodeData.type]!
                           : AppColors.primary;
-                      final connections =
-                          widget.adjacency[nodeId]?.length ?? 0;
-                      final nodeSize =
-                          (46.0 + connections * 3.0).clamp(46.0, 70.0);
+                      final nodeSize = _sizeFor(nodeId);
                       final isSelected = widget.selectedNodeId == nodeId;
                       final isConnected =
                           widget.selectedNodeId != null &&
@@ -246,24 +417,35 @@ class _GraphCanvasState extends State<GraphCanvas> {
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => widget.onNodeTap(nodeId),
-                          onPanStart: (_) => _isDragging = true,
+                          onPanStart: (_) {
+                            _isDragging = true;
+                            _draggingNode = node;
+                            _pinned.remove(node);
+                            _velocity[node] = Offset.zero;
+                            _reheat(0.5);
+                            widget.onInteractingChanged?.call(true);
+                          },
                           onPanUpdate: (details) {
                             node.position = node.position + details.delta;
                             if (mounted) setState(() {});
                           },
                           onPanEnd: (_) {
                             _isDragging = false;
-                            _runSettle(
-                              pinned: node,
-                              pinnedAt: Offset(node.x, node.y),
-                            );
+                            _pinned.add(node);
+                            _draggingNode = null;
+                            _reheat();
+                            widget.onInteractingChanged?.call(false);
                           },
                           onPanCancel: () {
                             _isDragging = false;
-                            _runSettle(
-                              pinned: node,
-                              pinnedAt: Offset(node.x, node.y),
-                            );
+                            _pinned.add(node);
+                            _draggingNode = null;
+                            _reheat();
+                            widget.onInteractingChanged?.call(false);
+                          },
+                          onDoubleTap: () {
+                            _pinned.remove(node);
+                            _reheat();
                           },
                           child: Opacity(
                             opacity: opacity,
@@ -338,7 +520,6 @@ class _GraphCanvasState extends State<GraphCanvas> {
             },
           ),
           ),  // GestureDetector
-        ),  // Listener
       ],
     );
   }

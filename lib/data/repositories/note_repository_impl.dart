@@ -22,16 +22,16 @@ class NoteRepositoryImpl extends NoteRepository {
       // Replies and refs are also notes; they belong in the stream.
       final notes = before != null
           ? await isar.noteModels
-              .filter()
-              .createdLessThan(before)
-              .sortByCreatedDesc()
-              .limit(limit)
-              .findAll()
+                .filter()
+                .createdLessThan(before)
+                .sortByCreatedDesc()
+                .limit(limit)
+                .findAll()
           : await isar.noteModels
-              .where()
-              .sortByCreatedDesc()
-              .limit(limit)
-              .findAll();
+                .where()
+                .sortByCreatedDesc()
+                .limit(limit)
+                .findAll();
 
       return Right(notes.map((n) => n.toDomain()).toList());
     } catch (e) {
@@ -79,8 +79,10 @@ class NoteRepositoryImpl extends NoteRepository {
       final mentions = await isar.noteModels
           .filter()
           .eTagRefsElementEqualTo(eventId)
-          .not().replyToEventIdEqualTo(eventId)
-          .not().rootEventIdEqualTo(eventId)
+          .not()
+          .replyToEventIdEqualTo(eventId)
+          .not()
+          .rootEventIdEqualTo(eventId)
           .sortByCreated()
           .findAll();
 
@@ -164,21 +166,20 @@ class NoteRepositoryImpl extends NoteRepository {
   @override
   Future<Either<Failure, int>> getReplyCount(String eventId) async {
     try {
-      final standardIds = await isar.noteModels
+      final replyIds = await isar.noteModels
           .filter()
           .replyToEventIdEqualTo(eventId)
           .eventIdProperty()
           .findAll();
 
-      final mentionIds = await isar.noteModels
+      final rootTagOnlyIds = await isar.noteModels
           .filter()
-          .eTagRefsElementEqualTo(eventId)
-          .not().replyToEventIdEqualTo(eventId)
-          .not().rootEventIdEqualTo(eventId)
+          .rootEventIdEqualTo(eventId)
+          .replyToEventIdIsNull()
           .eventIdProperty()
           .findAll();
 
-      final unique = {...standardIds, ...mentionIds};
+      final unique = {...replyIds, ...rootTagOnlyIds}..remove(eventId);
       return Right(unique.length);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -219,7 +220,8 @@ class NoteRepositoryImpl extends NoteRepository {
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getOwnNotes(
-      String pubkeyHex) async {
+    String pubkeyHex,
+  ) async {
     try {
       final notes = await isar.noteModels
           .filter()
@@ -250,7 +252,9 @@ class NoteRepositoryImpl extends NoteRepository {
 
   @override
   Future<Either<Failure, Unit>> updateNoteEmbedding(
-      String eventId, List<double> embedding) async {
+    String eventId,
+    List<double> embedding,
+  ) async {
     try {
       await isar.writeTxn(() async {
         final note = await isar.noteModels

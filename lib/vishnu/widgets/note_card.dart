@@ -56,11 +56,16 @@ class _NoteCardState extends State<NoteCard> {
         _shortName(widget.note.authorPubkey);
 
     // Outgoing references — eTagRefs that are not NIP-10 root/reply markers.
-    final refCount = widget.note.eTagRefs
+    // A reply note itself is an implicit reference to its parent, so +1 when
+    // this note has a parent (root or reply marker).
+    final mentionRefs = widget.note.eTagRefs
         .where((id) =>
             id != widget.note.rootEventId && id != widget.note.replyToEventId)
         .toSet()
         .length;
+    final hasParent = widget.note.rootEventId != null ||
+        widget.note.replyToEventId != null;
+    final refCount = mentionRefs + (hasParent ? 1 : 0);
 
     return InkWell(
       onTap: widget.onTap,
