@@ -4,6 +4,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/settings/cubit/settings_cubit.dart';
 
@@ -364,14 +365,36 @@ class _KeyBox extends StatelessWidget {
 
 // ── Relays Sheet ───────────────────────────────────────────────────────────────
 
-class _RelaysSheet extends StatelessWidget {
+class _RelaysSheet extends StatefulWidget {
   const _RelaysSheet();
 
-  static const _defaultRelays = [
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band',
-    'wss://nos.lol',
-  ];
+  @override
+  State<_RelaysSheet> createState() => _RelaysSheetState();
+}
+
+class _RelaysSheetState extends State<_RelaysSheet> {
+  bool _loading = true;
+  List<String> _relays = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRelays();
+  }
+
+  Future<void> _loadRelays() async {
+    final getRelays = getIt<GetRelaysUseCase>();
+    final result = await getRelays.call();
+    if (mounted) {
+      setState(() {
+        _relays = result.fold(
+          (failure) => [],
+          (list) => list.map((r) => r.url).toList(),
+        );
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -407,8 +430,27 @@ class _RelaysSheet extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
-          ..._defaultRelays.map(
-            (relay) => Container(
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                ),
+              ),
+            )
+          else if (_relays.isEmpty)
+            const Center(
+               child: Padding(
+                 padding: EdgeInsets.all(16),
+                 child: Text("No relays found.", style: TextStyle(color: AppColors.onSurfaceVariant)),
+               ),
+            )
+          else
+            ..._relays.map(
+              (relay) => Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

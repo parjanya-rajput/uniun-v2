@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/domain/usecases/get_channels_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
@@ -13,11 +14,13 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetActiveUserUseCase _getActiveUser;
   final GetOwnProfileUseCase _getOwnProfile;
   final GetAllFollowedNotesUseCase _getAllFollowedNotes;
+  final GetChannelsUseCase _getChannels;
 
   DrawerBloc(
     this._getActiveUser,
     this._getOwnProfile,
     this._getAllFollowedNotes,
+    this._getChannels,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
   }
@@ -50,13 +53,18 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         }
       }
 
-      // Placeholder — replaced with live Isar queries once ChannelRepository
-      // (Kind 40/42) and DMRepository (Kind 14) are built.
-      const channels = <DrawerChannelItem>[
-        DrawerChannelItem(id: 'ch_general', name: 'general', hasUnread: true),
-        DrawerChannelItem(id: 'ch_nostr', name: 'nostr-dev'),
-        DrawerChannelItem(id: 'ch_uniun', name: 'uniun'),
-      ];
+      // Live query for NIP-28 channels
+      final channelsResult = await _getChannels.call();
+      final channels = channelsResult.fold(
+        (_) => <DrawerChannelItem>[],
+        (list) => list
+            .map((c) => DrawerChannelItem(
+                  id: c.channelId,
+                  name: c.name ?? 'Unnamed Channel',
+                  hasUnread: false, // Wait for DM / Channel message read tracking
+                ))
+            .toList(),
+      );
       const dms = <DrawerDmItem>[
         DrawerDmItem(pubkey: 'dm1', name: 'Alice', unreadCount: 3),
         DrawerDmItem(pubkey: 'dm2', name: 'Bob'),

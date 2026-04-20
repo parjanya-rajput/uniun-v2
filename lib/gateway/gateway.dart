@@ -1,13 +1,9 @@
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:isolate';
-import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/gateway/central_relay_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
-import 'package:uniun/data/models/relay_model.dart';
-
-const _defaultRelayUrl = 'ws://10.0.2.2:8080';
 
 /// Entry point for the Gateway isolate (Isolate 2).
 ///
@@ -30,8 +26,6 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
       name: Isar.defaultName,
     );
 
-    await _ensureDefaultRelay(isar);
-
     final manager = CentralRelayManager(isar: isar);
 
     await manager.start();
@@ -41,22 +35,6 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
     // 4. Catch and print any silent crashes
     throw Exception("$e\n$stackTrace");
   }
-}
-
-Future<void> _ensureDefaultRelay(Isar isar) async {
-  final existing = await isar.relayModels.where().findFirst();
-  if (existing != null) return;
-
-  final relay = RelayModel()
-    ..url = _defaultRelayUrl
-    ..read = true
-    ..write = true
-    ..status = RelayStatus.disconnected
-    ..lastConnectedAt = null;
-
-  await isar.writeTxn(() async {
-    await isar.relayModels.put(relay);
-  });
 }
 
 /// Bootstrap the Gateway isolate.

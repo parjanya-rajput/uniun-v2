@@ -85,7 +85,10 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Channels ──────────────────────────────────────────
                     _SectionHeader(
                       label: l10n.drawerChannels,
-                      onAdd: () => _showComingSoon(context, l10n.drawerChannels),
+                      onAdd: () {
+                        _close(context);
+                        Navigator.pushNamed(context, AppRoutes.createChannel);
+                      },
                     ),
                     const SizedBox(height: 4),
                     if ((loaded?.channels ?? []).isEmpty)

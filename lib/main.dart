@@ -18,6 +18,7 @@ import 'package:uniun/onboarding/pages/import_identity_page.dart';
 import 'package:uniun/onboarding/pages/splash_page.dart';
 import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
+import 'package:uniun/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/gateway/gateway.dart';
 
 Future<void> main() async {
@@ -74,6 +75,7 @@ class UniunApp extends StatelessWidget {
         AppRoutes.thread: (ctx) => ThreadPage(
           noteId: ModalRoute.of(ctx)!.settings.arguments as String,
         ),
+        AppRoutes.createChannel: (_) => const CreateChannelPage(),
       },
     );
   }

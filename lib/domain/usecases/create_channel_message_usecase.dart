@@ -1,0 +1,95 @@
+import 'package:dartz/dartz.dart';
+import 'package:injectable/injectable.dart';
+import 'package:nostr/nostr.dart';
+import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/usecases/usecase.dart';
+import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/repositories/channel_message_repository.dart';
+import 'package:uniun/domain/repositories/event_queue_repository.dart';
+
+class CreateChannelMessageInput {
+  final String channelId;
+  final String content;
+  final String privateKey;
+  final String? replyToEventId;
+
+  const CreateChannelMessageInput({
+    required this.channelId,
+    required this.content,
+    required this.privateKey,
+    this.replyToEventId,
+  });
+}
+
+@lazySingleton
+class CreateChannelMessageUseCase extends UseCase<Either<Failure, ChannelMessageEntity>, CreateChannelMessageInput> {
+  final ChannelMessageRepository _channelMessageRepository;
+  final EventQueueRepository _eventQueueRepository;
+
+  const CreateChannelMessageUseCase(this._channelMessageRepository, this._eventQueueRepository);
+
+  @override
+  Future<Either<Failure, ChannelMessageEntity>> call(CreateChannelMessageInput input, {bool cached = false}) async {
+    try {
+      final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final tags = <List<String>>[
+        ['e', input.channelId, '', 'root'],
+      ];
+      if (input.replyToEventId != null) {
+        tags.add(['e', input.replyToEventId!, '', 'reply']);
+      }
+
+      final kind42 = Event.from(
+        privkey: input.privateKey,
+        kind: 42,
+        content: input.content,
+        tags: tags,
+        createdAt: nowUnix,
+      );
+
+      final eTagRefs = <String>[input.channelId];
+      if (input.replyToEventId != null) {
+        eTagRefs.add(input.replyToEventId!);
+      }
+
+      final created = DateTime.fromMillisecondsSinceEpoch(kind42.createdAt * 1000);
+
+      final message = ChannelMessageEntity(
+        id: kind42.id,
+        channelId: input.channelId,
+        sig: kind42.sig,
+        authorPubkey: kind42.pubkey,
+        content: kind42.content,
+        eTagRefs: eTagRefs,
+        pTagRefs: const [],
+        rootEventId: input.channelId,
+        replyToEventId: input.replyToEventId,
+        created: created,
+      );
+
+      final saveResult = await _channelMessageRepository.saveMessage(message);
+      if (saveResult.isLeft()) return saveResult;
+
+      final enqueueResult = await _eventQueueRepository.enqueueSignedEvent(
+        eventId: kind42.id,
+        authorPubkey: kind42.pubkey,
+        sig: kind42.sig,
+        kind: 42,
+        eTagRefs: eTagRefs,
+        pTagRefs: const [],
+        tTags: const [],
+        rootEventId: input.channelId,
+        replyToEventId: input.replyToEventId,
+        content: kind42.content,
+        created: created,
+      );
+      if (enqueueResult.isLeft()) {
+        return Left(enqueueResult.fold((f) => f, (_) => const Failure.errorFailure('enqueue failed')));
+      }
+
+      return saveResult;
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+}
