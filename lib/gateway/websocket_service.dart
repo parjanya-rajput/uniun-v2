@@ -54,12 +54,17 @@ class WebSocketService {
   /// delivered twice (e.g. matches both `feed_notes` and `followed_note_refs`).
   final Set<String> _processedFollowReferenceBumps = {};
 
+  final void Function(RelayStatus)? onStatusChanged;
+  final Future<List<String>?> Function(EventQueueModel)? resolveTargets;
+
   WebSocketService({
     required this.url,
     required this.read,
     required this.write,
     required Isar isar,
     required int startFromQueueId,
+    this.onStatusChanged,
+    this.resolveTargets,
   }) : _isar = isar,
        _lastSentQueueId = startFromQueueId;
 
@@ -182,6 +187,15 @@ class WebSocketService {
         .findFirst();
 
     if (next == null) return;
+
+    if (resolveTargets != null) {
+      final targets = await resolveTargets!(next);
+      if (targets != null && !targets.contains(url)) {
+        _lastSentQueueId = next.id;
+        _processSendQueue();
+        return;
+      }
+    }
 
     _pendingEventId = next.eventId;
     _pendingQueueId = next.id;
@@ -383,15 +397,6 @@ class WebSocketService {
   // ── Status tracking ────────────────────────────────────────────────────────
 
   void _updateStatus(RelayStatus status) {
-    _isar.writeTxn(() async {
-      final relay = await _isar.relayModels.where().urlEqualTo(url).findFirst();
-      if (relay == null) return;
-      relay.status = status;
-      if (status == RelayStatus.connected) {
-        relay.lastConnectedAt = DateTime.now();
-      }
-      await _isar.relayModels.put(relay);
-    });
-    // Flutter UI (Isolate 1) has a watcher on RelayModel — it reacts automatically.
+    onStatusChanged?.call(status);
   }
 }

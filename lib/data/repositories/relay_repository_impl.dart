@@ -75,4 +75,19 @@ class RelayRepositoryImpl extends RelayRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<void> insertDefaultRelayIfEmpty() async {
+    final count = await isar.relayModels.count();
+    if (count == 0) {
+      await isar.writeTxn(() async {
+        final defaultRelay = RelayModel()
+          ..url = 'ws://10.0.2.2:8080'
+          ..read = true
+          ..write = true
+          ..status = RelayStatus.disconnected;
+        await isar.relayModels.put(defaultRelay);
+      });
+    }
+  }
 }
