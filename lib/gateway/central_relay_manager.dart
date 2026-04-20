@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/core/enum/relay_status.dart';
+import 'package:uniun/data/repositories/relay_repository_impl.dart';
 import 'package:uniun/gateway/websocket_service.dart';
 
 /// Orchestrates all relay connections inside the Gateway isolate.
@@ -26,6 +29,10 @@ class CentralRelayManager {
   /// One [WebSocketService] per relay URL.
   final Map<String, WebSocketService> _services = {};
 
+  final Map<String, Timer> _tempRelayTimers = {};
+  final Map<String, WebSocketService> _tempServices = {};
+  int _lastHandledQueueId = 0;
+
   Timer? _dequeueTimer;
   StreamSubscription<void>? _queueWatcher;
   StreamSubscription<void>? _relayWatcher;
@@ -37,14 +44,29 @@ class CentralRelayManager {
 
   Future<void> start() async {
     // 1. Spin up one WebSocketService per persisted relay.
-    final relays = await _isar.relayModels.where().findAll();
+    var relays = await _isar.relayModels.where().findAll();
+    
+    // If no relays exist, save and use the default relay.
+    if (relays.isEmpty) {
+      final repo = RelayRepositoryImpl(isar: _isar);
+      await repo.insertDefaultRelayIfEmpty();
+      relays = await _isar.relayModels.where().findAll();
+    }
+
+    final allItems = await _isar.eventQueueModels.where().anyId().findAll();
+    _lastHandledQueueId = allItems.isEmpty ? 0 : allItems.last.id;
+
     for (final relay in relays) {
       _addService(relay.url, read: relay.read, write: relay.write, fromTail: false);
     }
 
     // 2. Watch EventQueueModel so services send new items immediately.
-    _queueWatcher = _isar.eventQueueModels.watchLazy().listen((_) {
+    _queueWatcher = _isar.eventQueueModels.watchLazy().listen((_) async {
+      await _runEventHandlerPass();
       for (final svc in _services.values) {
+        svc.onNewQueueItem();
+      }
+      for (final svc in _tempServices.values) {
         svc.onNewQueueItem();
       }
     });
@@ -66,19 +88,66 @@ class CentralRelayManager {
     });
   }
 
+  // ── Event Routing Handler ──────────────────────────────────────────────────
+
+  Future<void> _runEventHandlerPass() async {
+    final pending = await _isar.eventQueueModels
+        .where()
+        .idGreaterThan(_lastHandledQueueId)
+        .findAll();
+
+    if (pending.isEmpty) return;
+
+    for (final event in pending) {
+      if (event.id > _lastHandledQueueId) {
+        _lastHandledQueueId = event.id;
+      }
+      final targets = await getTargetRelaysForEvent(event);
+      if (targets != null) {
+        for (final url in targets) {
+          if (!_services.containsKey(url)) {
+            _addTempService(url);
+          }
+        }
+      }
+    }
+  }
+
+  Future<List<String>?> getTargetRelaysForEvent(EventQueueModel event) async {
+    final kind = event.kind;
+    if (kind >= 40 && kind <= 44) {
+      String? channelId;
+      if (kind == 40) {
+        channelId = event.eventId;
+      } else {
+        channelId = event.rootEventId;
+      }
+
+      if (channelId != null) {
+        final channel = await _isar.channelModels
+            .where()
+            .channelIdEqualTo(channelId)
+            .findFirst();
+        if (channel != null && channel.relays.isNotEmpty) {
+          return channel.relays;
+        }
+      }
+      // If channel not found or has no relays, fallback to all main relays.
+      return null;
+    }
+    // kind == 1 or others fall back to main relays.
+    return null;
+  }
+
   // ── Dequeue (timer callback) ───────────────────────────────────────────────
 
   Future<void> _runDequeuePass() async {
-    final activeWriteCount =
-        _services.values.where((s) => s.isConnected && s.write).length;
-    if (activeWriteCount == 0) return;
-
     final threshold = DateTime.now().subtract(const Duration(minutes: 30));
 
-    // Dequeue if: sentCount >= every active write relay AND older than 30 min.
+    // Best effort dequeue: drop any event older than 30 mins, since they now have
+    // variable targets and maintain their own successful ACK skip state.
     final expired = await _isar.eventQueueModels
         .filter()
-        .sentCountGreaterThan(activeWriteCount - 1)
         .enqueuedAtLessThan(threshold)
         .findAll();
 
@@ -115,6 +184,18 @@ class CentralRelayManager {
     }
   }
 
+  Future<void> _updateRelayStatus(String url, RelayStatus status) async {
+    await _isar.writeTxn(() async {
+      final relay = await _isar.relayModels.where().urlEqualTo(url).findFirst();
+      if (relay == null) return;
+      relay.status = status;
+      if (status == RelayStatus.connected) {
+        relay.lastConnectedAt = DateTime.now();
+      }
+      await _isar.relayModels.put(relay);
+    });
+  }
+
   Future<void> _addService(
     String url, {
     required bool read,
@@ -136,9 +217,39 @@ class CentralRelayManager {
       write: write,
       isar: _isar,
       startFromQueueId: startId,
+      onStatusChanged: (status) => _updateRelayStatus(url, status),
+      resolveTargets: getTargetRelaysForEvent,
     );
     _services[url] = svc;
     svc.connect();
+  }
+
+  void _addTempService(String url) {
+    if (_tempServices.containsKey(url)) {
+      _extendTempServiceTimer(url);
+      return;
+    }
+
+    final svc = WebSocketService(
+      url: url,
+      read: true,
+      write: true,
+      isar: _isar,
+      startFromQueueId: _lastHandledQueueId,
+      resolveTargets: getTargetRelaysForEvent,
+    );
+    _tempServices[url] = svc;
+    svc.connect();
+    _extendTempServiceTimer(url);
+  }
+
+  void _extendTempServiceTimer(String url) {
+    _tempRelayTimers[url]?.cancel();
+    _tempRelayTimers[url] = Timer(const Duration(minutes: 5), () {
+      _tempServices[url]?.disconnect();
+      _tempServices.remove(url);
+      _tempRelayTimers.remove(url);
+    });
   }
 
   // ── Shutdown ───────────────────────────────────────────────────────────────
@@ -152,5 +263,13 @@ class CentralRelayManager {
       svc.disconnect();
     }
     _services.clear();
+    for (final svc in _tempServices.values) {
+      svc.disconnect();
+    }
+    _tempServices.clear();
+    for (final timer in _tempRelayTimers.values) {
+      timer.cancel();
+    }
+    _tempRelayTimers.clear();
   }
 }

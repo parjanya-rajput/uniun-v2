@@ -11,4 +11,7 @@ abstract class RelayRepository {
 
   /// Removes a relay by URL.
   Future<Either<Failure, Unit>> delete(String url);
+
+  /// Inserts a default relay if the repository is empty.
+  Future<void> insertDefaultRelayIfEmpty();
 }

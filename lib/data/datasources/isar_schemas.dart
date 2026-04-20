@@ -14,9 +14,10 @@ import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/data/models/app_settings_model.dart';
 import 'package:uniun/data/models/shiv_conversation_model.dart';
 import 'package:uniun/data/models/shiv_message_model.dart';
-import 'package:uniun/data/models/channel_model.dart';
-import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/channel_message_model.dart';
+import 'package:uniun/data/models/subscription_record_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -32,7 +33,8 @@ final List<CollectionSchema> isarSchemas = [
   AppSettingsModelSchema,
   ShivConversationModelSchema,
   ShivMessageModelSchema,
-  ChannelModelSchema,
-  SubscriptionRecordModelSchema,
   RelayModelSchema,
+  ChannelModelSchema,
+  ChannelMessageModelSchema,
+  SubscriptionRecordModelSchema,
 ];
