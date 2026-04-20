@@ -6,7 +6,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/brahma/graph/painters/dot_pattern_painter.dart';
 import 'package:uniun/brahma/graph/painters/edge_painter.dart';
-
+import 'package:uniun/brahma/graph/widgets/graph_header.dart';
 // ── Graph canvas ───────────────────────────────────────────────────────────────
 
 class GraphCanvas extends StatefulWidget {
@@ -140,8 +140,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
   }
 
   // Node center from top-left position + size.
-  Offset _centerOf(Node n) =>
-      Offset(n.x + n.width / 2, n.y + n.height / 2);
+  Offset _centerOf(Node n) => Offset(n.x + n.width / 2, n.y + n.height / 2);
 
   void _setCenter(Node n, Offset c) {
     n.position = Offset(c.dx - n.width / 2, c.dy - n.height / 2);
@@ -238,7 +237,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
     // 3. Center pull
     for (final n in nodes) {
       final c = _centerOf(n);
-      forces[n] = forces[n]! +
+      forces[n] =
+          forces[n]! +
           Offset((cx - c.dx) * _centerStrength, (cy - c.dy) * _centerStrength);
     }
 
@@ -274,8 +274,10 @@ class _GraphCanvasState extends State<GraphCanvas> {
             final overlap = (minDist - d) / 2;
             final ox = (dx / d) * overlap;
             final oy = (dy / d) * overlap;
-            if (a != _draggingNode && !_pinned.contains(a)) _setCenter(a, ca - Offset(ox, oy));
-            if (b != _draggingNode && !_pinned.contains(b)) _setCenter(b, cb + Offset(ox, oy));
+            if (a != _draggingNode && !_pinned.contains(a))
+              _setCenter(a, ca - Offset(ox, oy));
+            if (b != _draggingNode && !_pinned.contains(b))
+              _setCenter(b, cb + Offset(ox, oy));
           } else if (d2 == 0) {
             // Exact overlap — nudge apart.
             if (b != _draggingNode && !_pinned.contains(b)) {
@@ -286,7 +288,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
       }
     }
 
-    _alpha += (-_alpha) * _alphaDecay; // alpha += (alphaTarget - alpha) * decay; target = 0
+    _alpha +=
+        (-_alpha) *
+        _alphaDecay; // alpha += (alphaTarget - alpha) * decay; target = 0
   }
 
   void _startSimulation() {
@@ -402,8 +406,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       final isSelected = widget.selectedNodeId == nodeId;
                       final isConnected =
                           widget.selectedNodeId != null &&
-                          (widget.adjacency[widget.selectedNodeId]
-                                  ?.contains(nodeId) ??
+                          (widget.adjacency[widget.selectedNodeId]?.contains(
+                                nodeId,
+                              ) ??
                               false);
                       final hasSelection = widget.selectedNodeId != null;
                       final opacity =
@@ -463,16 +468,18 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                         : color.withValues(alpha: 0.85),
                                     border: isSelected
                                         ? Border.all(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.7),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.7,
+                                            ),
                                             width: 2.5,
                                           )
                                         : null,
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color:
-                                                  color.withValues(alpha: 0.55),
+                                              color: color.withValues(
+                                                alpha: 0.55,
+                                              ),
                                               blurRadius: 18,
                                               spreadRadius: 4,
                                             ),
@@ -480,8 +487,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                         : isConnected
                                         ? [
                                             BoxShadow(
-                                              color:
-                                                  color.withValues(alpha: 0.3),
+                                              color: color.withValues(
+                                                alpha: 0.3,
+                                              ),
                                               blurRadius: 8,
                                             ),
                                           ]
@@ -519,7 +527,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
               );
             },
           ),
-          ),  // GestureDetector
+        ), // GestureDetector
       ],
     );
   }
