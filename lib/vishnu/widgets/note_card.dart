@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -17,6 +18,7 @@ class NoteCard extends StatefulWidget {
     this.isSaved = false,
     this.onFollowTap,
     this.onSaveTap,
+    this.mentionedNotes = const [],
   });
 
   final NoteEntity note;
@@ -28,6 +30,10 @@ class NoteCard extends StatefulWidget {
   final VoidCallback? onFollowTap;
   /// Called when user taps save — parent is responsible for persisting.
   final VoidCallback? onSaveTap;
+  /// Notes referenced by this note's mention e-tags that were found in local
+  /// Isar. Populated by the parent feed. May be a partial list if some
+  /// referenced notes are not yet cached locally.
+  final List<NoteEntity> mentionedNotes;
 
   @override
   State<NoteCard> createState() => _NoteCardState();
@@ -149,6 +155,14 @@ class _NoteCardState extends State<NoteCard> {
                           .toList(),
                     ),
                   ],
+
+                  // ── Mention reference previews ─────────────────────────
+                  _MentionRefs(
+                    note: widget.note,
+                    mentionedNotes: widget.mentionedNotes,
+                    l10n: l10n,
+                  ),
+
                   const SizedBox(height: 12),
 
                   // ── Action row ────────────────────────────────────────
@@ -191,8 +205,8 @@ class _NoteCardState extends State<NoteCard> {
                         },
                       ),
 
-                      // Thread indicator
-                      if (widget.note.eTagRefs.isNotEmpty) ...[
+                      // Thread indicator (only for replies, not mentions)
+                      if (widget.note.rootEventId != null) ...[
                         const Spacer(),
                         Row(
                           children: [
@@ -262,3 +276,118 @@ class _ActionChip extends StatelessWidget {
     );
   }
 }
+
+// ── Mention reference previews ─────────────────────────────────────────────
+class _MentionRefs extends StatelessWidget {
+  const _MentionRefs({
+    required this.note,
+    required this.mentionedNotes,
+    required this.l10n,
+  });
+
+  final NoteEntity note;
+  final List<NoteEntity> mentionedNotes;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    // Mention IDs = all eTagRefs that are NOT the root or reply thread markers
+    final mentionIds = note.eTagRefs
+        .where((id) => id != note.rootEventId && id != note.replyToEventId)
+        .toList();
+
+    if (mentionIds.isEmpty) return const SizedBox.shrink();
+
+    // Only show refs that are actually cached locally — skip unresolved ones.
+    final byId = {for (final n in mentionedNotes) n.id: n};
+    final found = mentionIds
+        .map((id) => byId[id])
+        .whereType<NoteEntity>()
+        .toList();
+
+    if (found.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        Text(
+          l10n.vishnuReferences(found.length),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.outline,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        ...found.map((ref) => _RefPreviewChip(
+              note: ref,
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.thread,
+                arguments: ref.id,
+              ),
+            )),
+      ],
+    );
+  }
+}
+
+class _RefPreviewChip extends StatelessWidget {
+  const _RefPreviewChip({required this.note, required this.onTap});
+
+  final NoteEntity note;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Truncate to ~80 chars so the chip stays compact
+    final preview = note.content.length > 80
+        ? '${note.content.substring(0, 80)}…'
+        : note.content;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.18),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.link_rounded,
+            size: 13,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              preview,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 13,
+            color: AppColors.primary,
+          ),
+        ],
+      ),
+    ),
+    );
+  }
+}
+

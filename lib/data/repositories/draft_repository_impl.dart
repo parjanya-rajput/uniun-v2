@@ -56,7 +56,7 @@ class DraftRepositoryImpl extends DraftRepository {
     try {
       final draft = await isar.draftModels.filter().draftIdEqualTo(draftId).findFirst();
       if (draft == null) {
-        return Left(Failure.notFoundFailure('Draft not found'));
+        return const Left(Failure.notFoundFailure('Draft not found'));
       }
       return Right(draft.toDomain());
     } catch (e) {

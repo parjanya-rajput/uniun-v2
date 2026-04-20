@@ -34,10 +34,12 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
   Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
     final l10n = AppLocalizations.of(context)!;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final result = await getIt<ImportKeyUseCase>().call(nsec);
     if (!mounted) return;
     await result.fold(
-      (failure) async => ScaffoldMessenger.of(context).showSnackBar(
+      (failure) async => messenger.showSnackBar(
         SnackBar(content: Text(l10n.keysFailedToSave(failure.toMessage()))),
       ),
       (user) async {
@@ -61,8 +63,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
           ));
         }
         if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
+        navigator.pushNamedAndRemoveUntil(
           AppRoutes.home,
           (r) => false,
         );

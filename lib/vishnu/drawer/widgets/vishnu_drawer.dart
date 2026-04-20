@@ -60,7 +60,7 @@ class VishnuDrawer extends StatelessWidget {
                       label: l10n.drawerSavedNotes,
                       onTap: () {
                         _close(context);
-                        _showComingSoon(context, l10n.drawerSavedNotes);
+                        Navigator.pushNamed(context, AppRoutes.savedNotes);
                       },
                     ),
 

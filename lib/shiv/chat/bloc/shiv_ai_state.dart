@@ -38,5 +38,13 @@ abstract class ShivAIState with _$ShivAIState {
 
     /// True while the embedding model is loading on first Shiv tab open.
     @Default(false) bool isRagInitializing,
+
+    /// messageId of the node currently selected in the graph panel.
+    /// null = no node selected / panel closed.
+    String? selectedNodeMessageId,
+
+    /// All messages for the active conversation (flat list, all branches).
+    /// Used by the tree view to build the full graph.
+    @Default([]) List<ShivMessageEntity> allMessages,
   }) = _ShivAIState;
 }

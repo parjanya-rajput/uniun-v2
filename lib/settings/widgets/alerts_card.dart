@@ -27,7 +27,7 @@ class AlertsCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.alertsDmAlerts,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.onSurface,
@@ -49,7 +49,7 @@ class AlertsCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.alertsChannelAlerts,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.onSurface,

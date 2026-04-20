@@ -25,6 +25,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final SaveNoteUseCase _saveNote;
   final UnsaveNoteUseCase _unsaveNote;
   final EmbedAndStoreNoteUseCase _embedAndStore;
+  final GetNoteByIdUseCase _getNoteById;
 
   VishnuFeedBloc(
     this._getFeed,
@@ -34,6 +35,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     this._saveNote,
     this._unsaveNote,
     this._embedAndStore,
+    this._getNoteById,
   ) : super(const VishnuFeedState()) {
     on<LoadFeedEvent>(_onLoad, transformer: droppable());
     on<RefreshFeedEvent>(_onRefresh, transformer: droppable());
@@ -159,11 +161,31 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
           (list) => list.map((e) => e.eventId).toSet(),
         );
 
+        // Mention notes — resolve eTagRefs that are pure mentions (not root/reply)
+        final mentionedNotes = append
+            ? Map<String, List<NoteEntity>>.from(state.mentionedNotes)
+            : <String, List<NoteEntity>>{};
+        for (final note in newNotes) {
+          final mentionIds = note.eTagRefs
+              .where((id) => id != note.rootEventId && id != note.replyToEventId)
+              .toList();
+          if (mentionIds.isEmpty) continue;
+          final resolved = <NoteEntity>[];
+          for (final id in mentionIds) {
+            final r = await _getNoteById.call(id);
+            r.fold((_) {}, (n) => resolved.add(n));
+          }
+          if (resolved.isNotEmpty) {
+            mentionedNotes[note.id] = resolved;
+          }
+        }
+
         emit(state.copyWith(
           notes: combined,
           profiles: profiles,
           replyCounts: counts,
           savedIds: savedIds,
+          mentionedNotes: mentionedNotes,
           status: VishnuFeedStatus.loaded,
           hasMore: newNotes.length >= _pageSize,
         ));

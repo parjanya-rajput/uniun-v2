@@ -259,7 +259,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.editProfileTitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.4,
