@@ -23,15 +23,61 @@ class ShivMessageBubble extends StatelessWidget {
 
   String get _displayText => streamingContent ?? message.content;
 
+  /// Splits text into the `<think>…</think>` reasoning block and the actual
+  /// response. Returns `(thinking, response, isInThinkBlock)`.
+  static ({String thinking, String response, bool isInThinkBlock}) _parseThinking(
+      String text) {
+    const open = '<think>';
+    const close = '</think>';
+    final start = text.indexOf(open);
+    if (start == -1) return (thinking: '', response: text, isInThinkBlock: false);
+
+    final end = text.indexOf(close);
+    if (end == -1) {
+      final thinkContent = text.substring(start + open.length);
+      // If the model has generated a very long think block without closing,
+      // it has likely hit the token limit mid-reasoning. Cap the display and
+      // treat it as complete so the UI doesn't stay stuck open indefinitely.
+      const maxThinkChars = 2000;
+      if (thinkContent.length > maxThinkChars) {
+        return (
+          thinking: '${thinkContent.substring(0, maxThinkChars)}…',
+          response: '',
+          isInThinkBlock: false,
+        );
+      }
+      return (
+        thinking: thinkContent,
+        response: '',
+        isInThinkBlock: true,
+      );
+    }
+
+    return (
+      thinking: text.substring(start + open.length, end).trim(),
+      response: text.substring(end + close.length).trimLeft(),
+      isInThinkBlock: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isUser) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 56, right: 16, bottom: 24),
+        child: _UserBubble(text: _displayText),
+      );
+    }
+
+    final parsed = _parseThinking(_displayText);
     return Padding(
-      padding: EdgeInsets.only(
-        left: _isUser ? 56 : 16,
-        right: _isUser ? 16 : 56,
-        bottom: 24,
+      padding: const EdgeInsets.only(left: 16, right: 56, bottom: 24),
+      child: _ShivBubble(
+        thinkingText: parsed.thinking,
+        responseText: parsed.response,
+        isStreaming: streamingContent != null,
+        isInThinkBlock: parsed.isInThinkBlock,
       ),
-      child: _isUser ? _UserBubble(text: _displayText) : _ShivBubble(text: _displayText, isStreaming: streamingContent != null),
     );
   }
 }
@@ -100,12 +146,23 @@ class _UserBubble extends StatelessWidget {
 // ── Shiv bubble ─────────────────────────────────────────────────────────────
 
 class _ShivBubble extends StatelessWidget {
-  const _ShivBubble({required this.text, required this.isStreaming});
-  final String text;
+  const _ShivBubble({
+    required this.thinkingText,
+    required this.responseText,
+    required this.isStreaming,
+    required this.isInThinkBlock,
+  });
+
+  final String thinkingText;
+  final String responseText;
   final bool isStreaming;
+  final bool isInThinkBlock;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final showTyping = isStreaming && responseText.isEmpty && !isInThinkBlock;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -126,44 +183,164 @@ class _ShivBubble extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Builder(
-              builder: (context) => Text(
-                AppLocalizations.of(context)!.shivName,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: AppColors.onSurface,
-                ),
+            Text(
+              l10n.shivName,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: AppColors.onSurface,
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        // Message card
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(4),
-              topRight: Radius.circular(24),
-              bottomLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                blurRadius: 32,
-                offset: const Offset(0, 12),
-              ),
-            ],
+
+        // Thinking indicator — visible only while the model is still reasoning.
+        // Hidden completely once the response arrives.
+        if (isInThinkBlock)
+          _ThinkingBlock(
+            text: thinkingText,
+            streamingLabel: l10n.shivThinking,
           ),
-          child: isStreaming && text.isEmpty
-              ? const _TypingIndicator()
-              : _MarkdownText(text: text),
-        ),
+
+        if (isInThinkBlock && responseText.isNotEmpty) const SizedBox(height: 6),
+
+        // Response card — hidden while entirely inside think block
+        if (!isInThinkBlock)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(24),
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: showTyping
+                ? const _TypingIndicator()
+                : _MarkdownText(text: responseText),
+          ),
       ],
+    );
+  }
+}
+
+// ── Thinking indicator ───────────────────────────────────────────────────────
+// Shown only while the model is inside a <think> block.
+// Disappears completely once </think> is received and response begins.
+
+class _ThinkingBlock extends StatefulWidget {
+  const _ThinkingBlock({
+    required this.text,
+    required this.streamingLabel,
+  });
+
+  final String text;
+  final String streamingLabel;
+
+  @override
+  State<_ThinkingBlock> createState() => _ThinkingBlockState();
+}
+
+class _ThinkingBlockState extends State<_ThinkingBlock>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late AnimationController _pulse;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tap row — always visible
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FadeTransition(
+                    opacity: _pulseAnim,
+                    child: Icon(
+                      Icons.psychology_outlined,
+                      size: 14,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.streamingLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    size: 14,
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expanded: raw think content (for users who want to see it)
+          if (_expanded && widget.text.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Text(
+                widget.text,
+                style: const TextStyle(
+                  fontSize: 11,
+                  height: 1.6,
+                  color: AppColors.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

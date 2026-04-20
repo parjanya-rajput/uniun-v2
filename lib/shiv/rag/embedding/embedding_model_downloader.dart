@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,33 +37,33 @@ class EmbeddingModelDownloader {
   /// Fire-and-forget safe — errors are logged but not rethrown.
   Future<void> downloadIfNeeded() async {
     if (await isDownloaded()) {
-      print('📦 Embedding: already downloaded, skipping.');
+      debugPrint('📦 Embedding: already downloaded, skipping.');
       return;
     }
-    print('📦 Embedding: starting download…');
+    debugPrint('📦 Embedding: starting download…');
     try {
       final dir = (await getApplicationDocumentsDirectory()).path;
       await Future.wait([
         _downloadFile(_modelUrl, '$dir/$_modelFilename', 'model'),
         _downloadFile(_vocabUrl, '$dir/$_vocabFilename', 'vocab'),
       ]);
-      print('📦 Embedding: download complete ✅');
+      debugPrint('📦 Embedding: download complete ✅');
     } catch (e) {
-      print('📦 Embedding: download failed ❌ $e');
+      debugPrint('📦 Embedding: download failed ❌ $e');
       // Non-fatal — EmbeddingService degrades gracefully when files are missing.
     }
   }
 
   static Future<void> _downloadFile(
       String url, String savePath, String label) async {
-    print('📦 Embedding: downloading $label from $url');
+    debugPrint('📦 Embedding: downloading $label from $url');
     final response = await http.get(Uri.parse(url));
-    print('📦 Embedding: $label HTTP ${response.statusCode}');
+    debugPrint('📦 Embedding: $label HTTP ${response.statusCode}');
     if (response.statusCode == 200) {
       await File(savePath).writeAsBytes(response.bodyBytes);
-      print('📦 Embedding: $label saved (${response.bodyBytes.length} bytes)');
+      debugPrint('📦 Embedding: $label saved (${response.bodyBytes.length} bytes)');
     } else {
-      print('📦 Embedding: $label failed — HTTP ${response.statusCode}');
+      debugPrint('📦 Embedding: $label failed — HTTP ${response.statusCode}');
     }
   }
 }

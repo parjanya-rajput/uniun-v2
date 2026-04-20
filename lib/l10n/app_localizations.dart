@@ -298,11 +298,35 @@ abstract class AppLocalizations {
   /// **'Tag People'**
   String get brahmaTagPeople;
 
-  /// Tooltip for reference-note button
+  /// Tooltip for the mention icon in the compose bar
   ///
   /// In en, this message translates to:
-  /// **'Reference Note'**
+  /// **'Mention a Note'**
   String get brahmaReferenceNote;
+
+  /// Title of the mention-search bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Mention a Note'**
+  String get brahmaMentionSheetTitle;
+
+  /// Hint text in the mention search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes…'**
+  String get brahmaMentionSearchHint;
+
+  /// Empty state in mention search results
+  ///
+  /// In en, this message translates to:
+  /// **'No notes found'**
+  String get brahmaMentionEmpty;
+
+  /// Badge shown on an already-selected note in the search sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Mentioned'**
+  String get brahmaMentionSelected;
 
   /// Submit button in the compose card
   ///
@@ -375,6 +399,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'THREAD'**
   String get vishnuThread;
+
+  /// Reference count badge on note cards
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 REFERENCE} other{{count} REFERENCES}}'**
+  String vishnuReferences(num count);
+
+  /// Shown when a referenced note is not in local Isar
+  ///
+  /// In en, this message translates to:
+  /// **'Referenced note not available'**
+  String get vishnuReferenceUnavailable;
 
   /// Placeholder title for the Shiv tab
   ///
@@ -496,10 +532,10 @@ abstract class AppLocalizations {
   /// **'Following'**
   String get followedNoteFollowing;
 
-  /// Section header for the referencedBy grid
+  /// Section header for the replies list on followed-note detail
   ///
   /// In en, this message translates to:
-  /// **'Referenced By'**
+  /// **'Replies'**
   String get followedNoteReferencedBy;
 
   /// Section header for the references list
@@ -1480,6 +1516,42 @@ abstract class AppLocalizations {
   /// **'Branch tree — coming in Phase 4'**
   String get shivBranchTreeComingSoon;
 
+  /// Title of the branch tree page
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation Tree'**
+  String get shivConversationTree;
+
+  /// Button to open the selected branch in chat
+  ///
+  /// In en, this message translates to:
+  /// **'Open Branch'**
+  String get shivNodeOpenBranch;
+
+  /// Button to set selected node as active branch point
+  ///
+  /// In en, this message translates to:
+  /// **'Continue From Here'**
+  String get shivNodeContinueFromHere;
+
+  /// Button to fork a new branch from selected node
+  ///
+  /// In en, this message translates to:
+  /// **'New Branch'**
+  String get shivNodeNewBranch;
+
+  /// Badge label on the active branch node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Active Branch'**
+  String get shivActiveBranch;
+
+  /// Message count shown in node panel
+  ///
+  /// In en, this message translates to:
+  /// **'{count} msgs'**
+  String shivNodeMessages(int count);
+
   /// Default title for a newly created conversation
   ///
   /// In en, this message translates to:
@@ -1497,6 +1569,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask Shiv anything — your saved notes\ngive it context about what you know.'**
   String get shivEmptyBody;
+
+  /// Tree view empty state heading
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet'**
+  String get shivEmptyTreeTitle;
+
+  /// Tree view empty state body text
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation to see the\nbranch tree here.'**
+  String get shivEmptyTreeBody;
+
+  /// Label shown while the model is in a thinking/reasoning block
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get shivThinking;
+
+  /// Collapsed section header for the model's internal thinking
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning'**
+  String get shivThinkingLabel;
 
   /// Hint text inside the Shiv chat input field
   ///
@@ -1539,6 +1635,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count}d ago'**
   String shivTimeDaysAgo(int count);
+
+  /// Page title for the saved notes list
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Notes'**
+  String get savedNotesTitle;
+
+  /// Placeholder for saved notes search bar
+  ///
+  /// In en, this message translates to:
+  /// **'Search saved notes…'**
+  String get savedNotesSearch;
+
+  /// Empty state headline on saved notes page
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing saved yet'**
+  String get savedNotesEmpty;
+
+  /// Empty state sub-text on saved notes page
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark notes from your feed to read them later.'**
+  String get savedNotesEmptySub;
 }
 
 class _AppLocalizationsDelegate

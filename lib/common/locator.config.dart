@@ -256,13 +256,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i799.ImportKeyUseCase>(
       () => _i799.ImportKeyUseCase(gh<_i103.UserRepository>()),
     );
-    gh.lazySingleton<_i475.PublishNoteUseCase>(
-      () => _i475.PublishNoteUseCase(
-        gh<_i47.NoteRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-        gh<_i717.EmbeddedServerBridge>(),
-      ),
-    );
     gh.factory<_i464.FollowedNoteDetailCubit>(
       () => _i464.FollowedNoteDetailCubit(
         gh<_i475.GetNoteByIdUseCase>(),
@@ -290,6 +283,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i739.VectorRepository>(),
       ),
     );
+    gh.lazySingleton<_i475.PublishNoteUseCase>(
+      () => _i475.PublishNoteUseCase(
+        gh<_i47.NoteRepository>(),
+        gh<_i1039.EventQueueRepository>(),
+      ),
+    );
     gh.lazySingleton<_i475.GetReplyCountUseCase>(
       () => _i475.GetReplyCountUseCase(gh<_i47.NoteRepository>()),
     );
@@ -298,6 +297,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i475.GetOwnNotesUseCase>(
       () => _i475.GetOwnNotesUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.SearchNotesUseCase>(
+      () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
     );
     gh.factory<_i97.FollowedNotesCubit>(
       () => _i97.FollowedNotesCubit(
@@ -317,16 +319,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i285.VectorSearchService>(
       () => _i285.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
     );
-    gh.lazySingleton<_i1067.RagPipeline>(
-      () => _i1067.RagPipeline(
-        gh<_i828.EmbeddingService>(),
-        gh<_i285.VectorSearchService>(),
-        gh<_i197.PromptBuilder>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i391.GetOwnProfileUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-      ),
-    );
     gh.factory<_i787.BrahmaCreateBloc>(
       () => _i787.BrahmaCreateBloc(
         gh<_i799.GetActiveUserKeysUseCase>(),
@@ -335,6 +327,19 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i537.SaveDraftUseCase>(),
         gh<_i537.GetDraftsUseCase>(),
         gh<_i537.DeleteDraftUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+      ),
+    );
+    gh.factory<_i558.VishnuFeedBloc>(
+      () => _i558.VishnuFeedBloc(
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i475.GetThreadReplyCountUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i858.SaveNoteUseCase>(),
+        gh<_i858.UnsaveNoteUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i475.GetNoteByIdUseCase>(),
       ),
     );
     gh.factory<_i731.SettingsCubit>(
@@ -367,6 +372,23 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i756.EmbedAndStoreNoteUseCase>(),
       ),
     );
+    gh.factory<_i53.SelectAIModelCubit>(
+      () => _i53.SelectAIModelCubit(
+        gh<_i894.GetAvailableAIModelsUseCase>(),
+        gh<_i894.GetActiveAIModelUseCase>(),
+        gh<_i894.DownloadAndActivateAIModelUseCase>(),
+        gh<_i113.EmbeddingModelDownloader>(),
+      ),
+    );
+    gh.lazySingleton<_i1067.RagPipeline>(
+      () => _i1067.RagPipeline(
+        gh<_i828.EmbeddingService>(),
+        gh<_i285.VectorSearchService>(),
+        gh<_i197.PromptBuilder>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+      ),
+    );
     gh.factory<_i334.ShivAIBloc>(
       () => _i334.ShivAIBloc(
         gh<_i604.GetConversationsUseCase>(),
@@ -376,27 +398,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i604.SaveMessageUseCase>(),
         gh<_i604.UpdateMessageContentUseCase>(),
         gh<_i604.UpdateConversationTitleUseCase>(),
+        gh<_i604.UpdateActiveLeafUseCase>(),
         gh<_i761.AIModelRunner>(),
         gh<_i1067.RagPipeline>(),
-      ),
-    );
-    gh.factory<_i53.SelectAIModelCubit>(
-      () => _i53.SelectAIModelCubit(
-        gh<_i894.GetAvailableAIModelsUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
-        gh<_i894.DownloadAndActivateAIModelUseCase>(),
-        gh<_i113.EmbeddingModelDownloader>(),
-      ),
-    );
-    gh.factory<_i558.VishnuFeedBloc>(
-      () => _i558.VishnuFeedBloc(
-        gh<_i475.GetFeedUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i475.GetThreadReplyCountUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i858.SaveNoteUseCase>(),
-        gh<_i858.UnsaveNoteUseCase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
       ),
     );
     return this;

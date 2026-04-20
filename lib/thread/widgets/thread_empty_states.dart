@@ -11,7 +11,7 @@ class ThreadEmptyReplies extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.chat_bubble_outline_rounded,
+        const Icon(Icons.chat_bubble_outline_rounded,
             size: 52, color: AppColors.outlineVariant),
         const SizedBox(height: 16),
         Text(
@@ -41,7 +41,7 @@ class ThreadNoReferences extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.account_tree_outlined,
+        const Icon(Icons.account_tree_outlined,
             size: 52, color: AppColors.outlineVariant),
         const SizedBox(height: 16),
         Text(

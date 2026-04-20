@@ -48,7 +48,7 @@ class WelcomePage extends StatelessWidget {
                 Text(
                   l10n.welcomeTagline,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.onSurface,
                     fontSize: 30,
                     fontWeight: FontWeight.w700,

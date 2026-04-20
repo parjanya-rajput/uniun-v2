@@ -25,6 +25,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final SaveMessageUseCase _saveMessage;
   final UpdateMessageContentUseCase _updateMessageContent;
   final UpdateConversationTitleUseCase _updateConversationTitle;
+  final UpdateActiveLeafUseCase _updateActiveLeaf;
   final AIModelRunner _runner;
   final RagPipeline _rag;
 
@@ -38,6 +39,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     this._saveMessage,
     this._updateMessageContent,
     this._updateConversationTitle,
+    this._updateActiveLeaf,
     this._runner,
     this._rag,
   ) : super(const ShivAIState()) {
@@ -50,6 +52,9 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     on<_TokenReceived>(_onTokenReceived, transformer: sequential());
     on<_StreamDone>(_onStreamDone);
     on<_StreamError>(_onStreamError);
+    on<_SwitchBranch>(_onSwitchBranch, transformer: droppable());
+    on<_CreateBranchFrom>(_onCreateBranchFrom, transformer: droppable());
+    on<_SelectGraphNode>(_onSelectGraphNode);
   }
 
   // ── Conversation list ───────────────────────────────────────────────────────
@@ -112,6 +117,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
           status: ShivChatStatus.chatIdle,
           activeConversation: conv,
           messages: msgs,
+          allMessages: msgs,
           ragContextCount: 0,
           errorMessage: null,
         ));
@@ -192,9 +198,11 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     );
     await _saveMessage.call(placeholderMsg);
 
+    final newMessages = [...state.messages, userMsg, placeholderMsg];
     emit(state.copyWith(
       status: ShivChatStatus.streaming,
-      messages: [...state.messages, userMsg, placeholderMsg],
+      messages: newMessages,
+      allMessages: [...state.allMessages, userMsg, placeholderMsg],
       streamingContent: '',
       streamingMessageId: assistantMsgId,
     ));
@@ -256,6 +264,65 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     ));
   }
 
+  // ── Branch graph ────────────────────────────────────────────────────────────
+
+  Future<void> _onSwitchBranch(
+      _SwitchBranch event, Emitter<ShivAIState> emit) async {
+    final conv = state.activeConversation;
+    if (conv == null) return;
+
+    final branch = _buildBranch(event.leafMessageId, state.allMessages);
+    await _updateActiveLeaf.call((conv.conversationId, event.leafMessageId));
+
+    // Reinit chat with a compact summary of the branch as context so the model
+    // knows what was discussed on this path without replaying full history.
+    await _initChatSession(branchContext: branch);
+
+    emit(state.copyWith(
+      messages: branch,
+      activeConversation: conv.copyWith(activeLeafMessageId: event.leafMessageId),
+      selectedNodeMessageId: null,
+    ));
+  }
+
+  Future<void> _onCreateBranchFrom(
+      _CreateBranchFrom event, Emitter<ShivAIState> emit) async {
+    final conv = state.activeConversation;
+    if (conv == null) return;
+
+    final branch = _buildBranch(event.parentMessageId, state.allMessages);
+    await _updateActiveLeaf.call((conv.conversationId, event.parentMessageId));
+
+    await _initChatSession(branchContext: branch);
+
+    emit(state.copyWith(
+      messages: branch,
+      activeConversation: conv.copyWith(activeLeafMessageId: event.parentMessageId),
+      selectedNodeMessageId: null,
+    ));
+  }
+
+  void _onSelectGraphNode(
+      _SelectGraphNode event, Emitter<ShivAIState> emit) {
+    emit(state.copyWith(selectedNodeMessageId: event.messageId));
+  }
+
+  /// Walk the parentId chain from [leafId] up to the root.
+  /// Returns messages in chronological order (root first).
+  List<ShivMessageEntity> _buildBranch(
+      String leafId, List<ShivMessageEntity> all) {
+    final byId = {for (final m in all) m.messageId: m};
+    final branch = <ShivMessageEntity>[];
+    String? current = leafId;
+    while (current != null) {
+      final msg = byId[current];
+      if (msg == null) break;
+      branch.insert(0, msg);
+      current = msg.parentId;
+    }
+    return branch;
+  }
+
   @override
   Future<void> close() async {
     _streamSub?.cancel();
@@ -266,9 +333,17 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   /// Creates a fresh InferenceChat session with the Shiv system instruction.
-  /// Called whenever a conversation is opened or created.
-  Future<void> _initChatSession() async {
+  /// On branch switch, [branchContext] adds a compact conversation summary so
+  /// the model understands what was discussed on the parent path.
+  Future<void> _initChatSession({List<ShivMessageEntity>? branchContext}) async {
     final systemInstruction = await _rag.buildSystemInstruction();
-    await _runner.initChat(systemInstruction: systemInstruction);
+    final contextSummary = branchContext != null && branchContext.isNotEmpty
+        ? _rag.buildBranchContextSummary(branchContext)
+        : '';
+    await _runner.initChat(
+      systemInstruction: contextSummary.isEmpty
+          ? systemInstruction
+          : '$systemInstruction$contextSummary',
+    );
   }
 }

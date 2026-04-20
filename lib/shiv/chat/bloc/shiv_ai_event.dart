@@ -30,4 +30,14 @@ abstract class ShivAIEvent with _$ShivAIEvent {
 
   /// Internal: BLoC signals streaming error.
   const factory ShivAIEvent.streamError(String message) = _StreamError;
+
+  /// Switch active branch: rebuild messages by walking parentId chain from [leafMessageId] to root.
+  const factory ShivAIEvent.switchBranch(String leafMessageId) = _SwitchBranch;
+
+  /// Fork from [parentMessageId]: position the conversation at that node so
+  /// the next sendMessage naturally becomes a new branch from there.
+  const factory ShivAIEvent.createBranchFrom(String parentMessageId) = _CreateBranchFrom;
+
+  /// Select a node in the graph view (shows the action panel).
+  const factory ShivAIEvent.selectGraphNode(String? messageId) = _SelectGraphNode;
 }

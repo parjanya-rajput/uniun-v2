@@ -11,4 +11,6 @@ abstract class AppRoutes {
   static const followedNoteDetail = '/followed-note-detail';
   static const thread = '/thread';
   static const aiModelSelection = '/ai-model-selection';
+  static const savedNotes = '/saved-notes';
+  static const graph = '/graph';
 }

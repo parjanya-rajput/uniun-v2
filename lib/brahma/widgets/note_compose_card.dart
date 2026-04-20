@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
@@ -11,6 +12,9 @@ class NoteComposeCard extends StatelessWidget {
     required this.isSubmitting,
     required this.canSubmit,
     this.onSaveDraft,
+    this.onReferenceTap,
+    this.selectedMentions = const [],
+    this.onRemoveMention,
   });
 
   final TextEditingController controller;
@@ -19,6 +23,9 @@ class NoteComposeCard extends StatelessWidget {
   final bool isSubmitting;
   final bool canSubmit;
   final VoidCallback? onSaveDraft;
+  final VoidCallback? onReferenceTap;
+  final List<NoteEntity> selectedMentions;
+  final ValueChanged<String>? onRemoveMention;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +83,7 @@ class NoteComposeCard extends StatelessWidget {
                     ),
                     decoration: InputDecoration(
                       hintText: l10n.brahmaHintText,
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         color: AppColors.outline,
                         fontSize: 16,
                       ),
@@ -92,6 +99,44 @@ class NoteComposeCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // ── Mention chips (shown when notes are selected) ────────────────
+          if (selectedMentions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: selectedMentions.map((note) {
+                  final label = note.content.trim();
+                  final preview = label.length > 30
+                      ? '${label.substring(0, 30)}…'
+                      : label.isEmpty
+                          ? '…'
+                          : label;
+                  return Chip(
+                    avatar: const Icon(Icons.link_rounded,
+                        size: 14, color: AppColors.primary),
+                    label: Text(
+                      preview,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.onSurface),
+                    ),
+                    deleteIcon: const Icon(Icons.close_rounded,
+                        size: 14, color: AppColors.onSurfaceVariant),
+                    onDeleted: () => onRemoveMention?.call(note.id),
+                    backgroundColor:
+                        AppColors.primary.withValues(alpha: 0.08),
+                    side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.2)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 0),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }).toList(),
+              ),
+            ),
 
           // ── Action bar ───────────────────────────────────────────────────
           Container(
@@ -125,7 +170,8 @@ class NoteComposeCard extends StatelessWidget {
                 _ActionIcon(
                   icon: Icons.link_rounded,
                   tooltip: l10n.brahmaReferenceNote,
-                  onTap: () {},
+                  isActive: selectedMentions.isNotEmpty,
+                  onTap: () => onReferenceTap?.call(),
                 ),
 
                 const Spacer(),
@@ -210,10 +256,12 @@ class _ActionIcon extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
+    this.isActive = false,
   });
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +272,11 @@ class _ActionIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Icon(icon, size: 22, color: AppColors.onSurfaceVariant),
+          child: Icon(
+            icon,
+            size: 22,
+            color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+          ),
         ),
       ),
     );

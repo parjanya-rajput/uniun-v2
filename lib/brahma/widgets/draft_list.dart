@@ -28,7 +28,7 @@ class DraftList extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.drafts_rounded,
                 size: 18,
                 color: AppColors.onSurfaceVariant,

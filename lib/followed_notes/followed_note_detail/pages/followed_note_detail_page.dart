@@ -6,10 +6,11 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart';
-import 'package:uniun/followed_notes/followed_note_detail/widgets/note_header_card.dart';
 import 'package:uniun/followed_notes/followed_note_detail/widgets/followed_note_app_bar.dart';
-import 'package:uniun/followed_notes/followed_note_detail/widgets/note_references_section.dart';
-import 'package:uniun/followed_notes/followed_note_detail/widgets/note_thread_button.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_detail_ref_item.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_detail_reply_item.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_detail_section_header.dart';
+import 'package:uniun/followed_notes/followed_note_detail/widgets/note_header_card.dart';
 
 class FollowedNoteDetailPage extends StatelessWidget {
   const FollowedNoteDetailPage({super.key, required this.noteId});
@@ -53,7 +54,9 @@ class _FollowedNoteDetailView extends StatelessWidget {
                       hasScrollBody: false,
                       child: Center(
                         child: Text(
-                          state.errorMessage ?? AppLocalizations.of(context)!.followedNoteFailedToLoad,
+                          state.errorMessage ??
+                              AppLocalizations.of(context)!
+                                  .followedNoteFailedToLoad,
                           style: const TextStyle(
                               color: AppColors.onSurfaceVariant),
                         ),
@@ -95,45 +98,30 @@ class _NoteContent extends StatelessWidget {
   const _NoteContent({required this.state});
   final FollowedNoteDetailState state;
 
-  String _displayName(String pubkey, Map<String, ProfileEntity> profiles) {
-    final p = profiles[pubkey];
-    return p?.name ?? p?.username ?? '${pubkey.substring(0, 8)}…';
-  }
+  ProfileEntity? _profile(
+          String pubkey, Map<String, ProfileEntity> profiles) =>
+      profiles[pubkey];
 
-  String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
-  }
+  String _name(String pubkey, ProfileEntity? profile) =>
+      profile?.name ?? profile?.username ?? '${pubkey.substring(0, 8)}…';
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final note = state.note!;
     final profile = state.profile;
-    final authorName = profile?.name ??
-        profile?.username ??
-        '${note.authorPubkey.substring(0, 8)}…';
+    final authorName = _name(note.authorPubkey, profile);
 
     final allProfiles = {
       if (profile != null) note.authorPubkey: profile,
       ...state.replyProfiles,
     };
 
-    final replyEntries = state.replies
-        .map((r) => ReferenceEntry(
-              title: _displayName(r.authorPubkey, allProfiles),
-              subtitle: r.content.length > 100
-                  ? r.content.substring(0, 100)
-                  : r.content,
-            ))
-        .toList();
-
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
+          // ── Root note ────────────────────────────────────────────────────
           NoteHeaderCard(
             authorName: authorName,
             authorPubkey: note.authorPubkey,
@@ -143,26 +131,50 @@ class _NoteContent extends StatelessWidget {
             timestamp: note.created,
             commentCount: state.replies.length,
           ),
-          const SizedBox(height: 28),
 
-          if (replyEntries.isNotEmpty) ...[
-            NoteReferencesSection(
-              title: l10n.followedNoteReferencedBy,
-              references: replyEntries,
-              style: ReferenceSectionStyle.grid,
-              badge: '${replyEntries.length} REPLIES',
-            ),
+          // ── Replies (thread-style) ───────────────────────────────────────
+          if (state.replies.isNotEmpty) ...[
             const SizedBox(height: 28),
+            NoteDetailSectionHeader(
+              label: l10n.followedNoteReferencedBy,
+              badge: '${state.replies.length}',
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(state.replies.length, (i) {
+              final reply = state.replies[i];
+              final replyProfile =
+                  _profile(reply.authorPubkey, allProfiles);
+              final isLast = i == state.replies.length - 1;
+              return NoteDetailReplyItem(
+                note: reply,
+                profile: replyProfile,
+                isLast: isLast,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.thread,
+                  arguments: reply.id,
+                ),
+              );
+            }),
           ],
 
-          if (state.replies.isNotEmpty)
-            NoteThreadSection(
-              continuationText: state.replies.first.content.length > 100
-                  ? '${state.replies.first.content.substring(0, 100)}…'
-                  : state.replies.first.content,
-              replyCount: state.replies.length,
-              lastUpdated: _timeAgo(state.replies.first.created),
+          // ── References / mentions ────────────────────────────────────────
+          if (state.referencedNotes.isNotEmpty) ...[
+            const SizedBox(height: 28),
+            NoteDetailSectionHeader(
+              label: l10n.followedNoteReferences,
+              badge: '${state.referencedNotes.length}',
             ),
+            const SizedBox(height: 12),
+            ...state.referencedNotes.map((ref) => NoteDetailRefItem(
+                  note: ref,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.thread,
+                    arguments: ref.id,
+                  ),
+                )),
+          ],
         ]),
       ),
     );

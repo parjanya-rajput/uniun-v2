@@ -93,7 +93,7 @@ class ProfileCard extends StatelessWidget {
               ),
               child: Text(
                 AppLocalizations.of(context)!.profileEditProfile,
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
             ),
           ),

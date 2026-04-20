@@ -5,6 +5,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/brahma/widgets/draft_list.dart';
 import 'package:uniun/brahma/widgets/graph_preview_card.dart';
+import 'package:uniun/brahma/widgets/mention_search_sheet.dart';
 import 'package:uniun/brahma/widgets/note_compose_card.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
@@ -121,6 +122,8 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
           setState(() => _navVisible = true);
         }
       },
+      listenWhen: (previous, current) =>
+          previous.status != current.status,
       builder: (context, state) {
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -220,6 +223,7 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                                 state.status == BrahmaCreateStatus.submitting,
                             canSubmit: _controller.text.trim().isNotEmpty &&
                                 !state.isSubmitting,
+                            selectedMentions: state.selectedMentions,
                             onSubmit: () {
                               context.read<BrahmaCreateBloc>().add(
                                     SubmitNoteEvent(
@@ -238,6 +242,25 @@ class _BrahmaCreateViewState extends State<_BrahmaCreateView> {
                                   duration: const Duration(seconds: 2),
                                 ),
                               );
+                            },
+                            onRemoveMention: (id) {
+                              context.read<BrahmaCreateBloc>().add(
+                                    RemoveMentionEvent(id),
+                                  );
+                            },
+                            onReferenceTap: () {
+                              final bloc = context.read<BrahmaCreateBloc>();
+                              showModalBottomSheet<void>(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => BlocProvider.value(
+                                  value: bloc,
+                                  child: const MentionSearchSheet(),
+                                ),
+                              ).then((_) {
+                                bloc.add(const ClearMentionSearchEvent());
+                              });
                             },
                           ),
                           const SizedBox(height: 28),

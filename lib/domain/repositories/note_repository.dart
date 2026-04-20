@@ -34,4 +34,12 @@ abstract class NoteRepository {
   /// All notes authored by [pubkeyHex] stored locally (own notes, kept forever).
   /// Used by the RAG pipeline for baseline interest personalisation.
   Future<Either<Failure, List<NoteEntity>>> getOwnNotes(String pubkeyHex);
+
+  /// Case-insensitive substring search over note content stored locally.
+  /// Used by Brahma's mention picker to find notes to reference.
+  Future<Either<Failure, List<NoteEntity>>> searchNotes(String query);
+
+  /// Stores a precomputed embedding vector on a NoteModel (own published notes).
+  Future<Either<Failure, Unit>> updateNoteEmbedding(
+      String eventId, List<double> embedding);
 }

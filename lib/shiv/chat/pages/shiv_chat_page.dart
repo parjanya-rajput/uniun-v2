@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/shiv/chat/bloc/shiv_ai_bloc.dart';
+import 'package:uniun/shiv/chat/tree/pages/shiv_branch_tree_page.dart';
 import 'package:uniun/shiv/chat/widgets/shiv_history_drawer.dart';
 import 'package:uniun/shiv/chat/widgets/shiv_input_composer.dart';
 import 'package:uniun/shiv/chat/widgets/shiv_message_bubble.dart';
@@ -67,10 +68,13 @@ class _ShivChatPageState extends State<ShivChatPage> {
                   ragContextCount: state.ragContextCount,
                   onHistoryTap: () => Scaffold.of(ctx).openDrawer(),
                   onTreeTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.shivBranchTreeComingSoon),
-                        duration: const Duration(seconds: 2),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<ShivAIBloc>(),
+                          child: const ShivBranchTreePage(),
+                        ),
                       ),
                     );
                   },
