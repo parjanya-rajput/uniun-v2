@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/channels/create/bloc/create_channel_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -135,9 +136,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
             style: TextStyle(color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
-        body: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.translucent,
+        body: KeyboardDismissOnTap(
           child: BlocBuilder<CreateChannelBloc, CreateChannelState>(
             builder: (context, state) {
               return SingleChildScrollView(

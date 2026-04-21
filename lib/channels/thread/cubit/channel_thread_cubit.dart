@@ -31,18 +31,45 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
     final replies =
         repliesResult.fold((_) => <ChannelMessageEntity>[], (r) => r);
 
-    final all = [root, ...replies];
+    // Load parent if root is a reply
+    ChannelMessageEntity? parent;
+    if (root.replyToEventId != null) {
+      final parentResult =
+          await getIt<GetChannelMessageByIdUseCase>().call(root.replyToEventId!);
+      if (!isClosed) {
+        parent = parentResult.fold((_) => null, (m) => m);
+      }
+    }
+    if (isClosed) return;
+
+    // Load mention refs (eTagRefs minus channelId and replyToEventId)
+    final mentionIds = root.eTagRefs
+        .where((id) => id != root.channelId && id != root.replyToEventId)
+        .toList();
+    final mentionedMessages = <ChannelMessageEntity>[];
+    for (final id in mentionIds) {
+      final r = await getIt<GetChannelMessageByIdUseCase>().call(id);
+      if (isClosed) return;
+      r.fold((_) => null, (m) { if (m != null) mentionedMessages.add(m); });
+    }
+
+    final all = [if (parent != null) parent, ...mentionedMessages, root, ...replies];
     final profiles = await _loadProfiles(all);
     if (isClosed) return;
     final savedIds = await _loadSavedIds(all);
+    if (isClosed) return;
+    final replyCounts = await _loadReplyCounts(replies);
     if (isClosed) return;
 
     emit(state.copyWith(
       isLoading: false,
       root: root,
+      parent: parent,
+      mentionedMessages: mentionedMessages,
       replies: replies,
       profiles: profiles,
       savedIds: savedIds,
+      replyCounts: replyCounts,
     ));
   }
 
@@ -55,6 +82,17 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
       r.fold((_) => null, (p) => profiles[pk] = p);
     }
     return profiles;
+  }
+
+  Future<Map<String, int>> _loadReplyCounts(
+      List<ChannelMessageEntity> messages) async {
+    final counts = <String, int>{};
+    for (final msg in messages) {
+      final r =
+          await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
+      r.fold((_) => null, (c) => counts[msg.id] = c);
+    }
+    return counts;
   }
 
   Future<Set<String>> _loadSavedIds(

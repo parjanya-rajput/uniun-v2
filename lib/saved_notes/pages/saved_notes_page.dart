@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
+import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_cubit.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_state.dart';
@@ -13,8 +16,11 @@ class SavedNotesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => SavedNotesCubit()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => SavedNotesCubit()..load()),
+        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
+      ],
       child: const _SavedNotesView(),
     );
   }
@@ -67,7 +73,8 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
         iconTheme: const IconThemeData(color: AppColors.onSurface),
         elevation: 0,
       ),
-      body: BlocBuilder<SavedNotesCubit, SavedNotesState>(
+      body: KeyboardDismissOnTap(
+        child: BlocBuilder<SavedNotesCubit, SavedNotesState>(
         builder: (context, state) {
           if (state.status == SavedNotesStatus.initial ||
               state.status == SavedNotesStatus.loading) {
@@ -153,31 +160,57 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                             ),
                           ],
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const SizedBox.shrink(),
-                          itemBuilder: (ctx, i) {
-                            final cubit = context.read<SavedNotesCubit>();
-                            final note = filtered[i];
-                            final savedEventIds =
-                                state.notes.map((n) => n.eventId).toSet();
-                            return NoteCard(
-                              note: note.toNoteEntity(
-                                  savedEventIds: savedEventIds),
-                              profile: state.profiles[note.authorPubkey],
-                              replyCount:
-                                  state.replyCounts[note.eventId] ?? 0,
-                              isSaved: true,
-                              onTap: () => Navigator.push(
-                                ctx,
-                                MaterialPageRoute(
-                                  builder: (_) => ThreadPage(
-                                    noteId: note.eventId,
-                                    savedOnly: true,
-                                  ),
-                                ),
-                              ).then((_) => cubit.load()),
+                      : BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
+                          builder: (ctx, followedState) {
+                            final followedIds = followedState.notes
+                                .map((n) => n.eventId)
+                                .toSet();
+                            return ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox.shrink(),
+                              itemBuilder: (ctx, i) {
+                                final cubit = context.read<SavedNotesCubit>();
+                                final note = filtered[i];
+                                final savedEventIds = state.notes
+                                    .map((n) => n.eventId)
+                                    .toSet();
+                                final isFollowed =
+                                    followedIds.contains(note.eventId);
+                                return NoteCard(
+                                  note: note.toNoteEntity(
+                                      savedEventIds: savedEventIds),
+                                  profile: state.profiles[note.authorPubkey],
+                                  replyCount:
+                                      state.replyCounts[note.eventId] ?? 0,
+                                  isSaved: true,
+                                  isFollowed: isFollowed,
+                                  onFollowTap: () {
+                                    final followCubit =
+                                        ctx.read<FollowedNotesCubit>();
+                                    if (isFollowed) {
+                                      followCubit.unfollowNote(note.eventId);
+                                    } else {
+                                      followCubit.followNote(
+                                        note.eventId,
+                                        note.content.length > 80
+                                            ? note.content.substring(0, 80)
+                                            : note.content,
+                                      );
+                                    }
+                                  },
+                                  onTap: () => Navigator.push(
+                                    ctx,
+                                    MaterialPageRoute(
+                                      builder: (_) => ThreadPage(
+                                        noteId: note.eventId,
+                                        savedOnly: true,
+                                      ),
+                                    ),
+                                  ).then((_) => cubit.load()),
+                                );
+                              },
                             );
                           },
                         ),
@@ -186,6 +219,7 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
             ],
           );
         },
+        ),
       ),
     );
   }

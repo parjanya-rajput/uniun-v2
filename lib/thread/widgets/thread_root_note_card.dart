@@ -9,7 +9,6 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
-import 'package:uniun/thread/bloc/thread_bloc.dart';
 import 'package:uniun/thread/utils/thread_formatters.dart';
 
 class ThreadRootNoteCard extends StatefulWidget {
@@ -17,10 +16,13 @@ class ThreadRootNoteCard extends StatefulWidget {
     super.key,
     required this.note,
     this.profile,
+    this.replyCount,
   });
 
   final NoteEntity note;
   final ProfileEntity? profile;
+  /// Override reply count. If null, shows 0.
+  final int? replyCount;
 
   @override
   State<ThreadRootNoteCard> createState() => _ThreadRootNoteCardState();
@@ -164,7 +166,7 @@ class _ThreadRootNoteCardState extends State<ThreadRootNoteCard> {
             children: [
               ThreadActionChip(
                 icon: Icons.chat_bubble_outline_rounded,
-                label: '${context.watch<ThreadBloc>().state.replies.length}',
+                label: '${widget.replyCount ?? 0}',
                 color: AppColors.onSurfaceVariant,
                 onTap: () {},
               ),

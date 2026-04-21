@@ -59,3 +59,14 @@ class GetChannelMessageRepliesUseCase
           {bool cached = false}) =>
       _repository.getChannelMessageReplies(input);
 }
+
+@lazySingleton
+class GetChannelMessageReplyCountUseCase
+    extends UseCase<Either<Failure, int>, String> {
+  final ChannelMessageRepository _repository;
+  const GetChannelMessageReplyCountUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, int>> call(String input, {bool cached = false}) =>
+      _repository.getChannelMessageReplyCount(input);
+}

@@ -182,6 +182,7 @@ class _ThreadBody extends StatelessWidget {
             child: ThreadRootNoteCard(
               note: root,
               profile: state.profileFor(root.authorPubkey),
+              replyCount: state.replies.length,
             ),
           ),
         ),
@@ -217,6 +218,15 @@ class _ThreadBody extends StatelessWidget {
                             SetReplyTargetEvent(
                                 replyToId: reply.id, replyToName: name),
                           );
+                      focusNode.requestFocus();
+                    },
+                    onExpandReplies: (id) =>
+                        ctx.read<ThreadBloc>().add(ExpandReplyEvent(id)),
+                    onNestedReplyTap: (id, nestedName) {
+                      ctx.read<ThreadBloc>().add(SetReplyTargetEvent(
+                            replyToId: id,
+                            replyToName: nestedName,
+                          ));
                       focusNode.requestFocus();
                     },
                     // Tapping the content area opens the reply's own thread view

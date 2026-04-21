@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/channels/detail/cubit/channel_detail_cubit.dart';
-import 'package:uniun/channels/detail/widgets/channel_message_composer.dart';
+import 'package:uniun/channels/detail/cubit/channel_detail_state.dart';
+import 'package:uniun/channels/detail/widgets/channel_reference_picker.dart';
 import 'package:uniun/channels/thread/cubit/channel_thread_cubit.dart';
 import 'package:uniun/channels/thread/cubit/channel_thread_state.dart';
 import 'package:uniun/common/locator.dart';
@@ -9,7 +10,10 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
-import 'package:uniun/vishnu/widgets/note_card.dart';
+import 'package:uniun/thread/widgets/thread_parent_context.dart';
+import 'package:uniun/thread/widgets/thread_reply_composer.dart';
+import 'package:uniun/thread/widgets/thread_reply_item.dart';
+import 'package:uniun/thread/widgets/thread_root_note_card.dart';
 
 class ChannelThreadPage extends StatelessWidget {
   const ChannelThreadPage({
@@ -30,8 +34,7 @@ class ChannelThreadPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) =>
-              ChannelThreadCubit()..load(messageId),
+          create: (_) => ChannelThreadCubit()..load(messageId),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
@@ -63,13 +66,30 @@ class _ChannelThreadView extends StatefulWidget {
 }
 
 class _ChannelThreadViewState extends State<_ChannelThreadView> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   String? _userAvatarUrl;
   String? _userPubkey;
+  String? _replyToEventId;
+  String? _replyToName;
+  bool _hasText = false;
+  final List<ChannelMessageEntity> _mentionRefs = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _controller.addListener(() {
+      final has = _controller.text.trim().isNotEmpty;
+      if (has != _hasText) setState(() => _hasText = has);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -81,18 +101,70 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
     });
   }
 
-  Future<void> _toggleFollow(
-    BuildContext ctx,
-    String noteId,
-    String contentPreview,
-    bool isCurrentlyFollowed,
-  ) async {
-    final cubit = ctx.read<FollowedNotesCubit>();
-    if (isCurrentlyFollowed) {
-      await cubit.unfollowNote(noteId);
-    } else {
-      await cubit.followNote(noteId, contentPreview);
-    }
+  void _setReplyTarget(String id, String name) {
+    setState(() {
+      _replyToEventId = id;
+      _replyToName = name;
+    });
+    _focusNode.requestFocus();
+  }
+
+  void _send(BuildContext ctx) {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final replyId = _replyToEventId;
+    final refs = _mentionRefs.map((m) => m.id).toList();
+    _controller.clear();
+    setState(() {
+      _replyToEventId = null;
+      _replyToName = null;
+      _mentionRefs.clear();
+    });
+    ctx.read<ChannelDetailCubit>().sendMessage(
+      widget.channelId,
+      text,
+      replyToEventId: replyId,
+      mentionRefs: refs,
+    );
+  }
+
+  void _openLinkPicker(BuildContext ctx) {
+    final messages = ctx.read<ChannelDetailCubit>().state.messages;
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+        child: ChannelReferencePicker(
+          messages: messages,
+          selected: List.of(_mentionRefs),
+          onToggle: (msg) {
+            setState(() {
+              if (_mentionRefs.any((m) => m.id == msg.id)) {
+                _mentionRefs.removeWhere((m) => m.id == msg.id);
+              } else {
+                _mentionRefs.add(msg);
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openNestedThread(BuildContext ctx, ChannelMessageEntity msg) {
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => ChannelThreadPage(
+          channelId: widget.channelId,
+          messageId: msg.id,
+          channelName: widget.channelName,
+          parentCubit: ctx.read<ChannelDetailCubit>(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -117,86 +189,170 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
           ),
         ),
       ),
-      body: BlocBuilder<ChannelThreadCubit, ChannelThreadState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
+      body: BlocListener<ChannelDetailCubit, ChannelDetailState>(
+        listenWhen: (prev, curr) => prev.isSending && !curr.isSending,
+        listener: (ctx, _) =>
+            ctx.read<ChannelThreadCubit>().load(widget.messageId),
+        child: BlocBuilder<ChannelThreadCubit, ChannelThreadState>(
+          builder: (context, state) {
+            if (state.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
 
-          final root = state.root;
-          if (root == null) {
-            return const Center(
-              child: Text('Message not found.',
-                  style: TextStyle(color: AppColors.onSurfaceVariant)),
-            );
-          }
+            final root = state.root;
+            if (root == null) {
+              return const Center(
+                child: Text('Message not found.',
+                    style: TextStyle(color: AppColors.onSurfaceVariant)),
+              );
+            }
 
-          return Column(
-            children: [
-              Expanded(
-                child: BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
-                  builder: (ctx, followedState) {
-                    final followedIds = followedState.notes
-                        .map((n) => n.eventId)
-                        .toSet();
-                    final threadCubit = ctx.read<ChannelThreadCubit>();
-                    final parentCubit = ctx.read<ChannelDetailCubit>();
-
-                    Widget card(ChannelMessageEntity msg) {
-                      final isSaved = state.savedIds.contains(msg.id);
-                      final isFollowed = followedIds.contains(msg.id);
-                      return NoteCard(
-                        note: msg.toNoteEntity(),
-                        profile: state.profiles[msg.authorPubkey],
-                        isSaved: isSaved,
-                        isFollowed: isFollowed,
-                        onTap: () {},
-                        onSaveTap: () {
-                          if (isSaved) {
-                            threadCubit.unsaveMessage(msg.id, parentCubit);
-                          } else {
-                            threadCubit.saveMessage(msg, parentCubit);
-                          }
-                        },
-                        onFollowTap: () => _toggleFollow(
-                          ctx,
-                          msg.id,
-                          msg.content.length > 80
-                              ? msg.content.substring(0, 80)
-                              : msg.content,
-                          isFollowed,
+            return Column(
+              children: [
+                Expanded(
+                  child: CustomScrollView(
+                    slivers: [
+                      // Direct parent (reply chain)
+                      if (state.parent != null)
+                        SliverPadding(
+                          padding:
+                              const EdgeInsets.only(top: 16, left: 20, right: 20),
+                          sliver: SliverToBoxAdapter(
+                            child: ThreadParentContext(
+                              notes: [state.parent!.toNoteEntity()],
+                              profiles: state.profiles,
+                              onNoteTap: (_) =>
+                                  _openNestedThread(context, state.parent!),
+                            ),
+                          ),
                         ),
-                      );
-                    }
 
-                    return ListView(
-                      padding: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).padding.bottom + 8,
+                      // Mention refs (sibling group, shown above root)
+                      if (state.mentionedMessages.isNotEmpty)
+                        SliverPadding(
+                          padding: EdgeInsets.only(
+                            top: state.parent != null ? 0 : 16,
+                            left: 20,
+                            right: 20,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: ThreadParentContext(
+                              notes: state.mentionedMessages
+                                  .map((m) => m.toNoteEntity())
+                                  .toList(),
+                              profiles: state.profiles,
+                              isSiblingGroup: true,
+                              onNoteTap: (id) {
+                                final msg = state.mentionedMessages
+                                    .firstWhere((m) => m.id == id);
+                                _openNestedThread(context, msg);
+                              },
+                            ),
+                          ),
+                        ),
+
+                      // Root message card
+                      SliverPadding(
+                        padding: EdgeInsets.only(
+                          top: (state.parent != null || state.mentionedMessages.isNotEmpty) ? 0 : 16,
+                          left: 20,
+                          right: 20,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: ThreadRootNoteCard(
+                            note: root.toNoteEntity(),
+                            profile: state.profiles[root.authorPubkey],
+                            replyCount: state.replies.length,
+                          ),
+                        ),
                       ),
-                      children: [
-                        card(root),
-                        if (state.replies.isNotEmpty)
-                          const Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: Color(0xFFF1F5F9)),
-                        ...state.replies.map(card),
-                      ],
-                    );
-                  },
+
+                      // Replies header
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                          child: Text(
+                            state.replies.isEmpty
+                                ? 'No replies yet'
+                                : '${state.replies.length} ${state.replies.length == 1 ? 'Reply' : 'Replies'}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SliverToBoxAdapter(
+                        child: Divider(height: 1, thickness: 1,
+                            color: Color(0xFFF1F5F9)),
+                      ),
+
+                      // Replies — ThreadReplyItem (same as thread page)
+                      SliverPadding(
+                        padding: EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          bottom: MediaQuery.of(context).padding.bottom + 8,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (ctx, i) {
+                              final msg = state.replies[i];
+                              final profile =
+                                  state.profiles[msg.authorPubkey];
+                              final name = profile?.name ??
+                                  profile?.username ??
+                                  msg.authorPubkey.substring(0, 8);
+                              return ThreadReplyItem(
+                                key: ValueKey(msg.id),
+                                reply: msg.toNoteEntity(),
+                                profile: profile,
+                                nestedReplies: const [],
+                                nestedProfiles: state.profiles,
+                                allNestedReplies: const {},
+                                replyCounts: state.replyCounts,
+                                replyCount: state.replyCounts[msg.id] ?? 0,
+                                showThreadLine: false,
+                                onReplyTap: () => _setReplyTarget(msg.id, name),
+                                onTap: () => _openNestedThread(ctx, msg),
+                                onExpandReplies: (_) {},
+                                onNestedReplyTap: (id, n) =>
+                                    _setReplyTarget(id, n),
+                              );
+                            },
+                            childCount: state.replies.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ChannelMessageComposer(
-                channelId: widget.channelId,
-                avatarUrl: _userAvatarUrl,
-                pubkeySeed: _userPubkey ?? '',
-                replyToEventId: widget.messageId,
-              ),
-            ],
-          );
-        },
+
+                ThreadReplyComposer(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  avatarUrl: _userAvatarUrl,
+                  pubkeySeed: _userPubkey ?? '',
+                  replyingToName: _replyToName,
+                  canPost: _hasText,
+                  isSending: false,
+                  onSend: () => _send(context),
+                  onClearReply: () => setState(() {
+                    _replyToEventId = null;
+                    _replyToName = null;
+                  }),
+                  onTextChanged: (_) {},
+                  onLinkTap: () => _openLinkPicker(context),
+                  hasLinks: _mentionRefs.isNotEmpty,
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

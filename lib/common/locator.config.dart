@@ -305,6 +305,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i964.ChannelMessageRepository>(),
       ),
     );
+    gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
+      () => _i689.GetChannelMessageReplyCountUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
     gh.factory<_i464.FollowedNoteDetailCubit>(
       () => _i464.FollowedNoteDetailCubit(
         gh<_i475.GetNoteByIdUseCase>(),

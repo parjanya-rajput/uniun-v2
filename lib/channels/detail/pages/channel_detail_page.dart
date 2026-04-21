@@ -222,6 +222,7 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
             return NoteCard(
               note: msg.toNoteEntity(),
               profile: state.profiles[msg.authorPubkey],
+              replyCount: state.replyCounts[msg.id] ?? 0,
               isSaved: isSaved,
               isFollowed: isFollowed,
               onTap: () => _openThread(ctx, msg, channelName),

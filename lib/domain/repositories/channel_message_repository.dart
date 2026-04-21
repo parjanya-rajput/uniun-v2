@@ -23,4 +23,7 @@ abstract class ChannelMessageRepository {
   Future<Either<Failure, List<ChannelMessageEntity>>> getChannelMessageReplies(
     String messageId,
   );
+
+  /// Count of direct replies to a channel message.
+  Future<Either<Failure, int>> getChannelMessageReplyCount(String messageId);
 }

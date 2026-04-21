@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
@@ -83,7 +84,8 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
+    return KeyboardDismissOnTap(
+      child: Scaffold(
       backgroundColor: AppColors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -247,6 +249,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

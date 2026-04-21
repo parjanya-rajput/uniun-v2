@@ -74,15 +74,16 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     final repliesResult = await _getReplies.call(event.noteId);
     var directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
 
-    // When opened from Saved Notes — only show replies that are also saved.
-    if (event.savedOnly && directReplies.isNotEmpty) {
+    // When opened from Saved Notes — only show replies/refs that are also saved.
+    Set<String> savedOnlyIds = {};
+    if (event.savedOnly) {
       final savedResult = await _getAllSavedNotes.call();
-      final savedIds = savedResult.fold(
+      savedOnlyIds = savedResult.fold(
         (_) => <String>{},
         (notes) => notes.map((n) => n.eventId).toSet(),
       );
       directReplies = directReplies
-          .where((r) => savedIds.contains(r.id))
+          .where((r) => savedOnlyIds.contains(r.id))
           .toList();
     }
 
@@ -101,6 +102,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     //    note as sibling "parents" that this note references) ─────────────────
     final mentionIds = rootNote.eTagRefs
         .where((id) => id != rootNote.rootEventId && id != rootNote.replyToEventId)
+        .where((id) => !event.savedOnly || savedOnlyIds.contains(id))
         .toList();
     final mentionedNotes = <NoteEntity>[];
     if (mentionIds.isNotEmpty) {

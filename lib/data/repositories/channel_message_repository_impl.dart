@@ -108,4 +108,19 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, int>> getChannelMessageReplyCount(
+    String messageId,
+  ) async {
+    try {
+      final count = await isar.channelMessageModels
+          .filter()
+          .replyToEventIdEqualTo(messageId)
+          .count();
+      return Right(count);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

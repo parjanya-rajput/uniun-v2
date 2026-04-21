@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -7,7 +6,6 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
-import 'package:uniun/thread/bloc/thread_bloc.dart';
 import 'package:uniun/thread/utils/thread_formatters.dart';
 
 // ── Top-level reply item (Twitter/X style) ────────────────────────────────────
@@ -25,6 +23,8 @@ class ThreadReplyItem extends StatefulWidget {
     required this.showThreadLine, // kept for API compat — ignored
     required this.onReplyTap,
     this.onTap, // navigate into this reply's detail
+    this.onExpandReplies,
+    this.onNestedReplyTap,
   });
 
   final NoteEntity reply;
@@ -38,6 +38,10 @@ class ThreadReplyItem extends StatefulWidget {
   final VoidCallback onReplyTap;
   /// Tapping the content area of this reply navigates into its detail thread.
   final VoidCallback? onTap;
+  /// Called when the user expands nested replies (replaces ExpandReplyEvent).
+  final void Function(String replyId)? onExpandReplies;
+  /// Called when user taps reply on a nested item (replaces SetReplyTargetEvent).
+  final void Function(String replyId, String replyName)? onNestedReplyTap;
 
   @override
   State<ThreadReplyItem> createState() => _ThreadReplyItemState();
@@ -96,7 +100,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
     if (!_showReplies &&
         widget.nestedReplies.isEmpty &&
         widget.replyCount > 0) {
-      context.read<ThreadBloc>().add(ExpandReplyEvent(widget.reply.id));
+      widget.onExpandReplies?.call(widget.reply.id);
     }
     setState(() => _showReplies = !_showReplies);
   }
@@ -218,12 +222,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
                 displayName: nestedName,
                 replyCount: nestedCount,
                 onReplyTap: () {
-                  context.read<ThreadBloc>().add(
-                        SetReplyTargetEvent(
-                          replyToId: nested.id,
-                          replyToName: nestedName,
-                        ),
-                      );
+                  widget.onNestedReplyTap?.call(nested.id, nestedName);
                 },
               );
             })

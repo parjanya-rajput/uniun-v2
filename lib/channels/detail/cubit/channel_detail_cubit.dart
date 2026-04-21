@@ -42,8 +42,10 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
     final profiles = await _loadProfiles(messages);
     if (isClosed) return;
 
-    // Load saved IDs for all messages so NoteCard can show correct save state.
     final savedIds = await _loadSavedIds(messages);
+    if (isClosed) return;
+
+    final replyCounts = await _loadReplyCounts(messages);
     if (isClosed) return;
 
     emit(state.copyWith(
@@ -52,6 +54,7 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
       messages: messages,
       profiles: profiles,
       savedIds: savedIds,
+      replyCounts: replyCounts,
       isLoading: false,
     ));
   }
@@ -92,7 +95,17 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
       )),
       (message) {
         final updated = [...state.messages, message];
-        emit(state.copyWith(isSending: false, messages: updated));
+        // Increment reply count for parent message immediately
+        final updatedCounts = Map<String, int>.from(state.replyCounts);
+        if (replyToEventId != null) {
+          updatedCounts[replyToEventId] =
+              (updatedCounts[replyToEventId] ?? 0) + 1;
+        }
+        emit(state.copyWith(
+          isSending: false,
+          messages: updated,
+          replyCounts: updatedCounts,
+        ));
       },
     );
   }
@@ -141,5 +154,16 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
       });
     }
     return saved;
+  }
+
+  Future<Map<String, int>> _loadReplyCounts(
+      List<ChannelMessageEntity> messages) async {
+    final counts = <String, int>{};
+    for (final msg in messages) {
+      final result =
+          await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
+      result.fold((_) => null, (c) => counts[msg.id] = c);
+    }
+    return counts;
   }
 }

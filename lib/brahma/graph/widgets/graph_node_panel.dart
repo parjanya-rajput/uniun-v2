@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
@@ -84,15 +85,24 @@ class GraphNodePanel extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // Note content — scrollable
+            // Note content — tappable for non-drafts to open thread
             Flexible(
-              child: SingleChildScrollView(
-                child: Text(
-                  node.content,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.onSurface,
-                    height: 1.6,
+              child: GestureDetector(
+                onTap: isDraft
+                    ? null
+                    : () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.thread,
+                          arguments: node.eventId,
+                        ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    node.content,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.onSurface,
+                      height: 1.6,
+                    ),
                   ),
                 ),
               ),
