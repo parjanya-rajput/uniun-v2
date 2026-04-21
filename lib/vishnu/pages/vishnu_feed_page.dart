@@ -58,6 +58,11 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
       child: Scaffold(
         backgroundColor: AppColors.surfaceContainerLowest,
         drawer: VishnuDrawer(onSwitchTab: widget.onSwitchTab),
+        onDrawerChanged: (isOpen) {
+          if (isOpen) {
+            _drawerBloc.add(app_drawer.DrawerLoadEvent());
+          }
+        },
         body: Stack(
           children: [
             _VishnuFeedView(onScrollDirection: _onScrollDirection),

@@ -18,4 +18,9 @@ abstract class ChannelMessageRepository {
   Future<Either<Failure, ChannelMessageEntity?>> getMessageByEventId(
     String eventId,
   );
+
+  /// Direct replies to a single channel message, oldest first.
+  Future<Either<Failure, List<ChannelMessageEntity>>> getChannelMessageReplies(
+    String messageId,
+  );
 }

@@ -89,4 +89,16 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, int>> getSavedReplyCount(String eventId) async {
+    try {
+      final count = await isar.savedNoteModels
+          .filter()
+          .rootEventIdEqualTo(eventId)
+          .count();
+      return Right(count);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

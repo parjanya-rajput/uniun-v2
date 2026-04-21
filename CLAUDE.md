@@ -151,23 +151,24 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 
 ### Used in UNIUN
 
-| NIP    | Purpose                                         |
-|--------|-------------------------------------------------|
-| NIP-01 | Base event format, relay subscription protocol  |
-| NIP-10 | Reply threading via e-tag markers               |
-| NIP-11 | Relay capability advertisement                  |
-| NIP-17 | Private DMs (Kind 14 rumor)                     |
-| NIP-28 | Public channels (Kind 40/41/42)                 |
-| NIP-44 | Encryption for DMs (ChaCha20 + HMAC-SHA256)     |
-| NIP-59 | Gift wrap for private message delivery          |
-| NIP-65 | User relay list metadata                        |
+| NIP    | Purpose                                                  |
+|--------|----------------------------------------------------------|
+| NIP-01 | Base event format, relay WebSocket protocol              |
+| NIP-05 | Human-readable identifiers (`user@domain.com`) in profiles |
+| NIP-10 | Reply threading via e-tag markers (root/reply/mention)   |
+| NIP-17 | Private DMs (Kind 14 rumor format)                       |
+| NIP-28 | Public channels (Kind 40 create / Kind 41 meta / Kind 42 msg) |
+| NIP-44 | Encryption for DM payloads (ChaCha20-Poly1305)           |
 
 ### Explicitly NOT Used
 
-| NIP    | Why excluded                                                  |
-|--------|---------------------------------------------------------------|
-| NIP-09 | Event deletion — intentionally excluded. Feed freedom is a core principle. Never implement. |
-| NIP-04 | Legacy DM encryption — superseded by NIP-17 + NIP-44          |
+| NIP    | Why excluded                                                      |
+|--------|-------------------------------------------------------------------|
+| NIP-09 | Event deletion — **permanently excluded**. Feed freedom is a core principle. Never implement. |
+| NIP-04 | Legacy DM encryption (AES-CBC) — superseded by NIP-44.            |
+| NIP-11 | Relay capability info — handled automatically by Khatru on relay; Flutter client does not implement. |
+| NIP-59 | Gift wrap — future scope only (full 3-layer DM wrapping not yet built). |
+| NIP-65 | Relay list metadata (Kind 10002) — relays managed locally in `RelayModel` (Isar), not via Nostr events. |
 
 ---
 
@@ -329,35 +330,49 @@ Subscribing to a note's reference graph — distinct from saved notes (which are
 
 ---
 
-## EmbeddedServer (External — Do Not Modify)
+## Gateway (Relay Sync Isolate)
 
-The EmbeddedServer runs in a Dart isolate and is maintained by a separate team. It is the sync engine between Isar and Nostr relays.
+The Gateway runs in a separate Dart isolate (`lib/gateway/`). It owns all relay WebSocket connections. The Flutter UI never touches the relay directly — Isar is the shared bus between isolates.
 
 ```
-EmbeddedServer
-  ├── RelayConnector — manages WebSocket connections to multiple relays
-  ├── SyncEngine — processIncoming(NostrEvent) → Isar; flushQueue() → relays
-  ├── EventQueue — pending outgoing events with offline support
-  └── CleanupManager — retention policy enforcement
+lib/gateway/
+  ├── gateway.dart             — GatewayBootstrap.start() spawns the isolate
+  ├── gateway_init_message.dart — carries isarDirectory path to the isolate
+  ├── central_relay_manager.dart — orchestrates all relay services
+  └── websocket_service.dart   — one WebSocket connection per relay URL
 ```
 
-**Relay subscriptions UNIUN opens:**
+**How it works:**
+- `GatewayBootstrap.start()` calls `Isolate.spawn(gatewayEntryPoint, GatewayInitMessage(isarDirectory))`.
+- The isolate opens its own `Isar` instance at the same path — no `SendPort` needed. Isar is the interface.
+- `CentralRelayManager` holds Isar `watchLazy()` subscriptions:
+  - `EventQueueModel` watcher → new queue rows trigger immediate send on all write `WebSocketService`s.
+  - `RelayModel` watcher → syncs `_services` map when relays are added/removed at runtime.
+  - `FollowedNoteModel` watcher → refreshes `#e` REQ subscriptions.
+  - `_dequeueTimer` (5 min) → purges queue entries older than 30 minutes.
+
+**`WebSocketService` (one per relay):**
+- Persistent connection, exponential backoff reconnect (max 60s).
+- Outbound: cursor-based (`_lastSentQueueId`); one event in-flight, waits for `["OK"]` ACK.
+- Channel events (Kind 40–44) routed to channel-specific relays via `ChannelModel.relays`; temporary services created for channel relays (5 min TTL).
+- Inbound: stores received Kind 1 events to `NoteModel` (idempotent). Bumps `FollowedNoteModel.newReferenceCount` when e-tags match a followed note.
+
+**Relay subscriptions the Gateway opens:**
 ```dart
-// Feed
-{"kinds": [1], "authors": [...followedPubkeys], "limit": 50}
+// All Kind 1 notes (feed_notes subscription)
+{"kinds": [1]}
 
-// Channel messages
-{"kinds": [40, 41, 42], "#e": [channelId], "limit": 100}
+// Followed note references — refreshed when FollowedNoteModel changes
+{"kinds": [1], "#e": ["followedNoteId1", "followedNoteId2", ...]}
 
-// DMs (gift wraps addressed to this user)
-{"kinds": [1059], "#p": [myPubkey]}
+// Channel messages (per SubscriptionRecordEntity)
+{"kinds": [41, 42], "#e": ["channelId"], "limit": 100}
 
-// Profile metadata
-{"kinds": [0], "authors": [pubkey]}
-
-// Followed note references (one per followed note)
-{"kinds": [1], "#e": ["followedNoteId"]}
+// DMs (future — gift wraps addressed to this user)
+{"kinds": [1059], "#p": ["myPubkey"]}
 ```
+
+**Do not modify Gateway internals** — this code is owned by Parjaniya. The Flutter UI only reads/writes Isar.
 
 **Isar retention policy (enforced by CleanupManager):**
 
@@ -553,7 +568,10 @@ Core identity, feed, threading, followed notes, settings, and onboarding are all
 | SavedNote — full note copy stored in Isar (not just ID) | ✅ Done |
 | Brahma create note — BLoC, compose page, graph preview | ✅ Done |
 | Shiv AI — model selection, RAG pipeline, conversation persistence, chat UI | ✅ Done |
-| Channels (NIP-28), DMs (NIP-17) | 🔲 Pending |
+| Gateway isolate (CentralRelayManager + WebSocketService) | ✅ Done |
+| Channels create flow (NIP-28 Kind 40) — CreateChannelBloc + usecase | ✅ Done |
+| Channels feed/messaging UI | 🔲 Pending |
+| DMs (NIP-17) | 🔲 Pending |
 
 **NIP-09 (event deletion) is permanently excluded.** Notes are forever — this is a core product principle, not a gap. Never add a `deleted` field, Kind 5 event handling, or any soft-delete mechanism anywhere in the codebase.
 

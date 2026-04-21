@@ -1,4 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'channel_message_entity.freezed.dart';
 
@@ -19,4 +21,21 @@ abstract class ChannelMessageEntity with _$ChannelMessageEntity {
     String? replyToEventId,
     required DateTime created,
   }) = _ChannelMessageEntity;
+}
+
+extension ChannelMessageToNote on ChannelMessageEntity {
+  /// Converts to NoteEntity for display with NoteCard.
+  /// eTagRefs are cleared — channel messages are not part of the knowledge graph.
+  NoteEntity toNoteEntity() => NoteEntity(
+        id: id,
+        sig: sig,
+        authorPubkey: authorPubkey,
+        content: content,
+        type: NoteType.text,
+        eTagRefs: const [],
+        pTagRefs: pTagRefs,
+        tTags: const [],
+        created: created,
+        isSeen: true,
+      );
 }

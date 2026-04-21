@@ -6,6 +6,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_cubit.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_state.dart';
 import 'package:uniun/thread/pages/thread_page.dart';
+import 'package:uniun/vishnu/widgets/note_card.dart';
 
 class SavedNotesPage extends StatelessWidget {
   const SavedNotesPage({super.key});
@@ -153,20 +154,26 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                           ],
                         )
                       : ListView.separated(
-                          padding: const EdgeInsets.only(
-                              left: 16, right: 16, bottom: 24),
+                          padding: const EdgeInsets.only(bottom: 24),
                           itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
+                          separatorBuilder: (_, __) => const SizedBox.shrink(),
                           itemBuilder: (ctx, i) {
                             final cubit = context.read<SavedNotesCubit>();
-                            return _SavedNoteCard(
-                              note: filtered[i],
+                            final note = filtered[i];
+                            final savedEventIds =
+                                state.notes.map((n) => n.eventId).toSet();
+                            return NoteCard(
+                              note: note.toNoteEntity(
+                                  savedEventIds: savedEventIds),
+                              profile: state.profiles[note.authorPubkey],
+                              replyCount:
+                                  state.replyCounts[note.eventId] ?? 0,
+                              isSaved: true,
                               onTap: () => Navigator.push(
                                 ctx,
                                 MaterialPageRoute(
                                   builder: (_) => ThreadPage(
-                                    noteId: filtered[i].eventId,
+                                    noteId: note.eventId,
                                     savedOnly: true,
                                   ),
                                 ),
@@ -246,110 +253,3 @@ class _NoResultsState extends StatelessWidget {
   }
 }
 
-// ── Saved note card ────────────────────────────────────────────────────────────
-
-class _SavedNoteCard extends StatelessWidget {
-  const _SavedNoteCard({required this.note, required this.onTap});
-
-  final SavedNoteEntity note;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final shortKey = note.authorPubkey.length >= 8
-        ? note.authorPubkey.substring(0, 8)
-        : note.authorPubkey;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Author + saved time
-            Row(
-              children: [
-                Text(
-                  shortKey,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.bookmark_rounded,
-                  size: 14,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDate(note.savedAt),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Full content — no truncation
-            Text(
-              note.content,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.onSurface,
-                height: 1.5,
-              ),
-            ),
-            if (note.tTags.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: note.tTags.map((tag) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '#$tag',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${dt.day}/${dt.month}/${dt.year}';
-  }
-}

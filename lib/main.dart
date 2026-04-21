@@ -19,6 +19,7 @@ import 'package:uniun/onboarding/pages/splash_page.dart';
 import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/channels/create/pages/create_channel_page.dart';
+import 'package:uniun/channels/detail/pages/channel_detail_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
@@ -83,6 +84,9 @@ class UniunApp extends StatelessWidget {
           noteId: ModalRoute.of(ctx)!.settings.arguments as String,
         ),
         AppRoutes.createChannel: (_) => const CreateChannelPage(),
+        AppRoutes.channelDetail: (ctx) => ChannelDetailPage(
+          channelId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
         AppRoutes.graph: (_) => MultiBlocProvider(

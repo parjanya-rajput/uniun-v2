@@ -12,12 +12,14 @@ class CreateChannelMessageInput {
   final String content;
   final String privateKey;
   final String? replyToEventId;
+  final List<String> mentionRefs;
 
   const CreateChannelMessageInput({
     required this.channelId,
     required this.content,
     required this.privateKey,
     this.replyToEventId,
+    this.mentionRefs = const [],
   });
 }
 
@@ -38,6 +40,9 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, ChannelMessage
       if (input.replyToEventId != null) {
         tags.add(['e', input.replyToEventId!, '', 'reply']);
       }
+      for (final ref in input.mentionRefs) {
+        tags.add(['e', ref, '', 'mention']);
+      }
 
       final kind42 = Event.from(
         privkey: input.privateKey,
@@ -51,6 +56,7 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, ChannelMessage
       if (input.replyToEventId != null) {
         eTagRefs.add(input.replyToEventId!);
       }
+      eTagRefs.addAll(input.mentionRefs);
 
       final created = DateTime.fromMillisecondsSinceEpoch(kind42.createdAt * 1000);
 

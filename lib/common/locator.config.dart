@@ -70,6 +70,8 @@ import 'package:uniun/domain/usecases/create_channel_usecase.dart' as _i1033;
 import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
 import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart' as _i263;
+import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart'
+    as _i689;
 import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
@@ -253,6 +255,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
       () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
     );
+    gh.lazySingleton<_i858.GetSavedReplyCountUseCase>(
+      () => _i858.GetSavedReplyCountUseCase(gh<_i43.SavedNoteRepository>()),
+    );
     gh.factory<_i240.StorageRepository>(
       () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -285,6 +290,20 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i799.ImportKeyUseCase>(
       () => _i799.ImportKeyUseCase(gh<_i103.UserRepository>()),
+    );
+    gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
+      () =>
+          _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
+      () => _i689.GetChannelMessageByIdUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageRepliesUseCase>(
+      () => _i689.GetChannelMessageRepliesUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
     );
     gh.factory<_i464.FollowedNoteDetailCubit>(
       () => _i464.FollowedNoteDetailCubit(

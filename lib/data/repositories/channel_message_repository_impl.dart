@@ -92,4 +92,20 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<ChannelMessageEntity>>> getChannelMessageReplies(
+    String messageId,
+  ) async {
+    try {
+      final rows = await isar.channelMessageModels
+          .filter()
+          .replyToEventIdEqualTo(messageId)
+          .sortByCreated()
+          .findAll();
+      return Right(rows.map((m) => m.toDomain()).toList());
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }
