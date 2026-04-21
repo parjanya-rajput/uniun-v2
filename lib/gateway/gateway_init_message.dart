@@ -8,7 +8,14 @@ class GatewayInitMessage {
   /// passed here so the Gateway isolate never needs Flutter plugins.
   final String isarDirectory;
 
+  /// The active user's private key as raw hex (32 bytes).
+  /// Decoded from nsec in Isolate 1 and passed here because
+  /// [FlutterSecureStorage] is unavailable in background isolates.
+  /// May be null before the user has logged in.
+  final String? privkeyHex;
+
   const GatewayInitMessage({
     required this.isarDirectory,
+    this.privkeyHex,
   });
 }

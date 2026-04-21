@@ -14,4 +14,6 @@ abstract class AppRoutes {
   static const createChannel = '/create-channel';
   static const savedNotes = '/saved-notes';
   static const graph = '/graph';
+  static const createDm = '/create-dm';
+  static const chatDm = '/chat-dm';
 }

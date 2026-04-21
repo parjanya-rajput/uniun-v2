@@ -107,7 +107,10 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Direct Messages ───────────────────────────────────
                     _SectionHeader(
                       label: l10n.drawerDirectMessages,
-                      onAdd: () => _showComingSoon(context, l10n.drawerDirectMessages),
+                      onAdd: () {
+                         _close(context);
+                         Navigator.pushNamed(context, AppRoutes.createDm);
+                      },
                     ),
                     const SizedBox(height: 4),
                     if ((loaded?.dms ?? []).isEmpty)
@@ -117,7 +120,11 @@ class VishnuDrawer extends StatelessWidget {
                             dm: dm,
                             onTap: () {
                               _close(context);
-                              _showComingSoon(context, dm.name);
+                              Navigator.pushNamed(
+                                context, 
+                                AppRoutes.chatDm, 
+                                arguments: dm.pubkey,
+                              );
                             },
                           )),
 

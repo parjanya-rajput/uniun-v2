@@ -5,6 +5,10 @@ import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/get_channels_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
+import 'package:uniun/data/models/profile_model.dart';
+import 'dart:async';
 
 part 'drawer_event.dart';
 part 'drawer_state.dart';
@@ -15,12 +19,15 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetOwnProfileUseCase _getOwnProfile;
   final GetAllFollowedNotesUseCase _getAllFollowedNotes;
   final GetChannelsUseCase _getChannels;
+  final Isar _isar;
+  StreamSubscription<void>? _dmWatcher;
 
   DrawerBloc(
     this._getActiveUser,
     this._getOwnProfile,
     this._getAllFollowedNotes,
     this._getChannels,
+    this._isar,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
   }
@@ -29,6 +36,12 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     DrawerLoadEvent event,
     Emitter<DrawerState> emit,
   ) async {
+    _dmWatcher ??= _isar.dmConversationModels.watchLazy().listen((_) {
+      if (!isClosed) {
+        add(DrawerLoadEvent());
+      }
+    });
+
     emit(DrawerLoading());
 
     try {
@@ -65,10 +78,16 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
                 ))
             .toList(),
       );
-      const dms = <DrawerDmItem>[
-        DrawerDmItem(pubkey: 'dm1', name: 'Alice', unreadCount: 3),
-        DrawerDmItem(pubkey: 'dm2', name: 'Bob'),
-      ];
+      final dmConversations = await _isar.dmConversationModels.where().findAll();
+      final dms = <DrawerDmItem>[];
+      for (final conv in dmConversations) {
+        final profile = await _isar.profileModels.where().pubkeyEqualTo(conv.otherPubkey).findFirst();
+        dms.add(DrawerDmItem(
+          pubkey: conv.otherPubkey,
+          name: profile?.name ?? profile?.username ?? conv.otherPubkey,
+          avatarUrl: profile?.avatarUrl,
+        ));
+      }
 
       final followedResult = await _getAllFollowedNotes.call();
       final followedNotes = followedResult.fold(
@@ -94,5 +113,11 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     } catch (e) {
       emit(DrawerError(e.toString()));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _dmWatcher?.cancel();
+    return super.close();
   }
 }

@@ -21,6 +21,8 @@ import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/graph/pages/graph_page.dart';
+import 'package:uniun/dm/create/pages/create_dm_page.dart';
+import 'package:uniun/dm/chat/pages/dm_chat_page.dart';
 import 'package:uniun/gateway/gateway.dart';
 
 Future<void> main() async {
@@ -81,6 +83,8 @@ class UniunApp extends StatelessWidget {
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
         AppRoutes.graph: (_) => const GraphPage(),
+        AppRoutes.createDm: (_) => const CreateDmPage(),
+        AppRoutes.chatDm: (_) => const DmChatPage(),
       },
     );
   }

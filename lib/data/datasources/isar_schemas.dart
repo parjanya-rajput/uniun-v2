@@ -7,6 +7,7 @@ import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
+import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/draft_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:isar_community/isar.dart';
@@ -37,4 +38,5 @@ final List<CollectionSchema> isarSchemas = [
   ChannelModelSchema,
   ChannelMessageModelSchema,
   SubscriptionRecordModelSchema,
+  EncryptedDmModelSchema,
 ];

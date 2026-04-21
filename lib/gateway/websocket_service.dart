@@ -7,6 +7,8 @@ import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -26,6 +28,8 @@ class WebSocketService {
 
   /// NIP-01 [REQ] id for followed-note thread refs (`#e` = followed root ids).
   static const _followedNoteRefsSubscriptionId = 'followed_note_refs';
+
+  static const _dmSubscriptionId = 'dms';
 
   final String url;
   final bool read;
@@ -54,6 +58,8 @@ class WebSocketService {
   /// delivered twice (e.g. matches both `feed_notes` and `followed_note_refs`).
   final Set<String> _processedFollowReferenceBumps = {};
 
+  final String? activePubkey;
+
   final void Function(RelayStatus)? onStatusChanged;
   final Future<List<String>?> Function(EventQueueModel)? resolveTargets;
 
@@ -63,6 +69,7 @@ class WebSocketService {
     required this.write,
     required Isar isar,
     required int startFromQueueId,
+    this.activePubkey,
     this.onStatusChanged,
     this.resolveTargets,
   }) : _isar = isar,
@@ -93,6 +100,7 @@ class WebSocketService {
             _reconnectAttempt = 0;
             _updateStatus(RelayStatus.connected);
             _subscribeKind1Feed();
+            _subscribeDms();
             unawaited(_subscribeFollowedNoteRefs());
             _processSendQueue();
           })
@@ -113,6 +121,20 @@ class WebSocketService {
         _kind1FeedSubscriptionId,
         {
           'kinds': [1],
+        },
+      ]),
+    );
+  }
+
+  void _subscribeDms() {
+    if (!read || _disposed || _socket == null || activePubkey == null) return;
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        _dmSubscriptionId,
+        {
+          'kinds': [1059],
+          '#p': [activePubkey],
         },
       ]),
     );
@@ -221,7 +243,13 @@ class WebSocketService {
         break;
       case 'EVENT':
         if (read && data.length >= 3) {
-          unawaited(_handleIncomingKind1Event(data[2] as Map<String, dynamic>));
+          final eventMap = data[2] as Map<String, dynamic>;
+          final kind = eventMap['kind'] as int?;
+          if (kind == 1) {
+            unawaited(_handleIncomingKind1Event(eventMap));
+          } else if (kind == 1059) {
+            unawaited(_storeEncryptedDm(eventMap));
+          }
         }
         break;
       case 'EOSE':
@@ -252,7 +280,9 @@ class WebSocketService {
           await _isar.eventQueueModels.put(item);
         }
       });
-      _lastSentQueueId = _pendingQueueId!;
+      if (_pendingQueueId != null) {
+        _lastSentQueueId = _pendingQueueId!;
+      }
     }
 
     // Whether accepted or rejected, release the pending slot and move on.
@@ -288,6 +318,43 @@ class WebSocketService {
       await _isar.noteModels.put(model);
     });
     // Isar watcher in Isolate 1 fires automatically — Flutter UI updates.
+  }
+
+  Future<void> _storeEncryptedDm(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    if (eventId == null) return;
+
+    // Check if we already received it
+    final existing = await _isar.encryptedDmModels
+        .where()
+        .eventIdEqualTo(eventId)
+        .findFirst();
+    if (existing != null) return;
+
+    final rawTags = (event['tags'] as List<dynamic>? ?? []);
+    String? pTagRef;
+    for (final tag in rawTags) {
+      if (tag is List && tag.length >= 2 && tag[0] == 'p') {
+        pTagRef = tag[1] as String;
+        break;
+      }
+    }
+
+    if (pTagRef == null) return;
+
+    final model = EncryptedDmModel(
+      eventId: eventId,
+      sig: event['sig'] as String? ?? '',
+      authorPubkey: event['pubkey'] as String? ?? '',
+      pTagRef: pTagRef,
+      content: event['content'] as String? ?? '',
+      kind: event['kind'] as int? ?? 1059,
+      created: DateTime.fromMillisecondsSinceEpoch((event['created_at'] as int? ?? 0) * 1000),
+    );
+
+    await _isar.writeTxn(() async {
+      await _isar.encryptedDmModels.put(model);
+    });
   }
 
   Future<void> _bumpFollowedReferenceCountsIfNeeded(
