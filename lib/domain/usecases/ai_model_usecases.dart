@@ -12,7 +12,7 @@ class GetAvailableAIModelsUseCase {
   final AIModelRepository _repository;
   const GetAvailableAIModelsUseCase(this._repository);
 
-  List<AIModelEntity> call() => _repository.getAvailableModels();
+  Future<List<AIModelEntity>> call() => _repository.getAvailableModels();
 }
 
 // ── GetActiveAIModelUseCase ───────────────────────────────────────────────────
@@ -52,3 +52,27 @@ class ClearActiveAIModelUseCase
   @override
   Future<Either<Failure, Unit>> call() => _repository.clearActiveModel();
 }
+
+// ── GetDownloadedModelIdsUseCase ──────────────────────────────────────────────
+
+@lazySingleton
+class GetDownloadedModelIdsUseCase {
+  final AIModelRepository _repository;
+  const GetDownloadedModelIdsUseCase(this._repository);
+
+  Future<Set<AIModelId>> call() => _repository.getDownloadedModelIds();
+}
+
+// ── DeleteAIModelUseCase ──────────────────────────────────────────────────────
+
+@lazySingleton
+class DeleteAIModelUseCase
+    extends UseCase<Either<Failure, Unit>, AIModelId> {
+  final AIModelRepository _repository;
+  const DeleteAIModelUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(AIModelId modelId, {bool cached = false}) =>
+      _repository.deleteModel(modelId);
+}
+

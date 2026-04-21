@@ -5,8 +5,10 @@ sealed class ThreadEvent {
 }
 
 final class LoadThreadEvent extends ThreadEvent {
-  const LoadThreadEvent(this.noteId);
+  const LoadThreadEvent(this.noteId, {this.savedOnly = false});
   final String noteId;
+  /// When true, only replies that are also in Saved Notes are shown.
+  final bool savedOnly;
 }
 
 final class UpdateReplyTextEvent extends ThreadEvent {

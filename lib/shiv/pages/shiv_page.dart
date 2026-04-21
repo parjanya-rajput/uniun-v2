@@ -59,12 +59,21 @@ class _ShivPageState extends State<ShivPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Show model selection if no model exists — no FloatingNav (back button is the nav)
+    // Show model selection if no model exists.
+    // AIModelSelectionPage uses Navigator.maybePop() so PopScope intercepts it.
+    // result == true  → model downloaded, re-check and stay on Shiv.
+    // result == null  → back pressed, go to Vishnu.
     if (_hasModel == false) {
       return PopScope(
         canPop: false,
-        onPopInvokedWithResult: (didPop, _) async {
-          if (!didPop) await _checkModel();
+        onPopInvokedWithResult: (didPop, result) async {
+          if (!didPop) {
+            if (result == true) {
+              await _checkModel();
+            } else {
+              widget.onSwitchTab(0);
+            }
+          }
         },
         child: const AIModelSelectionPage(),
       );

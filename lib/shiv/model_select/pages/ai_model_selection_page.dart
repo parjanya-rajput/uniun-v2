@@ -29,7 +29,7 @@ class _AIModelSelectionView extends StatelessWidget {
     return BlocConsumer<SelectAIModelCubit, SelectAIModelState>(
       listener: (context, state) {
         if (state.status == SelectAIModelStatus.done) {
-          Navigator.of(context).pop(true);
+          Navigator.of(context).maybePop(true);
         }
         if (state.status == SelectAIModelStatus.error &&
             state.errorMessage != null) {
@@ -49,8 +49,8 @@ class _AIModelSelectionView extends StatelessWidget {
             scrolledUnderElevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.onSurface),
-              onPressed: () => Navigator.of(context).pop(),
+                  color: AppColors.primary),
+              onPressed: () => Navigator.of(context).maybePop(),
             ),
             title: Text(
               l10n.aiModelSelectionTitle,
@@ -101,9 +101,16 @@ class _AIModelSelectionView extends StatelessWidget {
                             isSelected:
                                 state.selectedModelId == model.modelId,
                             isActive: state.activeModelId == model.modelId,
+                            isDownloaded: state.downloadedModelIds
+                                .contains(model.modelId),
+                            isDeleting:
+                                state.deletingModelId == model.modelId,
                             onTap: () => context
                                 .read<SelectAIModelCubit>()
                                 .selectModel(model.modelId),
+                            onDelete: () => context
+                                .read<SelectAIModelCubit>()
+                                .deleteModel(model.modelId),
                           ),
                         )),
 

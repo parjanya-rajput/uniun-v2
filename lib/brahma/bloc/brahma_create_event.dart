@@ -72,3 +72,10 @@ final class RemoveMentionEvent extends BrahmaCreateEvent {
 final class ClearMentionSearchEvent extends BrahmaCreateEvent {
   const ClearMentionSearchEvent();
 }
+
+/// Fired after pre-filling a draft for edit — loads the referenced notes
+/// from Isar so they appear as selected mentions in the compose UI.
+final class RestoreDraftMentionsEvent extends BrahmaCreateEvent {
+  const RestoreDraftMentionsEvent(this.mentionIds);
+  final List<String> mentionIds;
+}

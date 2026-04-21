@@ -9,6 +9,7 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 
@@ -26,6 +27,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final GetReplyCountUseCase _getReplyCount;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final EmbedAndStoreNoteUseCase _embedAndStore;
+  final GetAllSavedNotesUseCase _getAllSavedNotes;
 
   ThreadBloc(
     this._getNoteById,
@@ -35,6 +37,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     this._getReplyCount,
     this._getActiveUserKeys,
     this._embedAndStore,
+    this._getAllSavedNotes,
   ) : super(const ThreadState()) {
     on<LoadThreadEvent>(_onLoad, transformer: droppable());
     on<UpdateReplyTextEvent>(_onUpdateText);
@@ -69,7 +72,19 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
 
     final rootProfileFuture = _getProfile.call(rootNote.authorPubkey);
     final repliesResult = await _getReplies.call(event.noteId);
-    final directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
+    var directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
+
+    // When opened from Saved Notes — only show replies that are also saved.
+    if (event.savedOnly && directReplies.isNotEmpty) {
+      final savedResult = await _getAllSavedNotes.call();
+      final savedIds = savedResult.fold(
+        (_) => <String>{},
+        (notes) => notes.map((n) => n.eventId).toSet(),
+      );
+      directReplies = directReplies
+          .where((r) => savedIds.contains(r.id))
+          .toList();
+    }
 
     final rootProfile = await rootProfileFuture;
     rootProfile.fold((_) {}, (p) => profiles[p.pubkey] = p);
@@ -82,22 +97,41 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
     }));
 
-    // ── Walk up the parent chain (max 2 levels) ───────────────────────────────
-    // Needed to display context above the focused note (X/Twitter style).
+    // ── Load mention refs (outgoing e-tag mentions — rendered above the root
+    //    note as sibling "parents" that this note references) ─────────────────
+    final mentionIds = rootNote.eTagRefs
+        .where((id) => id != rootNote.rootEventId && id != rootNote.replyToEventId)
+        .toList();
+    final mentionedNotes = <NoteEntity>[];
+    if (mentionIds.isNotEmpty) {
+      final mentionResults = await Future.wait(
+        mentionIds.map((id) => _getNoteById.call(id)),
+      );
+      for (final r in mentionResults) {
+        r.fold((_) {}, mentionedNotes.add);
+      }
+      // Load profiles for mention authors in parallel
+      await Future.wait(mentionedNotes.map((m) async {
+        if (!profiles.containsKey(m.authorPubkey)) {
+          final pr = await _getProfile.call(m.authorPubkey);
+          pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
+        }
+      }));
+    }
+
+    // ── Load immediate parent (1 level only, no grandparent) ─────────────────
     final parentChain = <NoteEntity>[];
-    var parentId = rootNote.replyToEventId;
-    var depth = 0;
-    while (parentId != null && depth < 2) {
-      final pr = await _getNoteById.call(parentId);
-      if (pr.isLeft()) break;
-      final parent = pr.getOrElse(() => throw StateError('unreachable'));
-      parentChain.insert(0, parent); // oldest first
-      if (!profiles.containsKey(parent.authorPubkey)) {
-        final pfr = await _getProfile.call(parent.authorPubkey);
+    final immediateParentId = rootNote.replyToEventId;
+    if (immediateParentId != null) {
+      final pr = await _getNoteById.call(immediateParentId);
+      pr.fold((_) {}, (parent) {
+        parentChain.add(parent);
+      });
+      if (parentChain.isNotEmpty &&
+          !profiles.containsKey(parentChain.first.authorPubkey)) {
+        final pfr = await _getProfile.call(parentChain.first.authorPubkey);
         pfr.fold((_) {}, (p) => profiles[p.pubkey] = p);
       }
-      parentId = parent.replyToEventId;
-      depth++;
     }
 
     emit(state.copyWith(
@@ -107,6 +141,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       replies: directReplies,
       replyCounts: Map.from(replyCounts),
       nestedReplies: const {},
+      mentionedNotes: mentionedNotes,
       status: ThreadStatus.loaded,
     ));
   }

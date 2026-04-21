@@ -724,23 +724,119 @@ abstract class AppLocalizations {
   /// **'Storage Usage'**
   String get storageUsage;
 
-  /// Storage card subtitle
+  /// Storage bar chart row — notes stored in local DB
   ///
   /// In en, this message translates to:
-  /// **'Optimizing for offline-first experience.'**
-  String get storageOptimizing;
+  /// **'Note Data'**
+  String get storageNoteData;
 
-  /// Storage card button
+  /// Storage bar chart row — downloaded AI model files
   ///
   /// In en, this message translates to:
-  /// **'Clear Cache'**
-  String get storageClearCache;
+  /// **'AI Models'**
+  String get storageAiModels;
 
-  /// Storage card destructive button
+  /// Subtitle for AI models storage row
   ///
   /// In en, this message translates to:
-  /// **'Reset Local Data'**
-  String get storageResetData;
+  /// **'Downloaded model files'**
+  String get storageAiModelsSubtitle;
+
+  /// Storage total row label
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get storageTotal;
+
+  /// Note count label
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes'**
+  String storageNotes(int count);
+
+  /// Storage card button — opens removal dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Data'**
+  String get storageRemoveData;
+
+  /// Title of the delete feed notes confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Feed Notes'**
+  String get storageDeleteDialogTitle;
+
+  /// Body of the delete feed notes dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This will delete {count} feed notes from local storage.\n\nYour own notes, saved notes, and followed notes will NOT be affected.'**
+  String storageDeleteDialogBody(int count);
+
+  /// Confirm button in delete dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get storageDeleteConfirm;
+
+  /// Snackbar shown after successful deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {count} notes'**
+  String storageDeleteSuccess(int count);
+
+  /// Shown when there are 0 deletable notes
+  ///
+  /// In en, this message translates to:
+  /// **'No feed notes to delete'**
+  String get storageNothingToDelete;
+
+  /// Legend label for chat history storage
+  ///
+  /// In en, this message translates to:
+  /// **'Chat History'**
+  String get storageChatHistory;
+
+  /// Legend label for miscellaneous app files (caches, config, assets)
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get storageOther;
+
+  /// Bottom sheet option to delete feed notes
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Feed Notes'**
+  String get storageDeleteFeedNotes;
+
+  /// Subtitle for delete feed notes option
+  ///
+  /// In en, this message translates to:
+  /// **'{count} feed notes · your own, saved, and followed notes are not affected'**
+  String storageDeleteFeedNotesSubtitle(int count);
+
+  /// Bottom sheet option to delete chat history
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Chat History'**
+  String get storageDeleteChatHistory;
+
+  /// Subtitle for delete chat history option
+  ///
+  /// In en, this message translates to:
+  /// **'All Shiv conversations and messages'**
+  String get storageDeleteChatHistorySubtitle;
+
+  /// Snackbar shown after deleting chat history
+  ///
+  /// In en, this message translates to:
+  /// **'Chat history deleted'**
+  String get storageDeleteChatHistorySuccess;
+
+  /// Confirmation dialog body for chat history deletion
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete all Shiv conversations and messages. This cannot be undone.'**
+  String get storageDeleteChatHistoryDialogBody;
 
   /// Style card row — theme
   ///
@@ -748,11 +844,23 @@ abstract class AppLocalizations {
   /// **'Theme'**
   String get styleTheme;
 
-  /// Current theme value
+  /// Light theme option label
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get styleThemeLight;
+
+  /// Dark theme option label
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get styleThemeDark;
+
+  /// System default theme option label
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get styleThemeSystem;
 
   /// Style card row — accent color
   ///
@@ -844,34 +952,46 @@ abstract class AppLocalizations {
   /// **'Active'**
   String get aiModelAlreadyActive;
 
+  /// Badge shown on downloaded but inactive model card
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get aiModelDownloaded;
+
+  /// Footer button when selected model is downloaded but not active
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Active'**
+  String get aiModelSetActive;
+
   /// Snackbar when model download fails
   ///
   /// In en, this message translates to:
   /// **'Download failed. Please try again.'**
   String get aiModelDownloadError;
 
-  /// Display name for Qwen 2.5 0.5B model
+  /// Display name for Qwen3 0.6B model
   ///
   /// In en, this message translates to:
-  /// **'Qwen 2.5 0.5B'**
+  /// **'Qwen3 0.6B'**
   String get aiModelQwen25Name;
 
-  /// Description for Qwen 2.5 0.5B model
+  /// Description for Qwen3 0.6B model
   ///
   /// In en, this message translates to:
-  /// **'Ultra-compact and fast. Works on any Android device with 3 GB+ RAM.'**
+  /// **'Compact multilingual chat with function calling. Works on any device with 3 GB+ RAM.'**
   String get aiModelQwen25Desc;
 
-  /// Display name for DeepSeek R1 1.5B model
+  /// Display name for DeepSeek R1 model
   ///
   /// In en, this message translates to:
   /// **'DeepSeek R1'**
   String get aiModelDeepSeekR1Name;
 
-  /// Description for DeepSeek R1 1.5B model
+  /// Description for DeepSeek R1 model
   ///
   /// In en, this message translates to:
-  /// **'Best reasoning and code generation for daily use. Requires 4 GB+ RAM.'**
+  /// **'High-performance reasoning and code generation. Requires 4 GB+ RAM.'**
   String get aiModelDeepSeekR1Desc;
 
   /// Display name for Gemma 4 E2B model
@@ -883,7 +1003,7 @@ abstract class AppLocalizations {
   /// Description for Gemma 4 E2B model
   ///
   /// In en, this message translates to:
-  /// **'Multimodal — handles text and images. Great for high-end devices with 6 GB+ RAM.'**
+  /// **'Next-gen multimodal chat — text, image, audio. Requires 6 GB+ RAM.'**
   String get aiModelGemma4E2bDesc;
 
   /// Display name for Gemma 4 E4B model
@@ -895,7 +1015,7 @@ abstract class AppLocalizations {
   /// Description for Gemma 4 E4B model
   ///
   /// In en, this message translates to:
-  /// **'Maximum accuracy multimodal model. Best on flagship devices with 8 GB+ RAM.'**
+  /// **'Next-gen multimodal chat — text, image, audio. Best on flagship devices with 8 GB+ RAM.'**
   String get aiModelGemma4E4bDesc;
 
   /// Progress label shown while the embedding model is downloading after first LLM install
@@ -1474,6 +1594,18 @@ abstract class AppLocalizations {
   /// **'Your on-device AI.\nThink in threads.'**
   String get shivLandingBody;
 
+  /// Shiv no-model placeholder body text
+  ///
+  /// In en, this message translates to:
+  /// **'Download an AI model to start chatting with Shiv. Everything runs on your device — no internet needed after setup.'**
+  String get shivNoModelBody;
+
+  /// Button to open AI model selection
+  ///
+  /// In en, this message translates to:
+  /// **'Set up AI'**
+  String get shivSetUpAi;
+
   /// Button label to create a new Shiv conversation
   ///
   /// In en, this message translates to:
@@ -1659,6 +1791,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bookmark notes from your feed to read them later.'**
   String get savedNotesEmptySub;
+
+  /// Graph legend label for saved notes (blue nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get graphLegendSaved;
+
+  /// Graph legend label for own published notes (green nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Own'**
+  String get graphLegendOwn;
+
+  /// Graph legend label for draft notes (amber nodes)
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get graphLegendDraft;
+
+  /// FAB option to create a plain text note from the graph
+  ///
+  /// In en, this message translates to:
+  /// **'Text note'**
+  String get graphFabTextNote;
+
+  /// FAB option to create a reference/mention note from the graph
+  ///
+  /// In en, this message translates to:
+  /// **'Reference note'**
+  String get graphFabReferenceNote;
+
+  /// Edit action on a draft node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get graphDraftEdit;
+
+  /// Delete action on a draft node panel
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get graphDraftDelete;
 }
 
 class _AppLocalizationsDelegate
