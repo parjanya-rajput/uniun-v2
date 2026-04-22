@@ -83,8 +83,6 @@ import 'package:uniun/domain/usecases/subscribe_channel_usecase.dart' as _i163;
 import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
-import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart'
-    as _i464;
 import 'package:uniun/settings/cubit/edit_profile_cubit.dart' as _i195;
 import 'package:uniun/settings/cubit/settings_cubit.dart' as _i731;
 import 'package:uniun/settings/cubit/storage_cubit.dart' as _i888;
@@ -308,13 +306,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
       () => _i689.GetChannelMessageReplyCountUseCase(
         gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.factory<_i464.FollowedNoteDetailCubit>(
-      () => _i464.FollowedNoteDetailCubit(
-        gh<_i475.GetNoteByIdUseCase>(),
-        gh<_i475.GetRepliesUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
       ),
     );
     gh.lazySingleton<_i58.GetStorageStatsUseCase>(

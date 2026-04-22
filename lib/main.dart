@@ -8,7 +8,6 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/home/pages/home_page.dart';
 import 'package:uniun/onboarding/pages/about_you_page.dart';
-import 'package:uniun/followed_notes/followed_note_detail/pages/followed_note_detail_page.dart';
 import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/shiv/model_select/pages/ai_model_selection_page.dart';
 import 'package:uniun/settings/pages/edit_profile_page.dart';
@@ -77,12 +76,13 @@ class UniunApp extends StatelessWidget {
         AppRoutes.settings: (_) => const SettingsPage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
-        AppRoutes.followedNoteDetail: (ctx) => FollowedNoteDetailPage(
-          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-        ),
-        AppRoutes.thread: (ctx) => ThreadPage(
-          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-        ),
+        AppRoutes.thread: (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments;
+          if (args is ThreadRouteArgs) {
+            return ThreadPage(noteId: args.noteId, hasUnread: args.hasUnread);
+          }
+          return ThreadPage(noteId: args as String);
+        },
         AppRoutes.createChannel: (_) => const CreateChannelPage(),
         AppRoutes.channelDetail: (ctx) => ChannelFeedPage(
           channelId: ModalRoute.of(ctx)!.settings.arguments as String,

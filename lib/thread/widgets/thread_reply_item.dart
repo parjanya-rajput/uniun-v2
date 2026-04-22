@@ -25,6 +25,7 @@ class ThreadReplyItem extends StatefulWidget {
     this.onTap, // navigate into this reply's detail
     this.onExpandReplies,
     this.onNestedReplyTap,
+    this.hasUnread = false,
   });
 
   final NoteEntity reply;
@@ -42,6 +43,8 @@ class ThreadReplyItem extends StatefulWidget {
   final void Function(String replyId)? onExpandReplies;
   /// Called when user taps reply on a nested item (replaces SetReplyTargetEvent).
   final void Function(String replyId, String replyName)? onNestedReplyTap;
+  /// Show a primary-colour dot until the user opens this reply's thread.
+  final bool hasUnread;
 
   @override
   State<ThreadReplyItem> createState() => _ThreadReplyItemState();
@@ -50,6 +53,7 @@ class ThreadReplyItem extends StatefulWidget {
 class _ThreadReplyItemState extends State<ThreadReplyItem> {
   bool _isSaved = false;
   bool _showReplies = false;
+  bool _opened = false;
 
   @override
   void initState() {
@@ -116,8 +120,13 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Main reply card ────────────────────────────────────────────────────
+        Stack(
+          children: [
         GestureDetector(
-          onTap: widget.onTap,
+          onTap: () {
+            if (widget.hasUnread && !_opened) setState(() => _opened = true);
+            widget.onTap?.call();
+          },
           behavior: HitTestBehavior.opaque,
           child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -204,6 +213,23 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
           ),
         ),
         ), // closes GestureDetector
+            if (widget.hasUnread && !_opened)
+              const Positioned(
+                top: 10,
+                right: 0,
+                child: SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ), // closes Stack
 
         // ── Inline sub-replies (one level max) ────────────────────────────────
         if (_showReplies) ...[

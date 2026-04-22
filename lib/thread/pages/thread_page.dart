@@ -13,10 +13,19 @@ import 'package:uniun/thread/widgets/thread_reply_composer.dart';
 import 'package:uniun/thread/widgets/thread_reply_item.dart';
 import 'package:uniun/thread/widgets/thread_root_note_card.dart';
 
+/// Route argument for [ThreadPage]. Pass either a plain [String] (eventId)
+/// or a [ThreadRouteArgs] when opening from a followed note with unread state.
+class ThreadRouteArgs {
+  const ThreadRouteArgs(this.noteId, {this.hasUnread = false});
+  final String noteId;
+  final bool hasUnread;
+}
+
 class ThreadPage extends StatelessWidget {
-  const ThreadPage({super.key, required this.noteId, this.savedOnly = false});
+  const ThreadPage({super.key, required this.noteId, this.savedOnly = false, this.hasUnread = false});
   final String noteId;
   final bool savedOnly;
+  final bool hasUnread;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +33,7 @@ class ThreadPage extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (_) => getIt<ThreadBloc>()
-            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly)),
+            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly, hasUnread: hasUnread)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
@@ -218,6 +227,7 @@ class _ThreadBody extends StatelessWidget {
                     replyCounts: state.replyCounts,
                     replyCount: state.replyCounts[reply.id] ?? 0,
                     showThreadLine: i < state.replies.length - 1,
+                    hasUnread: state.hasUnread,
                     onReplyTap: () {
                       ctx.read<ThreadBloc>().add(
                             SetReplyTargetEvent(

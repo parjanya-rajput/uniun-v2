@@ -6,6 +6,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
@@ -70,13 +73,21 @@ class VishnuDrawer extends StatelessWidget {
                     _CollapsibleFollowingSection(
                       items: loaded?.followedNotes ?? [],
                       onAdd: () => _showComingSoon(context, l10n.drawerHome),
-                      onItemTap: (eventId) {
+                      onItemTap: (item) async {
                         _close(context);
-                        Navigator.pushNamed(
+                        getIt<ClearNewReferencesUseCase>().call(item.eventId);
+                        await Navigator.pushNamed(
                           context,
-                          AppRoutes.followedNoteDetail,
-                          arguments: eventId,
+                          AppRoutes.thread,
+                          arguments: ThreadRouteArgs(
+                            item.eventId,
+                            hasUnread: item.newReferenceCount > 0,
+                          ),
                         );
+                        // ignore: use_build_context_synchronously
+                        if (context.mounted) {
+                          context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
+                        }
                       },
                     ),
 
@@ -452,7 +463,7 @@ class _CollapsibleFollowingSection extends StatefulWidget {
 
   final List<app_drawer.DrawerFollowedNoteItem> items;
   final VoidCallback onAdd;
-  final ValueChanged<String> onItemTap;
+  final void Function(app_drawer.DrawerFollowedNoteItem) onItemTap;
 
   @override
   State<_CollapsibleFollowingSection> createState() =>
@@ -518,7 +529,7 @@ class _CollapsibleFollowingSectionState
                 ...widget.items.map(
                   (n) => _FollowedNoteRow(
                     item: n,
-                    onTap: () => widget.onItemTap(n.eventId),
+                    onTap: () => widget.onItemTap(n),
                   ),
                 ),
             ],

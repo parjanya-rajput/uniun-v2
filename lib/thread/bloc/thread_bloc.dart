@@ -145,6 +145,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       nestedReplies: const {},
       mentionedNotes: mentionedNotes,
       status: ThreadStatus.loaded,
+      hasUnread: event.hasUnread,
     ));
   }
 

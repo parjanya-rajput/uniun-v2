@@ -233,11 +233,16 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             replyCount: replyCount,
                             isFollowed: isFollowed,
                             isSaved: feedState.savedIds.contains(note.id),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.thread,
-                              arguments: note.id,
-                            ),
+                            onTap: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                AppRoutes.thread,
+                                arguments: note.id,
+                              );
+                              if (context.mounted) {
+                                context.read<VishnuFeedBloc>().add(const RefreshFeedEvent());
+                              }
+                            },
                             onFollowTap: () => _toggleFollow(
                               context,
                               note.id,
