@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_cubit.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_state.dart';
-import 'package:uniun/channels/detail/widgets/channel_reference_picker.dart';
-import 'package:uniun/channels/thread/cubit/channel_thread_cubit.dart';
-import 'package:uniun/channels/thread/cubit/channel_thread_state.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_bloc.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_event.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_state.dart';
+import 'package:uniun/channels/feed/widgets/channel_reference_picker.dart';
+import 'package:uniun/channels/thread/bloc/channel_thread_bloc.dart';
+import 'package:uniun/channels/thread/bloc/channel_thread_event.dart';
+import 'package:uniun/channels/thread/bloc/channel_thread_state.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
@@ -21,25 +23,25 @@ class ChannelThreadPage extends StatelessWidget {
     required this.channelId,
     required this.messageId,
     required this.channelName,
-    required this.parentCubit,
+    required this.parentBloc,
   });
 
   final String channelId;
   final String messageId;
   final String channelName;
-  final ChannelDetailCubit parentCubit;
+  final ChannelFeedBloc parentBloc;
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => ChannelThreadCubit()..load(messageId),
+          create: (_) => ChannelThreadBloc()..add(LoadChannelThreadEvent(messageId)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
         ),
-        BlocProvider.value(value: parentCubit),
+        BlocProvider.value(value: parentBloc),
       ],
       child: _ChannelThreadView(
         channelId: channelId,
@@ -112,7 +114,7 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
   void _send(BuildContext ctx) {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    final replyId = _replyToEventId;
+    final replyId = _replyToEventId ?? widget.messageId;
     final refs = _mentionRefs.map((m) => m.id).toList();
     _controller.clear();
     setState(() {
@@ -120,16 +122,16 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
       _replyToName = null;
       _mentionRefs.clear();
     });
-    ctx.read<ChannelDetailCubit>().sendMessage(
-      widget.channelId,
-      text,
+    ctx.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
+      channelId: widget.channelId,
+      content: text,
       replyToEventId: replyId,
       mentionRefs: refs,
-    );
+    ));
   }
 
   void _openLinkPicker(BuildContext ctx) {
-    final messages = ctx.read<ChannelDetailCubit>().state.messages;
+    final messages = ctx.read<ChannelFeedBloc>().state.messages;
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -161,7 +163,7 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
           channelId: widget.channelId,
           messageId: msg.id,
           channelName: widget.channelName,
-          parentCubit: ctx.read<ChannelDetailCubit>(),
+          parentBloc: ctx.read<ChannelFeedBloc>(),
         ),
       ),
     );
@@ -189,11 +191,11 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
           ),
         ),
       ),
-      body: BlocListener<ChannelDetailCubit, ChannelDetailState>(
+      body: BlocListener<ChannelFeedBloc, ChannelFeedState>(
         listenWhen: (prev, curr) => prev.isSending && !curr.isSending,
         listener: (ctx, _) =>
-            ctx.read<ChannelThreadCubit>().load(widget.messageId),
-        child: BlocBuilder<ChannelThreadCubit, ChannelThreadState>(
+            ctx.read<ChannelThreadBloc>().add(LoadChannelThreadEvent(widget.messageId)),
+        child: BlocBuilder<ChannelThreadBloc, ChannelThreadState>(
           builder: (context, state) {
             if (state.isLoading) {
               return const Center(

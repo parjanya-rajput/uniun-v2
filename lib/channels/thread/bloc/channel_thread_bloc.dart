@@ -1,22 +1,30 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_cubit.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_bloc.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
+import 'channel_thread_event.dart';
 import 'channel_thread_state.dart';
 
-class ChannelThreadCubit extends Cubit<ChannelThreadState> {
-  ChannelThreadCubit() : super(const ChannelThreadState());
+class ChannelThreadBloc extends Bloc<ChannelThreadEvent, ChannelThreadState> {
+  ChannelThreadBloc() : super(const ChannelThreadState()) {
+    on<LoadChannelThreadEvent>(_onLoad);
+    on<SaveChannelMessageEvent>(_onSave);
+    on<UnsaveChannelMessageEvent>(_onUnsave);
+  }
 
-  Future<void> load(String messageId) async {
+  Future<void> _onLoad(
+    LoadChannelThreadEvent event,
+    Emitter<ChannelThreadState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true));
 
     final rootResult =
-        await getIt<GetChannelMessageByIdUseCase>().call(messageId);
-    if (isClosed) return;
+        await getIt<GetChannelMessageByIdUseCase>().call(event.messageId);
 
     final root = rootResult.fold((_) => null, (m) => m);
     if (root == null) {
@@ -25,41 +33,30 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
     }
 
     final repliesResult =
-        await getIt<GetChannelMessageRepliesUseCase>().call(messageId);
-    if (isClosed) return;
-
+        await getIt<GetChannelMessageRepliesUseCase>().call(event.messageId);
     final replies =
         repliesResult.fold((_) => <ChannelMessageEntity>[], (r) => r);
 
-    // Load parent if root is a reply
     ChannelMessageEntity? parent;
     if (root.replyToEventId != null) {
       final parentResult =
           await getIt<GetChannelMessageByIdUseCase>().call(root.replyToEventId!);
-      if (!isClosed) {
-        parent = parentResult.fold((_) => null, (m) => m);
-      }
+      parent = parentResult.fold((_) => null, (m) => m);
     }
-    if (isClosed) return;
 
-    // Load mention refs (eTagRefs minus channelId and replyToEventId)
     final mentionIds = root.eTagRefs
         .where((id) => id != root.channelId && id != root.replyToEventId)
         .toList();
     final mentionedMessages = <ChannelMessageEntity>[];
     for (final id in mentionIds) {
       final r = await getIt<GetChannelMessageByIdUseCase>().call(id);
-      if (isClosed) return;
       r.fold((_) => null, (m) { if (m != null) mentionedMessages.add(m); });
     }
 
     final all = [if (parent != null) parent, ...mentionedMessages, root, ...replies];
     final profiles = await _loadProfiles(all);
-    if (isClosed) return;
     final savedIds = await _loadSavedIds(all);
-    if (isClosed) return;
     final replyCounts = await _loadReplyCounts(replies);
-    if (isClosed) return;
 
     emit(state.copyWith(
       isLoading: false,
@@ -71,6 +68,25 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
       savedIds: savedIds,
       replyCounts: replyCounts,
     ));
+  }
+
+  void _onSave(SaveChannelMessageEvent event, Emitter<ChannelThreadState> emit) {
+    emit(state.copyWith(savedIds: {...state.savedIds, event.messageId}));
+  }
+
+  void _onUnsave(UnsaveChannelMessageEvent event, Emitter<ChannelThreadState> emit) {
+    emit(state.copyWith(savedIds: state.savedIds.difference({event.messageId})));
+  }
+
+  // Keep convenience methods so callers don't need to know about events for save/unsave
+  void saveMessage(ChannelMessageEntity msg, ChannelFeedBloc parent) {
+    parent.add(SaveChannelFeedMessageEvent(msg));
+    add(SaveChannelMessageEvent(msg.id));
+  }
+
+  void unsaveMessage(String id, ChannelFeedBloc parent) {
+    parent.add(UnsaveChannelFeedMessageEvent(id));
+    add(UnsaveChannelMessageEvent(id));
   }
 
   Future<Map<String, ProfileEntity>> _loadProfiles(
@@ -88,8 +104,7 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
       List<ChannelMessageEntity> messages) async {
     final counts = <String, int>{};
     for (final msg in messages) {
-      final r =
-          await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
+      final r = await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
       r.fold((_) => null, (c) => counts[msg.id] = c);
     }
     return counts;
@@ -105,15 +120,5 @@ class ChannelThreadCubit extends Cubit<ChannelThreadState> {
       });
     }
     return saved;
-  }
-
-  void saveMessage(ChannelMessageEntity msg, ChannelDetailCubit parent) {
-    parent.saveMessage(msg);
-    emit(state.copyWith(savedIds: {...state.savedIds, msg.id}));
-  }
-
-  void unsaveMessage(String id, ChannelDetailCubit parent) {
-    parent.unsaveMessage(id);
-    emit(state.copyWith(savedIds: state.savedIds.difference({id})));
   }
 }

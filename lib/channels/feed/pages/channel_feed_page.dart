@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_cubit.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_state.dart';
-import 'package:uniun/channels/detail/widgets/channel_message_composer.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_bloc.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_event.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_state.dart';
+import 'package:uniun/channels/feed/widgets/channel_message_composer.dart';
 import 'package:uniun/channels/thread/pages/channel_thread_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -11,8 +12,8 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/vishnu/widgets/note_card.dart';
 
-class ChannelDetailPage extends StatelessWidget {
-  const ChannelDetailPage({super.key, required this.channelId});
+class ChannelFeedPage extends StatelessWidget {
+  const ChannelFeedPage({super.key, required this.channelId});
   final String channelId;
 
   @override
@@ -20,26 +21,26 @@ class ChannelDetailPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => ChannelDetailCubit()..load(channelId),
+          create: (_) => ChannelFeedBloc()..add(LoadChannelFeedEvent(channelId)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
         ),
       ],
-      child: _ChannelDetailView(channelId: channelId),
+      child: _ChannelFeedView(channelId: channelId),
     );
   }
 }
 
-class _ChannelDetailView extends StatefulWidget {
-  const _ChannelDetailView({required this.channelId});
+class _ChannelFeedView extends StatefulWidget {
+  const _ChannelFeedView({required this.channelId});
   final String channelId;
 
   @override
-  State<_ChannelDetailView> createState() => _ChannelDetailViewState();
+  State<_ChannelFeedView> createState() => _ChannelFeedViewState();
 }
 
-class _ChannelDetailViewState extends State<_ChannelDetailView> {
+class _ChannelFeedViewState extends State<_ChannelFeedView> {
   final _scrollController = ScrollController();
   bool _didScrollToBottom = false;
   String? _userPubkey;
@@ -98,7 +99,7 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
           channelId: widget.channelId,
           messageId: msg.id,
           channelName: channelName,
-          parentCubit: ctx.read<ChannelDetailCubit>(),
+          parentBloc: ctx.read<ChannelFeedBloc>(),
         ),
       ),
     );
@@ -106,12 +107,12 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ChannelDetailCubit, ChannelDetailState>(
+    return BlocConsumer<ChannelFeedBloc, ChannelFeedState>(
       listenWhen: (prev, curr) =>
           prev.messages.length != curr.messages.length,
       listener: (context, state) {
         if (!_didScrollToBottom &&
-            state.status == ChannelDetailStatus.loaded) {
+            state.status == ChannelFeedStatus.loaded) {
           _didScrollToBottom = true;
           WidgetsBinding.instance
               .addPostFrameCallback((_) => _scrollToBottom());
@@ -176,14 +177,14 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
   }
 
   Widget _buildMessageList(
-      BuildContext context, ChannelDetailState state, String channelName) {
+      BuildContext context, ChannelFeedState state, String channelName) {
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    if (state.status == ChannelDetailStatus.error) {
+    if (state.status == ChannelFeedStatus.error) {
       return Center(
         child: Text(
           state.errorMessage ?? 'Something went wrong.',
@@ -205,7 +206,7 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
       builder: (ctx, followedState) {
         final followedIds =
             followedState.notes.map((n) => n.eventId).toSet();
-        final cubit = ctx.read<ChannelDetailCubit>();
+        final bloc = ctx.read<ChannelFeedBloc>();
 
         return ListView.builder(
           controller: _scrollController,
@@ -228,9 +229,9 @@ class _ChannelDetailViewState extends State<_ChannelDetailView> {
               onTap: () => _openThread(ctx, msg, channelName),
               onSaveTap: () {
                 if (isSaved) {
-                  cubit.unsaveMessage(msg.id);
+                  bloc.add(UnsaveChannelFeedMessageEvent(msg.id));
                 } else {
-                  cubit.saveMessage(msg);
+                  bloc.add(SaveChannelFeedMessageEvent(msg));
                 }
               },
               onFollowTap: () => _toggleFollow(

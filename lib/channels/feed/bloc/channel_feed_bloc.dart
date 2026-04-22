@@ -8,21 +8,28 @@ import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
-import 'channel_detail_state.dart';
+import 'channel_feed_event.dart';
+import 'channel_feed_state.dart';
 
-class ChannelDetailCubit extends Cubit<ChannelDetailState> {
-  ChannelDetailCubit() : super(const ChannelDetailState());
+class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
+  ChannelFeedBloc() : super(const ChannelFeedState()) {
+    on<LoadChannelFeedEvent>(_onLoad);
+    on<SendChannelMessageEvent>(_onSend);
+    on<SaveChannelFeedMessageEvent>(_onSave);
+    on<UnsaveChannelFeedMessageEvent>(_onUnsave);
+  }
 
-  Future<void> load(String channelId) async {
-    emit(state.copyWith(status: ChannelDetailStatus.loading, isLoading: true));
+  Future<void> _onLoad(
+    LoadChannelFeedEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    emit(state.copyWith(status: ChannelFeedStatus.loading, isLoading: true));
 
-    final channelResult = await getIt<GetChannelByIdUseCase>().call(channelId);
-    if (isClosed) return;
-
+    final channelResult = await getIt<GetChannelByIdUseCase>().call(event.channelId);
     final channel = channelResult.fold((_) => null, (c) => c);
     if (channel == null) {
       emit(state.copyWith(
-        status: ChannelDetailStatus.error,
+        status: ChannelFeedStatus.error,
         isLoading: false,
         errorMessage: 'Channel not found.',
       ));
@@ -30,26 +37,16 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
     }
 
     final messagesResult = await getIt<GetChannelMessagesUseCase>()
-        .call(GetChannelMessagesInput(channelId: channelId, limit: 50));
-    if (isClosed) return;
-
-    final rawMessages =
-        messagesResult.fold((_) => <ChannelMessageEntity>[], (m) => m);
-
-    // Isar returns newest-first; reverse for oldest-at-top chat display.
+        .call(GetChannelMessagesInput(channelId: event.channelId, limit: 50));
+    final rawMessages = messagesResult.fold((_) => <ChannelMessageEntity>[], (m) => m);
     final messages = rawMessages.reversed.toList();
 
     final profiles = await _loadProfiles(messages);
-    if (isClosed) return;
-
     final savedIds = await _loadSavedIds(messages);
-    if (isClosed) return;
-
     final replyCounts = await _loadReplyCounts(messages);
-    if (isClosed) return;
 
     emit(state.copyWith(
-      status: ChannelDetailStatus.loaded,
+      status: ChannelFeedStatus.loaded,
       channel: channel,
       messages: messages,
       profiles: profiles,
@@ -59,18 +56,14 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
     ));
   }
 
-  Future<void> sendMessage(
-    String channelId,
-    String content, {
-    String? replyToEventId,
-    List<String> mentionRefs = const [],
-  }) async {
-    if (content.trim().isEmpty) return;
+  Future<void> _onSend(
+    SendChannelMessageEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    if (event.content.trim().isEmpty) return;
     emit(state.copyWith(isSending: true, errorMessage: null));
 
     final keysResult = await getIt<GetActiveUserKeysUseCase>().call();
-    if (isClosed) return;
-
     final keys = keysResult.fold((_) => null, (k) => k);
     if (keys == null) {
       emit(state.copyWith(isSending: false, errorMessage: 'Not logged in.'));
@@ -79,14 +72,13 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
 
     final result = await getIt<CreateChannelMessageUseCase>().call(
       CreateChannelMessageInput(
-        channelId: channelId,
-        content: content.trim(),
+        channelId: event.channelId,
+        content: event.content.trim(),
         privateKey: keys.privkeyHex,
-        replyToEventId: replyToEventId,
-        mentionRefs: mentionRefs,
+        replyToEventId: event.replyToEventId,
+        mentionRefs: event.mentionRefs,
       ),
     );
-    if (isClosed) return;
 
     result.fold(
       (failure) => emit(state.copyWith(
@@ -95,11 +87,13 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
       )),
       (message) {
         final updated = [...state.messages, message];
-        // Increment reply count for parent message immediately
         final updatedCounts = Map<String, int>.from(state.replyCounts);
-        if (replyToEventId != null) {
-          updatedCounts[replyToEventId] =
-              (updatedCounts[replyToEventId] ?? 0) + 1;
+        if (event.replyToEventId != null) {
+          updatedCounts[event.replyToEventId!] =
+              (updatedCounts[event.replyToEventId!] ?? 0) + 1;
+        }
+        for (final ref in event.mentionRefs) {
+          updatedCounts[ref] = (updatedCounts[ref] ?? 0) + 1;
         }
         emit(state.copyWith(
           isSending: false,
@@ -110,25 +104,27 @@ class ChannelDetailCubit extends Cubit<ChannelDetailState> {
     );
   }
 
-  Future<void> saveMessage(ChannelMessageEntity message) async {
-    final note = message.toNoteEntity();
+  Future<void> _onSave(
+    SaveChannelFeedMessageEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    final note = event.message.toNoteEntity();
     final result = await getIt<SaveNoteUseCase>().call(note);
-    if (isClosed) return;
     result.fold(
       (_) => null,
-      (_) => emit(state.copyWith(
-        savedIds: {...state.savedIds, message.id},
-      )),
+      (_) => emit(state.copyWith(savedIds: {...state.savedIds, event.message.id})),
     );
   }
 
-  Future<void> unsaveMessage(String messageId) async {
-    final result = await getIt<UnsaveNoteUseCase>().call(messageId);
-    if (isClosed) return;
+  Future<void> _onUnsave(
+    UnsaveChannelFeedMessageEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    final result = await getIt<UnsaveNoteUseCase>().call(event.messageId);
     result.fold(
       (_) => null,
       (_) => emit(state.copyWith(
-        savedIds: state.savedIds.difference({messageId}),
+        savedIds: state.savedIds.difference({event.messageId}),
       )),
     );
   }

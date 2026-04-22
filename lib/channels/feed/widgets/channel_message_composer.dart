@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
-import 'package:uniun/channels/detail/cubit/channel_detail_cubit.dart';
-import 'package:uniun/channels/detail/widgets/channel_reference_picker.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_bloc.dart';
+import 'package:uniun/channels/feed/bloc/channel_feed_event.dart';
+import 'package:uniun/channels/feed/widgets/channel_reference_picker.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
@@ -54,12 +55,12 @@ class _ChannelMessageComposerState extends State<ChannelMessageComposer> {
     _controller.clear();
     final refs = _mentionRefs.map((m) => m.id).toList();
     setState(() => _mentionRefs.clear());
-    context.read<ChannelDetailCubit>().sendMessage(
-      widget.channelId,
-      text,
+    context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
+      channelId: widget.channelId,
+      content: text,
       replyToEventId: widget.replyToEventId,
       mentionRefs: refs,
-    );
+    ));
   }
 
   void _openLinkPicker(
@@ -94,7 +95,7 @@ class _ChannelMessageComposerState extends State<ChannelMessageComposer> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
-    final state = context.watch<ChannelDetailCubit>().state;
+    final state = context.watch<ChannelFeedBloc>().state;
     final isSending = state.isSending;
     final messages = state.messages;
 

@@ -274,10 +274,12 @@ class _GraphCanvasState extends State<GraphCanvas> {
             final overlap = (minDist - d) / 2;
             final ox = (dx / d) * overlap;
             final oy = (dy / d) * overlap;
-            if (a != _draggingNode && !_pinned.contains(a))
+            if (a != _draggingNode && !_pinned.contains(a)) {
               _setCenter(a, ca - Offset(ox, oy));
-            if (b != _draggingNode && !_pinned.contains(b))
+            }
+            if (b != _draggingNode && !_pinned.contains(b)) {
               _setCenter(b, cb + Offset(ox, oy));
+            }
           } else if (d2 == 0) {
             // Exact overlap — nudge apart.
             if (b != _draggingNode && !_pinned.contains(b)) {

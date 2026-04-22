@@ -108,11 +108,16 @@ class _ThreadViewState extends State<_ThreadView> {
               _ => _ThreadBody(state: state, focusNode: _focusNode),
             },
             bottomNavigationBar: ThreadReplyComposer(
-              state: state,
               controller: _replyController,
               focusNode: _focusNode,
               avatarUrl: _avatarUrl,
               pubkeySeed: _pubkeySeed,
+              canPost: state.canPost,
+              isSending: state.postStatus == ThreadPostStatus.posting,
+              replyingToName: state.replyingToName,
+              onSend: () => context.read<ThreadBloc>().add(const PostReplyEvent()),
+              onClearReply: () => context.read<ThreadBloc>().add(const SetReplyTargetEvent()),
+              onTextChanged: (v) => context.read<ThreadBloc>().add(UpdateReplyTextEvent(v)),
             ),
           ),
         );

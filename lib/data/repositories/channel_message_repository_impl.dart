@@ -98,9 +98,11 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
     String messageId,
   ) async {
     try {
+      // Query by eTagRefs containing messageId — matches both direct replies
+      // (replyToEventId) and mention references, mirroring Vishnu note behaviour.
       final rows = await isar.channelMessageModels
           .filter()
-          .replyToEventIdEqualTo(messageId)
+          .eTagRefsElementEqualTo(messageId)
           .sortByCreated()
           .findAll();
       return Right(rows.map((m) => m.toDomain()).toList());
@@ -116,7 +118,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
     try {
       final count = await isar.channelMessageModels
           .filter()
-          .replyToEventIdEqualTo(messageId)
+          .eTagRefsElementEqualTo(messageId)
           .count();
       return Right(count);
     } catch (e) {

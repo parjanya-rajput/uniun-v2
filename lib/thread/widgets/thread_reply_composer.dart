@@ -1,59 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/thread/bloc/thread_bloc.dart';
 
 class ThreadReplyComposer extends StatelessWidget {
   const ThreadReplyComposer({
     super.key,
     required this.controller,
     required this.focusNode,
+    required this.onSend,
+    required this.canPost,
     this.avatarUrl,
     this.pubkeySeed = '',
-    // --- ThreadBloc path (thread page) ---
-    this.state,
-    // --- Callback path (channel thread page) ---
     this.replyingToName,
     this.isSending = false,
-    this.canPost = false,
-    this.onSend,
     this.onClearReply,
     this.onTextChanged,
     this.onLinkTap,
     this.hasLinks = false,
-  }) : assert(state != null || onSend != null,
-            'Provide either state (ThreadBloc) or onSend callback');
+  });
 
   final TextEditingController controller;
   final FocusNode focusNode;
+  final VoidCallback onSend;
+  final bool canPost;
   final String? avatarUrl;
   final String pubkeySeed;
-
-  // ThreadBloc path
-  final ThreadState? state;
-
-  // Callback path overrides
   final String? replyingToName;
   final bool isSending;
-  final bool canPost;
-  final VoidCallback? onSend;
   final VoidCallback? onClearReply;
   final void Function(String)? onTextChanged;
   final VoidCallback? onLinkTap;
   final bool hasLinks;
-
-  bool get _useCallbacks => onSend != null;
-
-  String? get _replyingToName =>
-      _useCallbacks ? replyingToName : state?.replyingToName;
-
-  bool get _canPost => _useCallbacks ? canPost : (state?.canPost ?? false);
-
-  bool get _isPosting =>
-      _useCallbacks ? isSending : state?.postStatus == ThreadPostStatus.posting;
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +47,7 @@ class ThreadReplyComposer extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // "Replying to @name" pill
-            if (_replyingToName != null)
+            if (replyingToName != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Container(
@@ -83,7 +61,7 @@ class ThreadReplyComposer extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        l10n.threadReplyingTo(_replyingToName!),
+                        l10n.threadReplyingTo(replyingToName!),
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.primary,
@@ -92,15 +70,7 @@ class ThreadReplyComposer extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       GestureDetector(
-                        onTap: () {
-                          if (_useCallbacks) {
-                            onClearReply?.call();
-                          } else {
-                            context
-                                .read<ThreadBloc>()
-                                .add(const SetReplyTargetEvent());
-                          }
-                        },
+                        onTap: onClearReply,
                         child: const Icon(Icons.close_rounded,
                             size: 14, color: AppColors.primary),
                       ),
@@ -109,7 +79,6 @@ class ThreadReplyComposer extends StatelessWidget {
                 ),
               ),
 
-            // Composer row
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -134,23 +103,15 @@ class ThreadReplyComposer extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 14, color: AppColors.onSurface),
                       decoration: InputDecoration(
-                        hintText: _replyingToName != null
-                            ? l10n.threadReplyTo(_replyingToName!)
+                        hintText: replyingToName != null
+                            ? l10n.threadReplyTo(replyingToName!)
                             : l10n.threadReplyToThis,
                         hintStyle: const TextStyle(
                             color: AppColors.onSurfaceVariant, fontSize: 14),
                         border: InputBorder.none,
                         isDense: true,
                       ),
-                      onChanged: (v) {
-                        if (_useCallbacks) {
-                          onTextChanged?.call(v);
-                        } else {
-                          context
-                              .read<ThreadBloc>()
-                              .add(UpdateReplyTextEvent(v));
-                        }
-                      },
+                      onChanged: onTextChanged,
                       minLines: 1,
                       maxLines: 4,
                     ),
@@ -170,21 +131,10 @@ class ThreadReplyComposer extends StatelessWidget {
                   ] else
                     const SizedBox(width: 10),
 
-                  // Post button
                   GestureDetector(
-                    onTap: _canPost
-                        ? () {
-                            if (_useCallbacks) {
-                              onSend!();
-                            } else {
-                              context
-                                  .read<ThreadBloc>()
-                                  .add(const PostReplyEvent());
-                            }
-                          }
-                        : null,
+                    onTap: canPost ? onSend : null,
                     child: AnimatedOpacity(
-                      opacity: _canPost ? 1.0 : 0.4,
+                      opacity: canPost ? 1.0 : 0.4,
                       duration: const Duration(milliseconds: 150),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -193,7 +143,7 @@ class ThreadReplyComposer extends StatelessWidget {
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: _isPosting
+                        child: isSending
                             ? const SizedBox(
                                 width: 14,
                                 height: 14,

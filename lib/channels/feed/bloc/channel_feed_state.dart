@@ -2,11 +2,11 @@ import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 
-enum ChannelDetailStatus { initial, loading, loaded, error }
+enum ChannelFeedStatus { initial, loading, loaded, error }
 
-class ChannelDetailState {
-  const ChannelDetailState({
-    this.status = ChannelDetailStatus.initial,
+class ChannelFeedState {
+  const ChannelFeedState({
+    this.status = ChannelFeedStatus.initial,
     this.channel,
     this.messages = const [],
     this.profiles = const {},
@@ -17,7 +17,7 @@ class ChannelDetailState {
     this.errorMessage,
   });
 
-  final ChannelDetailStatus status;
+  final ChannelFeedStatus status;
   final ChannelEntity? channel;
 
   /// Messages in oldest→newest order (ready for chat-style display).
@@ -36,8 +36,8 @@ class ChannelDetailState {
   final bool isSending;
   final String? errorMessage;
 
-  ChannelDetailState copyWith({
-    ChannelDetailStatus? status,
+  ChannelFeedState copyWith({
+    ChannelFeedStatus? status,
     ChannelEntity? channel,
     List<ChannelMessageEntity>? messages,
     Map<String, ProfileEntity>? profiles,
@@ -47,7 +47,7 @@ class ChannelDetailState {
     bool? isSending,
     String? errorMessage,
   }) {
-    return ChannelDetailState(
+    return ChannelFeedState(
       status: status ?? this.status,
       channel: channel ?? this.channel,
       messages: messages ?? this.messages,
