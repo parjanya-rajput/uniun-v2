@@ -121,6 +121,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.5"
+  build_cli_annotations:
+    dependency: transitive
+    description:
+      name: build_cli_annotations
+      sha256: e563c2e01de8974566a1998410d3f6f03521788160a02503b0b1f1a46c7b3d95
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.1"
   build_config:
     dependency: transitive
     description:
@@ -313,6 +321,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.10.1"
+  disk_space_plus:
+    dependency: "direct main"
+    description:
+      name: disk_space_plus
+      sha256: "1e454599a7dcec0c0bc1ad0b7f9f563b3fffbc988175bd452c4d3c7503ed3423"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6"
   fake_async:
     dependency: transitive
     description:
@@ -402,10 +418,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: ee100fe41bd5db66af233cccb434c05866760af47dbc515293be6382baee6aed
+      sha256: a80aa7caa6fddc939a72da172d1987d29073f87a1061fea676e5da2386536878
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.1"
+    version: "0.13.2"
   flutter_keyboard_visibility:
     dependency: "direct main"
     description:
@@ -491,6 +507,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.34"
+  flutter_rust_bridge:
+    dependency: transitive
+    description:
+      name: flutter_rust_bridge
+      sha256: e87d6b9ee934dcd24a128ccb2bd91905d2d5fe5c06245d6a8f5477d4907a437a
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.12.0"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -1005,6 +1029,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  openmls:
+    dependency: "direct main"
+    description:
+      name: openmls
+      sha256: c7f612c5ee40b0d60184ad6bd6ba38189d4724a7e378fa70c87b5c99982fe3bc
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.0"
   package_config:
     dependency: transitive
     description:
@@ -1386,6 +1418,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.0"
+  system_info_plus:
+    dependency: "direct main"
+    description:
+      name: system_info_plus
+      sha256: df94187e95527f9cb459e6a9f6e0b1ea20c157d8029bc233de34b3c1e17e1c48
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   term_glyph:
     dependency: transitive
     description:

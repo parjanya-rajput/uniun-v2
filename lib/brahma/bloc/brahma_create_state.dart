@@ -1,6 +1,6 @@
 part of 'brahma_create_bloc.dart';
 
-enum BrahmaCreateStatus { idle, submitting, success, error, loadingDrafts }
+enum BrahmaCreateStatus { idle, submitting, success, error, loadingDrafts, draftSaved }
 
 class BrahmaCreateState {
   const BrahmaCreateState({

@@ -5,7 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
-import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
@@ -25,6 +25,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetDraftsUseCase _getDrafts;
   final DeleteDraftUseCase _deleteDraft;
   final SearchNotesUseCase _searchNotes;
+  final GetNoteByIdUseCase _getNoteById;
 
   BrahmaCreateBloc(
     this._getActiveUserKeys,
@@ -34,6 +35,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     this._getDrafts,
     this._deleteDraft,
     this._searchNotes,
+    this._getNoteById,
   ) : super(const BrahmaCreateState()) {
     on<SubmitNoteEvent>(_onSubmitNote, transformer: droppable());
     on<SaveDraftEvent>(_onSaveDraft, transformer: droppable());
@@ -45,6 +47,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<AddMentionEvent>(_onAddMention);
     on<RemoveMentionEvent>(_onRemoveMention);
     on<ClearMentionSearchEvent>(_onClearMentionSearch);
+    on<RestoreDraftMentionsEvent>(_onRestoreDraftMentions);
   }
 
   Future<void> _onSubmitNote(
@@ -68,37 +71,25 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final privkeyHex = keys.privkeyHex;
     final pubkeyHex = keys.pubkeyHex;
 
-    // 2. Build NIP-10 tags + hashtags + mention e-tags
-    final extractedTags = _extractHashtags(content);
-    final mentions = state.selectedMentions;
-    final tags = <List<String>>[];
-    if (event.rootEventId != null) {
-      tags.add(['e', event.rootEventId!, '', 'root']);
-    }
-    if (event.replyToEventId != null) {
-      tags.add(['e', event.replyToEventId!, '', 'reply']);
-    }
-    for (final mention in mentions) {
-      tags.add(['e', mention.id, '', 'mention']);
-    }
-    for (final h in extractedTags) {
-      tags.add(['t', h]);
-    }
+    // 2. Build tags
+    final hashtags = extractHashtags(content);
+    final mentionIds = state.selectedMentions.map((m) => m.id).toList();
+    final tags = buildNoteTags(
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+      mentionIds: mentionIds,
+      hashtags: hashtags,
+    );
 
-    // 3. Sign with nostr_core_dart
+    // 3. Sign
     late final Event signedEvent;
     try {
-      signedEvent = Event.from(
-        kind: 1, // Kind 1 = Short Text Note (NIP-01)
-        tags: tags,
-        content: content,
-        privkey: privkeyHex,
-      );
+      signedEvent = signNostrEvent(
+          content: content, tags: tags, privkeyHex: privkeyHex);
     } catch (e) {
       emit(state.copyWith(
-        status: BrahmaCreateStatus.error,
-        errorMessage: 'Signing failed: $e',
-      ));
+          status: BrahmaCreateStatus.error,
+          errorMessage: 'Signing failed: $e'));
       return;
     }
 
@@ -106,20 +97,13 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final eTagRefs = [
       if (event.rootEventId != null) event.rootEventId!,
       if (event.replyToEventId != null) event.replyToEventId!,
-      ...mentions.map((m) => m.id),
+      ...mentionIds,
     ];
-
-    final note = NoteEntity(
-      id: signedEvent.id,
-      sig: signedEvent.sig,
-      authorPubkey: pubkeyHex,
-      content: signedEvent.content,
-      type: NoteType.text,
+    final note = noteEntityFromEvent(
+      event: signedEvent,
+      pubkeyHex: pubkeyHex,
       eTagRefs: eTagRefs,
-      pTagRefs: const [],
-      tTags: extractedTags,
-      created: DateTime.fromMillisecondsSinceEpoch(signedEvent.createdAt * 1000),
-      isSeen: true,
+      tTags: hashtags,
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
     );
@@ -149,7 +133,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final content = event.content.trim();
     if (content.isEmpty) return;
 
-    final extractedTags = _extractHashtags(content);
+    final hashtags = extractHashtags(content);
     final mentionIds = state.selectedMentions.map((m) => m.id).toList();
 
     final draft = DraftEntity(
@@ -163,7 +147,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         ...mentionIds,
       ],
       pTagRefs: const [],
-      tTags: extractedTags,
+      tTags: hashtags,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -174,7 +158,10 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         status: BrahmaCreateStatus.error,
         errorMessage: f.toMessage(),
       )),
-      (_) => add(const LoadDraftsEvent()),
+      (_) {
+        emit(state.copyWith(status: BrahmaCreateStatus.draftSaved));
+        add(const LoadDraftsEvent());
+      },
     );
   }
 
@@ -239,35 +226,23 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
             .toList()
         : <String>[];
 
-    final extractedTags = _extractHashtags(event.content);
-    final tags = <List<String>>[];
-    if (event.rootEventId != null) {
-      tags.add(['e', event.rootEventId!, '', 'root']);
-    }
-    if (event.replyToEventId != null) {
-      tags.add(['e', event.replyToEventId!, '', 'reply']);
-    }
-    for (final mentionId in mentionIds) {
-      tags.add(['e', mentionId, '', 'mention']);
-    }
-    for (final h in extractedTags) {
-      tags.add(['t', h]);
-    }
+    final hashtags = extractHashtags(event.content);
+    final tags = buildNoteTags(
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+      mentionIds: mentionIds,
+      hashtags: hashtags,
+    );
 
     // Sign
     late final Event signedEvent;
     try {
-      signedEvent = Event.from(
-        kind: 1,
-        tags: tags,
-        content: event.content,
-        privkey: privkeyHex,
-      );
+      signedEvent = signNostrEvent(
+          content: event.content, tags: tags, privkeyHex: privkeyHex);
     } catch (e) {
       emit(state.copyWith(
-        status: BrahmaCreateStatus.error,
-        errorMessage: 'Signing failed: $e',
-      ));
+          status: BrahmaCreateStatus.error,
+          errorMessage: 'Signing failed: $e'));
       return;
     }
 
@@ -277,18 +252,11 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       if (event.replyToEventId != null) event.replyToEventId!,
       ...mentionIds,
     ];
-
-    final note = NoteEntity(
-      id: signedEvent.id,
-      sig: signedEvent.sig,
-      authorPubkey: pubkeyHex,
-      content: signedEvent.content,
-      type: NoteType.text,
+    final note = noteEntityFromEvent(
+      event: signedEvent,
+      pubkeyHex: pubkeyHex,
       eTagRefs: eTagRefs,
-      pTagRefs: const [],
-      tTags: extractedTags,
-      created: DateTime.fromMillisecondsSinceEpoch(signedEvent.createdAt * 1000),
-      isSeen: true,
+      tTags: hashtags,
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
     );
@@ -354,14 +322,18 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     emit(state.copyWith(mentionResults: [], isMentionSearching: false));
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  List<String> _extractHashtags(String content) {
-    final matches = RegExp(r'#(\w+)').allMatches(content);
-    return matches
-        .map((m) => m.group(1)!)
-        .where((t) => t.isNotEmpty)
-        .toSet()
-        .toList();
+  Future<void> _onRestoreDraftMentions(
+    RestoreDraftMentionsEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    final notes = <NoteEntity>[];
+    for (final id in event.mentionIds) {
+      final result = await _getNoteById.call(id);
+      result.fold((_) {}, (note) => notes.add(note));
+    }
+    if (notes.isNotEmpty) {
+      emit(state.copyWith(selectedMentions: notes));
+    }
   }
+
 }

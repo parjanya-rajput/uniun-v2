@@ -4,6 +4,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/settings/cubit/settings_cubit.dart';
+import 'package:uniun/settings/cubit/storage_cubit.dart';
 import 'package:uniun/settings/widgets/ai_card.dart';
 import 'package:uniun/settings/widgets/alerts_card.dart';
 import 'package:uniun/settings/widgets/identity_card.dart';
@@ -18,8 +19,11 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<SettingsCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => getIt<SettingsCubit>()),
+        BlocProvider(create: (_) => getIt<StorageCubit>()),
+      ],
       child: const _SettingsContent(),
     );
   }

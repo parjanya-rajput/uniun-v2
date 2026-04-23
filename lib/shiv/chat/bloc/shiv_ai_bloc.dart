@@ -230,7 +230,9 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   Future<void> _onStreamDone(
       _StreamDone event, Emitter<ShivAIState> emit) async {
     final msgId = state.streamingMessageId;
-    final content = state.streamingContent ?? '';
+    // Strip <think>...</think> blocks before persisting — model reasoning is
+    // never stored so it cannot leak back into RAG context or branch summaries.
+    final content = _stripThinking(state.streamingContent ?? '');
 
     if (msgId != null) {
       await _updateMessageContent.call((msgId, content));
@@ -305,6 +307,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   void _onSelectGraphNode(
       _SelectGraphNode event, Emitter<ShivAIState> emit) {
     emit(state.copyWith(selectedNodeMessageId: event.messageId));
+  }
+
+  /// Removes <think>...</think> blocks emitted by reasoning models (DeepSeek R1,
+  /// Qwen3) before content is persisted to Isar. This keeps model reasoning out
+  /// of branch context summaries and any future RAG lookups.
+  static String _stripThinking(String content) {
+    return content
+        .replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '')
+        .trim();
   }
 
   /// Walk the parentId chain from [leafId] up to the root.

@@ -10,13 +10,19 @@ class ModelCard extends StatelessWidget {
     required this.model,
     required this.isSelected,
     required this.isActive,
+    required this.isDownloaded,
+    required this.isDeleting,
     required this.onTap,
+    required this.onDelete,
   });
 
   final AIModelEntity model;
   final bool isSelected;
   final bool isActive;
+  final bool isDownloaded;
+  final bool isDeleting;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +95,35 @@ class ModelCard extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            if (isDownloaded) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: onDelete,
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppColors.error.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: isDeleting
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(6),
+                                          child: CircularProgressIndicator(
+                                            color: AppColors.error,
+                                            strokeWidth: 1.5,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 16,
+                                          color: AppColors.error,
+                                        ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -114,6 +149,13 @@ class ModelCard extends StatelessWidget {
                                 label: l10n.aiModelAlreadyActive,
                                 isSelected: true,
                                 icon: Icons.check_circle_rounded,
+                              ),
+                            ] else if (isDownloaded) ...[
+                              const SizedBox(width: 6),
+                              ModelCapabilityChip(
+                                label: l10n.aiModelDownloaded,
+                                isSelected: false,
+                                icon: Icons.download_done_rounded,
                               ),
                             ],
                           ],

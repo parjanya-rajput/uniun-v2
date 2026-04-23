@@ -18,15 +18,20 @@ class NoteRepositoryImpl extends NoteRepository {
     DateTime? before,
   }) async {
     try {
-      // Only top-level notes (rootEventId == null) appear in the feed.
-      // Replies live inside thread views — never in the main feed.
-      final query = isar.noteModels.filter().rootEventIdIsNull();
-
-      final notes =
-          await (before != null ? query.createdLessThan(before) : query)
-              .sortByCreatedDesc()
-              .limit(limit)
-              .findAll();
+      // Feed shows every note — top-level posts, replies, and references.
+      // Replies and refs are also notes; they belong in the stream.
+      final notes = before != null
+          ? await isar.noteModels
+                .filter()
+                .createdLessThan(before)
+                .sortByCreatedDesc()
+                .limit(limit)
+                .findAll()
+          : await isar.noteModels
+                .where()
+                .sortByCreatedDesc()
+                .limit(limit)
+                .findAll();
 
       return Right(notes.map((n) => n.toDomain()).toList());
     } catch (e) {
@@ -53,15 +58,15 @@ class NoteRepositoryImpl extends NoteRepository {
   @override
   Future<Either<Failure, List<NoteEntity>>> getReplies(String eventId) async {
     try {
-      // Direct children of this root: NIP-10 "reply" parent, or root-only
-      // e-tags (["e", root, "", "root"]) where replyToEventId stays null.
-      // Thread reply counts use rootEventId; those notes must appear here too.
+      // NIP-10 replies: this event is the immediate parent.
       final byReplyTo = await isar.noteModels
           .filter()
           .replyToEventIdEqualTo(eventId)
           .sortByCreated()
           .findAll();
 
+      // Root-only e-tag children (["e", root, "", "root"]) where
+      // replyToEventId stays null — must appear in the root's reply list too.
       final rootTagOnly = await isar.noteModels
           .filter()
           .rootEventIdEqualTo(eventId)
@@ -69,17 +74,25 @@ class NoteRepositoryImpl extends NoteRepository {
           .sortByCreated()
           .findAll();
 
+      // Incoming eTagRef mentions: notes whose eTagRefs list contains this
+      // event, but which are not already NIP-10 reply/root children.
+      final mentions = await isar.noteModels
+          .filter()
+          .eTagRefsElementEqualTo(eventId)
+          .not()
+          .replyToEventIdEqualTo(eventId)
+          .not()
+          .rootEventIdEqualTo(eventId)
+          .sortByCreated()
+          .findAll();
+
       final byEventId = <String, NoteModel>{};
-      for (final n in byReplyTo) {
-        if (n.eventId != eventId) byEventId[n.eventId] = n;
-      }
-      for (final n in rootTagOnly) {
+      for (final n in [...byReplyTo, ...rootTagOnly, ...mentions]) {
         if (n.eventId != eventId) byEventId[n.eventId] = n;
       }
 
       final merged = byEventId.values.toList()
         ..sort((a, b) => a.created.compareTo(b.created));
-
       return Right(merged.map((n) => n.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -153,11 +166,21 @@ class NoteRepositoryImpl extends NoteRepository {
   @override
   Future<Either<Failure, int>> getReplyCount(String eventId) async {
     try {
-      final count = await isar.noteModels
+      final replyIds = await isar.noteModels
           .filter()
           .replyToEventIdEqualTo(eventId)
-          .count();
-      return Right(count);
+          .eventIdProperty()
+          .findAll();
+
+      final rootTagOnlyIds = await isar.noteModels
+          .filter()
+          .rootEventIdEqualTo(eventId)
+          .replyToEventIdIsNull()
+          .eventIdProperty()
+          .findAll();
+
+      final unique = {...replyIds, ...rootTagOnlyIds}..remove(eventId);
+      return Right(unique.length);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -197,7 +220,8 @@ class NoteRepositoryImpl extends NoteRepository {
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getOwnNotes(
-      String pubkeyHex) async {
+    String pubkeyHex,
+  ) async {
     try {
       final notes = await isar.noteModels
           .filter()
@@ -228,7 +252,9 @@ class NoteRepositoryImpl extends NoteRepository {
 
   @override
   Future<Either<Failure, Unit>> updateNoteEmbedding(
-      String eventId, List<double> embedding) async {
+    String eventId,
+    List<double> embedding,
+  ) async {
     try {
       await isar.writeTxn(() async {
         final note = await isar.noteModels

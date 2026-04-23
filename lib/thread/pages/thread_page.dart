@@ -14,15 +14,17 @@ import 'package:uniun/thread/widgets/thread_reply_item.dart';
 import 'package:uniun/thread/widgets/thread_root_note_card.dart';
 
 class ThreadPage extends StatelessWidget {
-  const ThreadPage({super.key, required this.noteId});
+  const ThreadPage({super.key, required this.noteId, this.savedOnly = false});
   final String noteId;
+  final bool savedOnly;
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => getIt<ThreadBloc>()..add(LoadThreadEvent(noteId)),
+          create: (_) => getIt<ThreadBloc>()
+            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
@@ -130,9 +132,12 @@ class _ThreadBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final root = state.rootNote!;
 
+    final hasTopContext =
+        state.parentChain.isNotEmpty || state.mentionedNotes.isNotEmpty;
+
     return CustomScrollView(
       slivers: [
-        // ── Parent context (ancestors above the focused note) ─────────────────
+        // ── Immediate NIP-10 parent (1 level only) ────────────────────────────
         if (state.parentChain.isNotEmpty)
           SliverPadding(
             padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
@@ -140,9 +145,28 @@ class _ThreadBody extends StatelessWidget {
               child: ThreadParentContext(
                 notes: state.parentChain,
                 profiles: state.profiles,
-                onNoteTap: (noteId) =>
-                    Navigator.pushNamed(context, AppRoutes.thread,
-                        arguments: noteId),
+                onNoteTap: (noteId) => Navigator.pushNamed(
+                    context, AppRoutes.thread,
+                    arguments: noteId),
+              ),
+            ),
+          ),
+
+        // ── Outgoing references — rendered as sibling "parents" above the
+        //    root note. Each referenced note is an independent sibling; only
+        //    the last row connects down to the root card. ─────────────────────
+        if (state.mentionedNotes.isNotEmpty)
+          SliverPadding(
+            padding: EdgeInsets.only(
+                top: state.parentChain.isEmpty ? 16 : 0, left: 20, right: 20),
+            sliver: SliverToBoxAdapter(
+              child: ThreadParentContext(
+                notes: state.mentionedNotes,
+                profiles: state.profiles,
+                isSiblingGroup: true,
+                onNoteTap: (noteId) => Navigator.pushNamed(
+                    context, AppRoutes.thread,
+                    arguments: noteId),
               ),
             ),
           ),
@@ -150,7 +174,7 @@ class _ThreadBody extends StatelessWidget {
         // ── Focused / root note card ───────────────────────────────────────────
         SliverPadding(
           padding: EdgeInsets.only(
-            top: state.parentChain.isEmpty ? 16 : 0,
+            top: hasTopContext ? 0 : 16,
             left: 20,
             right: 20,
           ),

@@ -58,7 +58,8 @@ class ModelSelectionFooter extends StatelessWidget {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => context.read<SelectAIModelCubit>().close(),
+                      onPressed: () =>
+                          context.read<SelectAIModelCubit>().cancelDownload(),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(
@@ -110,37 +111,52 @@ class ModelSelectionFooter extends StatelessWidget {
                 ),
               ],
             )
-          : FilledButton(
-              onPressed: state.selectedModelId == null
-                  ? null
-                  : () => context
-                      .read<SelectAIModelCubit>()
-                      .downloadAndActivate(),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    l10n.aiModelUseThisButton,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onPrimary,
-                    ),
+          : Builder(builder: (context) {
+              final selectedId = state.selectedModelId;
+              final isAlreadyDownloaded = selectedId != null &&
+                  state.downloadedModelIds.contains(selectedId);
+              final isAlreadyActive = selectedId == state.activeModelId;
+              final label = isAlreadyActive
+                  ? l10n.aiModelAlreadyActive
+                  : isAlreadyDownloaded
+                      ? l10n.aiModelSetActive
+                      : l10n.aiModelUseThisButton;
+              final icon = isAlreadyDownloaded
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.download_rounded;
+
+              return FilledButton(
+                onPressed: selectedId == null
+                    ? null
+                    : () => context
+                        .read<SelectAIModelCubit>()
+                        .downloadAndActivate(),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  backgroundColor:
+                      isAlreadyActive ? AppColors.outline : AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded,
-                      size: 18, color: AppColors.onPrimary),
-                ],
-              ),
-            ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(icon, size: 18, color: AppColors.onPrimary),
+                  ],
+                ),
+              );
+            }),
     );
   }
 }

@@ -1,0 +1,157 @@
+import 'dart:io';
+
+import 'package:dartz/dartz.dart';
+import 'package:disk_space_plus/disk_space_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
+import 'package:isar_community/isar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/saved_note_model.dart';
+import 'package:uniun/data/models/shiv_conversation_model.dart';
+import 'package:uniun/data/models/shiv_message_model.dart';
+import 'package:uniun/domain/entities/storage/storage_stats.dart';
+import 'package:uniun/domain/repositories/storage_repository.dart';
+
+// Top-level so compute() can send it to a background isolate.
+(int model, int db, int other) _scanDir(String dirPath) {
+  const modelExtensions = {'.task', '.litertlm', '.bin', '.tflite'};
+  const isarFilenames = {'default.isar', 'default.isar.lock'};
+
+  int model = 0, db = 0, other = 0;
+  final dir = Directory(dirPath);
+  if (!dir.existsSync()) return (0, 0, 0);
+
+  for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    int len;
+    try {
+      len = entity.lengthSync();
+    } catch (_) {
+      continue;
+    }
+    final name = entity.path.split('/').last.toLowerCase();
+    if (isarFilenames.contains(name)) {
+      db += len;
+    } else if (modelExtensions.any((e) => name.endsWith(e))) {
+      model += len;
+    } else {
+      other += len;
+    }
+  }
+  return (model, db, other);
+}
+
+@Injectable(as: StorageRepository)
+class StorageRepositoryImpl implements StorageRepository {
+  final Isar isar;
+
+  StorageRepositoryImpl({required this.isar});
+
+  @override
+  Future<Either<Failure, StorageStats>> getStats(String ownPubkey) async {
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final supportDir = await getApplicationSupportDirectory();
+
+      // Run heavy filesystem scans in background isolates in parallel.
+      final results = await Future.wait([
+        compute(_scanDir, docsDir.path),
+        compute(_scanDir, supportDir.path),
+      ]);
+
+      final modelSize = results[0].$1 + results[1].$1;
+      final dbSize = results[0].$2 + results[1].$2;
+      final otherSize = results[0].$3 + results[1].$3;
+
+      // These Isar queries must stay on the main isolate (Isar thread-affinity).
+      final messages = await isar.shivMessageModels.where().findAll();
+      final chatHistorySize =
+          messages.fold<int>(0, (sum, m) => sum + m.content.length);
+      final conversationCount = await isar.shivConversationModels.count();
+
+      final totalNotes = await isar.noteModels.count();
+      final savedIds = await isar.savedNoteModels
+          .where()
+          .findAll()
+          .then((list) => {for (final n in list) n.eventId});
+      final followedIds = await isar.followedNoteModels
+          .where()
+          .findAll()
+          .then((list) => {for (final n in list) n.eventId});
+      final topLevelNotes =
+          await isar.noteModels.filter().rootEventIdIsNull().findAll();
+      final deletableCount = topLevelNotes
+          .where((n) =>
+              n.authorPubkey != ownPubkey &&
+              !savedIds.contains(n.eventId) &&
+              !followedIds.contains(n.eventId))
+          .length;
+
+      final diskSpace = DiskSpacePlus();
+      final freeMb = await diskSpace.getFreeDiskSpace ?? 0;
+      final freeDiskBytes = (freeMb * 1024 * 1024).round();
+
+      return Right(StorageStats(
+        dbSizeBytes: dbSize,
+        modelSizeBytes: modelSize,
+        chatHistorySizeBytes: chatHistorySize,
+        otherSizeBytes: otherSize,
+        totalNoteCount: totalNotes,
+        deletableFeedNoteCount: deletableCount,
+        conversationCount: conversationCount,
+        freeDiskBytes: freeDiskBytes,
+      ));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> deleteFeedNotes(String ownPubkey) async {
+    try {
+      final savedIds = await isar.savedNoteModels
+          .where()
+          .findAll()
+          .then((list) => {for (final n in list) n.eventId});
+      final followedIds = await isar.followedNoteModels
+          .where()
+          .findAll()
+          .then((list) => {for (final n in list) n.eventId});
+      final topLevelNotes =
+          await isar.noteModels.filter().rootEventIdIsNull().findAll();
+      final toDelete = topLevelNotes
+          .where((n) =>
+              n.authorPubkey != ownPubkey &&
+              !savedIds.contains(n.eventId) &&
+              !followedIds.contains(n.eventId))
+          .map((n) => n.id)
+          .toList();
+
+      if (toDelete.isEmpty) return const Right(0);
+
+      await isar.writeTxn(() async {
+        await isar.noteModels.deleteAll(toDelete);
+      });
+
+      return Right(toDelete.length);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteAllChatHistory() async {
+    try {
+      await isar.writeTxn(() async {
+        await isar.shivMessageModels.clear();
+        await isar.shivConversationModels.clear();
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+}
