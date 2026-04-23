@@ -430,19 +430,11 @@ class _FollowedNoteRow extends StatelessWidget {
             ),
             if (item.newReferenceCount > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${item.newReferenceCount}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onPrimary,
-                  ),
+                  shape: BoxShape.circle,
                 ),
               ),
           ],

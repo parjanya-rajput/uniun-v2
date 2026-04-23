@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/vishnu/widgets/note_card.dart';
 
 /// Slides up from the bottom when a graph node is tapped.
 class GraphNodePanel extends StatelessWidget {
@@ -19,23 +22,33 @@ class GraphNodePanel extends StatelessWidget {
   final GraphNodeData node;
   final VoidCallback onClose;
 
-  /// Called when the user taps Edit on a draft node.
-  /// The graph page handles navigation so it can reload + re-select afterward.
   final void Function(String draftId)? onEditTap;
-
-  /// Called when the user taps Publish on a draft node.
   final void Function(String draftId)? onPublishTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDraft = node.type == GraphNodeType.draft;
+    final noteEntity = node.created != null
+        ? NoteEntity(
+            id: node.eventId,
+            sig: node.sig ?? '',
+            authorPubkey: node.authorPubkey ?? '',
+            content: node.content,
+            type: NoteType.text,
+            eTagRefs: node.eTagRefs,
+            pTagRefs: node.pTagRefs,
+            tTags: node.tTags,
+            created: node.created!,
+            isSeen: true,
+          )
+        : null;
 
     return SafeArea(
       top: false,
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.48,
+          maxHeight: MediaQuery.of(context).size.height * 0.52,
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -53,49 +66,62 @@ class GraphNodePanel extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 14),
 
             // Header: type badge + close
-            Row(
-              children: [
-                _TypeBadge(type: node.type, l10n: l10n),
-                const Spacer(),
-                GestureDetector(
-                  onTap: onClose,
-                  child: const Icon(Icons.close_rounded,
-                      size: 20, color: AppColors.onSurfaceVariant),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  _TypeBadge(type: node.type, l10n: l10n),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: onClose,
+                    child: const Icon(Icons.close_rounded,
+                        size: 20, color: AppColors.onSurfaceVariant),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
-            // Note content — tappable for non-drafts to open thread
-            Flexible(
-              child: GestureDetector(
-                onTap: isDraft
-                    ? null
-                    : () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.thread,
-                          arguments: node.eventId,
-                        ),
+            // Note content — NoteCard for saved/own, plain text for drafts
+            if (noteEntity != null)
+              Flexible(
                 child: SingleChildScrollView(
+                  child: NoteCard(
+                    note: noteEntity,
+                    isSaved: node.type == GraphNodeType.saved,
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.thread,
+                      arguments: node.eventId,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     node.content,
                     style: const TextStyle(
@@ -106,19 +132,23 @@ class GraphNodePanel extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
 
             // Draft action buttons
             if (isDraft) ...[
               const SizedBox(height: 16),
-              _DraftActions(
-                draftId: node.eventId,
-                onClose: onClose,
-                onEditTap: onEditTap,
-                onPublishTap: onPublishTap,
-                l10n: l10n,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _DraftActions(
+                  draftId: node.eventId,
+                  onClose: onClose,
+                  onEditTap: onEditTap,
+                  onPublishTap: onPublishTap,
+                  l10n: l10n,
+                ),
               ),
             ],
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -187,7 +217,6 @@ class _DraftActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Edit
         _ActionBtn(
           label: l10n.graphDraftEdit,
           color: AppColors.onSurfaceVariant,
@@ -198,7 +227,6 @@ class _DraftActions extends StatelessWidget {
           },
         ),
         const SizedBox(width: 8),
-        // Publish
         Expanded(
           child: _ActionBtn(
             label: l10n.brahmaPublish,
