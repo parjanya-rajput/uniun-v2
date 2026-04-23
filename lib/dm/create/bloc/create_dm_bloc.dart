@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/domain/repositories/relay_repository.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 
@@ -57,20 +57,8 @@ class CreateDmBloc extends Bloc<CreateDmEvent, CreateDmState> {
     emit(state.copyWith(isSubmitting: true, errorMessage: null));
 
     try {
-      String resolvedPubkey = event.otherPubkey.trim();
-      final hexRegex = RegExp(r'^[0-9a-fA-F]{64}$');
-
-      if (resolvedPubkey.startsWith('npub1')) {
-         try {
-           resolvedPubkey = Nip19.decodePubkey(resolvedPubkey);
-         } catch (_) {
-           emit(state.copyWith(errorMessage: 'Invalid npub checksum.'));
-           emit(state.copyWith(errorMessage: null));
-           return;
-         }
-      } 
-      
-      if (!hexRegex.hasMatch(resolvedPubkey)) {
+      final resolvedPubkey = normalizeNostrPubkey(event.otherPubkey);
+      if (resolvedPubkey.isEmpty) {
         emit(state.copyWith(errorMessage: 'Recipient public key must be a valid npub or 64-character hex.'));
         emit(state.copyWith(errorMessage: null));
         return;
@@ -92,6 +80,12 @@ class CreateDmBloc extends Bloc<CreateDmEvent, CreateDmState> {
         ),
         (conv) => emit(state.copyWith(isSubmitting: false, isSuccess: true)),
       );
+    } on FormatException {
+      emit(state.copyWith(
+        isSubmitting: false,
+        errorMessage: 'Recipient public key must be a valid npub or 64-character hex.',
+      ));
+      emit(state.copyWith(errorMessage: null));
     } catch (e) {
       emit(state.copyWith(isSubmitting: false, errorMessage: e.toString()));
     }

@@ -4,6 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
@@ -35,13 +36,18 @@ class CreateDmConversationUseCase
     bool cached = false,
   }) {
     print("Create Dm usecase called");
-    return _repository.saveConversation(
-      DmConversationEntity(
-        id: Isar.autoIncrement,
-        otherPubkey: params.otherPubkey,
-        relays: params.relays,
-      ),
-    );
+    try {
+      final normalizedPubkey = normalizeNostrPubkey(params.otherPubkey);
+      return _repository.saveConversation(
+        DmConversationEntity(
+          id: Isar.autoIncrement,
+          otherPubkey: normalizedPubkey,
+          relays: params.relays,
+        ),
+      );
+    } catch (e) {
+      return Future.value(Left(Failure.errorFailure(e.toString())));
+    }
   }
 }
 
@@ -74,11 +80,7 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
   }) async {
     print("send dm usecase called");
     try {
-      // Prevent old npub structures stored blindly prior from crashing Nostr logic natively
-      var resolvedOtherPubkey = params.otherPubkey;
-      if (resolvedOtherPubkey.startsWith('npub1')) {
-        resolvedOtherPubkey = Nip19.decodePubkey(resolvedOtherPubkey);
-      }
+      final resolvedOtherPubkey = normalizeNostrPubkey(params.otherPubkey);
 
       final keysResult = await _getKeys();
       print("keys fetched:" + keysResult.toString());
@@ -99,24 +101,16 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
             ),
           );
         }
-        if (!hexRegex.hasMatch(resolvedOtherPubkey)) {
-          return Left(
-            Failure.errorFailure(
-              'Invalid Receiver Public Key (Length/Format Exception)',
-            ),
-          );
-        }
-
         // Resolve Conversation ID natively
         var convResult = await _convRepo.getConversationByOtherPubkey(
-          params.otherPubkey,
+          resolvedOtherPubkey,
         );
         if (convResult.isLeft()) {
           // Auto-create if it doesn't exist
           convResult = await _convRepo.saveConversation(
             DmConversationEntity(
               id: Isar.autoIncrement,
-              otherPubkey: params.otherPubkey,
+              otherPubkey: resolvedOtherPubkey,
               relays: [],
             ),
           );
@@ -202,20 +196,25 @@ class FetchDmUseCase
     bool cached = false,
   }) async {
     print("fetch dm usecase called");
-    final convResult = await _convRepo.getConversationByOtherPubkey(
-      otherPubkey,
-    );
-    return convResult.fold(
-      (_) => const Right([]), // Not yet chatting
-      (conv) async {
-        final messagesResult = await _msgRepo.getMessages(conv.id, limit: 100);
-        return messagesResult.fold((f) => Left(f), (msgs) {
-          // Re-sort latest first intentionally in dart layer if repo isn't explicitly sorting
-          final mutable = List<DmMessageEntity>.from(msgs);
-          mutable.sort((a, b) => b.created.compareTo(a.created));
-          return Right(mutable);
-        });
-      },
-    );
+    try {
+      final normalizedOtherPubkey = normalizeNostrPubkey(otherPubkey);
+      final convResult = await _convRepo.getConversationByOtherPubkey(
+        normalizedOtherPubkey,
+      );
+      return convResult.fold(
+        (_) => const Right([]), // Not yet chatting
+        (conv) async {
+          final messagesResult = await _msgRepo.getMessages(conv.id, limit: 100);
+          return messagesResult.fold((f) => Left(f), (msgs) {
+            // Re-sort latest first intentionally in dart layer if repo isn't explicitly sorting
+            final mutable = List<DmMessageEntity>.from(msgs);
+            mutable.sort((a, b) => b.created.compareTo(a.created));
+            return Right(mutable);
+          });
+        },
+      );
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
   }
 }
