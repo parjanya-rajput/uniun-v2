@@ -12,9 +12,15 @@ class EditProfileCubit extends Cubit<EditProfileState> {
   final GetActiveUserUseCase _getActiveUser;
   final GetOwnProfileUseCase _getOwnProfile;
   final SaveProfileUseCase _saveProfile;
+  final PublishProfileMetadataUseCase _publishProfileMetadata;
 
   // Start in loading state so controllers are only initialised after data arrives.
-  EditProfileCubit(this._getActiveUser, this._getOwnProfile, this._saveProfile)
+  EditProfileCubit(
+    this._getActiveUser,
+    this._getOwnProfile,
+    this._saveProfile,
+    this._publishProfileMetadata,
+  )
       : super(const EditProfileState(status: EditProfileStatus.loading)) {
     _load();
   }
@@ -72,17 +78,25 @@ class EditProfileCubit extends Cubit<EditProfileState> {
       );
 
       final result = await _saveProfile.call(entity);
-      return result.fold(
-        (failure) {
-          emit(state.copyWith(
-              status: EditProfileStatus.error, error: failure.toMessage()));
-          return false;
-        },
-        (_) {
-          emit(state.copyWith(status: EditProfileStatus.saved));
-          return true;
-        },
-      );
+      if (result.isLeft()) {
+        emit(state.copyWith(
+          status: EditProfileStatus.error,
+          error: result.fold((failure) => failure.toMessage(), (_) => null),
+        ));
+        return false;
+      }
+
+      final publishResult = await _publishProfileMetadata.call(entity);
+      return publishResult.fold((failure) {
+        emit(state.copyWith(
+          status: EditProfileStatus.error,
+          error: failure.toMessage(),
+        ));
+        return false;
+      }, (_) {
+        emit(state.copyWith(status: EditProfileStatus.saved));
+        return true;
+      });
     } catch (e) {
       emit(state.copyWith(
           status: EditProfileStatus.error, error: e.toString()));

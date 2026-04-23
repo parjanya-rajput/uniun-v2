@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,8 +9,10 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/repositories/event_queue_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:nostr/nostr.dart';
 import 'package:uniun/onboarding/widgets/key_card.dart';
 import 'package:uniun/onboarding/widgets/onboarding_app_bar.dart';
 
@@ -52,7 +55,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
         final avatarSeed = args['avatarSeed'] as String?;
         final avatarUrl = avatarSeed != null ? 'generated:$avatarSeed' : null;
         if (displayName.isNotEmpty || username.isNotEmpty) {
-          await getIt<SaveProfileUseCase>().call(ProfileEntity(
+          final profile = ProfileEntity(
             pubkey: user.pubkeyHex,
             name: displayName.isEmpty ? null : displayName,
             username: username.isEmpty ? null : username,
@@ -60,7 +63,9 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
             avatarUrl: avatarUrl,
             updatedAt: DateTime.now(),
             lastSeenAt: DateTime(3000, 6, 1),
-          ));
+          );
+          await getIt<SaveProfileUseCase>().call(profile);
+          await _enqueueKind0MetadataEvent(user.nsec, profile);
         }
         if (!mounted) return;
         navigator.pushNamedAndRemoveUntil(
@@ -68,6 +73,39 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
           (r) => false,
         );
       },
+    );
+  }
+
+  Future<void> _enqueueKind0MetadataEvent(String nsec, ProfileEntity profile) async {
+    final privkeyHex = nsec.startsWith('nsec1') ? Nip19.decodePrivkey(nsec) : nsec;
+    if (privkeyHex.isEmpty) return;
+
+    final metadata = <String, dynamic>{
+      if (profile.name != null) 'display_name': profile.name,
+      if (profile.username != null) 'name': profile.username,
+      if (profile.about != null) 'about': profile.about,
+      if (profile.avatarUrl != null) 'picture': profile.avatarUrl,
+      if (profile.nip05 != null) 'nip05': profile.nip05,
+    };
+
+    final event = Event.from(
+      privkey: privkeyHex,
+      kind: 0,
+      content: jsonEncode(metadata),
+      tags: const [],
+      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    );
+
+    await getIt<EventQueueRepository>().enqueueSignedEvent(
+      eventId: event.id,
+      authorPubkey: event.pubkey,
+      sig: event.sig,
+      kind: 0,
+      eTagRefs: const [],
+      pTagRefs: const [],
+      tTags: const [],
+      content: event.content,
+      created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
     );
   }
 
