@@ -20,6 +20,7 @@ abstract class ChannelMessageEntity with _$ChannelMessageEntity {
     String? rootEventId,
     String? replyToEventId,
     required DateTime created,
+    @Default(0) int cachedReplyCount,
   }) = _ChannelMessageEntity;
 }
 
@@ -46,6 +47,7 @@ extension ChannelMessageToNote on ChannelMessageEntity {
       created: created,
       isSeen: true,
       replyToEventId: replyToEventId,
+      cachedReplyCount: cachedReplyCount,
     );
   }
 }

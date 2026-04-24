@@ -316,8 +316,6 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
                                 nestedReplies: const [],
                                 nestedProfiles: state.profiles,
                                 allNestedReplies: const {},
-                                replyCounts: state.replyCounts,
-                                replyCount: state.replyCounts[msg.id] ?? 0,
                                 showThreadLine: false,
                                 onReplyTap: () => _setReplyTarget(msg.id, name),
                                 onTap: () => _openNestedThread(ctx, msg),

@@ -22,47 +22,52 @@ const SavedNoteModelSchema = CollectionSchema(
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
+    r'cachedReplyCount': PropertySchema(
+      id: 1,
+      name: r'cachedReplyCount',
+      type: IsarType.long,
+    ),
+    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
     r'created': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
     r'embedding': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'embedding',
       type: IsarType.doubleList,
     ),
-    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
+    r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
     r'pTagRefs': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'savedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'savedAt',
       type: IsarType.dateTime,
     ),
-    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
-    r'tTags': PropertySchema(id: 11, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 11, name: r'sig', type: IsarType.string),
+    r'tTags': PropertySchema(id: 12, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'type',
       type: IsarType.string,
       enumMap: _SavedNoteModeltypeEnumValueMap,
@@ -197,18 +202,19 @@ void _savedNoteModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.created);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeDoubleList(offsets[4], object.embedding);
-  writer.writeString(offsets[5], object.eventId);
-  writer.writeStringList(offsets[6], object.pTagRefs);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeDateTime(offsets[9], object.savedAt);
-  writer.writeString(offsets[10], object.sig);
-  writer.writeStringList(offsets[11], object.tTags);
-  writer.writeString(offsets[12], object.type.name);
+  writer.writeLong(offsets[1], object.cachedReplyCount);
+  writer.writeString(offsets[2], object.content);
+  writer.writeDateTime(offsets[3], object.created);
+  writer.writeStringList(offsets[4], object.eTagRefs);
+  writer.writeDoubleList(offsets[5], object.embedding);
+  writer.writeString(offsets[6], object.eventId);
+  writer.writeStringList(offsets[7], object.pTagRefs);
+  writer.writeString(offsets[8], object.replyToEventId);
+  writer.writeString(offsets[9], object.rootEventId);
+  writer.writeDateTime(offsets[10], object.savedAt);
+  writer.writeString(offsets[11], object.sig);
+  writer.writeStringList(offsets[12], object.tTags);
+  writer.writeString(offsets[13], object.type.name);
 }
 
 SavedNoteModel _savedNoteModelDeserialize(
@@ -219,20 +225,21 @@ SavedNoteModel _savedNoteModelDeserialize(
 ) {
   final object = SavedNoteModel();
   object.authorPubkey = reader.readString(offsets[0]);
-  object.content = reader.readString(offsets[1]);
-  object.created = reader.readDateTime(offsets[2]);
-  object.eTagRefs = reader.readStringList(offsets[3]) ?? [];
-  object.embedding = reader.readDoubleList(offsets[4]);
-  object.eventId = reader.readString(offsets[5]);
+  object.cachedReplyCount = reader.readLong(offsets[1]);
+  object.content = reader.readString(offsets[2]);
+  object.created = reader.readDateTime(offsets[3]);
+  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
+  object.embedding = reader.readDoubleList(offsets[5]);
+  object.eventId = reader.readString(offsets[6]);
   object.id = id;
-  object.pTagRefs = reader.readStringList(offsets[6]) ?? [];
-  object.replyToEventId = reader.readStringOrNull(offsets[7]);
-  object.rootEventId = reader.readStringOrNull(offsets[8]);
-  object.savedAt = reader.readDateTime(offsets[9]);
-  object.sig = reader.readString(offsets[10]);
-  object.tTags = reader.readStringList(offsets[11]) ?? [];
+  object.pTagRefs = reader.readStringList(offsets[7]) ?? [];
+  object.replyToEventId = reader.readStringOrNull(offsets[8]);
+  object.rootEventId = reader.readStringOrNull(offsets[9]);
+  object.savedAt = reader.readDateTime(offsets[10]);
+  object.sig = reader.readString(offsets[11]);
+  object.tTags = reader.readStringList(offsets[12]) ?? [];
   object.type =
-      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[12])] ??
+      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[13])] ??
       NoteType.text;
   return object;
 }
@@ -247,28 +254,30 @@ P _savedNoteModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 4:
-      return (reader.readDoubleList(offset)) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
+    case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
       return (reader.readStringList(offset) ?? []) as P;
+    case 5:
+      return (reader.readDoubleList(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 11:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 12:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 13:
       return (_SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(
                 offset,
               )] ??
@@ -904,6 +913,61 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'authorPubkey', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  cachedReplyCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'cachedReplyCount', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  cachedReplyCountGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'cachedReplyCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  cachedReplyCountLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'cachedReplyCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  cachedReplyCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'cachedReplyCount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -2702,6 +2766,20 @@ extension SavedNoteModelQuerySortBy
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortByCachedReplyCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -2820,6 +2898,20 @@ extension SavedNoteModelQuerySortThenBy
   thenByAuthorPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'authorPubkey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenByCachedReplyCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.desc);
     });
   }
 
@@ -2949,6 +3041,13 @@ extension SavedNoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
+  distinctByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cachedReplyCount');
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct> distinctByContent({
     bool caseSensitive = true,
   }) {
@@ -3048,6 +3147,13 @@ extension SavedNoteModelQueryProperty
   authorPubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authorPubkey');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, int, QQueryOperations>
+  cachedReplyCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cachedReplyCount');
     });
   }
 

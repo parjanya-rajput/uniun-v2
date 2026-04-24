@@ -6,6 +6,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/vishnu/widgets/note_card.dart';
 
@@ -15,12 +16,14 @@ class GraphNodePanel extends StatelessWidget {
     super.key,
     required this.node,
     required this.onClose,
+    this.profile,
     this.onEditTap,
     this.onPublishTap,
   });
 
   final GraphNodeData node;
   final VoidCallback onClose;
+  final ProfileEntity? profile;
 
   final void Function(String draftId)? onEditTap;
   final void Function(String draftId)? onPublishTap;
@@ -109,6 +112,7 @@ class GraphNodePanel extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: NoteCard(
                     note: noteEntity,
+                    profile: profile,
                     isSaved: node.type == GraphNodeType.saved,
                     onTap: () => Navigator.pushNamed(
                       context,

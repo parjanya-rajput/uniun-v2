@@ -8,7 +8,6 @@ class SavedNotesState {
     this.status = SavedNotesStatus.initial,
     this.notes = const [],
     this.profiles = const {},
-    this.replyCounts = const {},
     this.errorMessage,
   });
 
@@ -18,23 +17,18 @@ class SavedNotesState {
   /// pubkeyHex → ProfileEntity for note author display.
   final Map<String, ProfileEntity> profiles;
 
-  /// eventId → reply count.
-  final Map<String, int> replyCounts;
-
   final String? errorMessage;
 
   SavedNotesState copyWith({
     SavedNotesStatus? status,
     List<SavedNoteEntity>? notes,
     Map<String, ProfileEntity>? profiles,
-    Map<String, int>? replyCounts,
     String? errorMessage,
   }) {
     return SavedNotesState(
       status: status ?? this.status,
       notes: notes ?? this.notes,
       profiles: profiles ?? this.profiles,
-      replyCounts: replyCounts ?? this.replyCounts,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

@@ -24,6 +24,8 @@ abstract class NoteEntity with _$NoteEntity {
 
     /// NIP-10 "reply" marker — the direct parent note this replies to.
     String? replyToEventId,
+    /// Denormalised reply count from NoteModel — updated by Gateway and saveNote.
+    @Default(0) int cachedReplyCount,
     /// 384-dim embedding vector. Non-null only for own notes after RAG init.
     List<double>? embedding,
   }) = _NoteEntity;

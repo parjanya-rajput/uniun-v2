@@ -56,7 +56,6 @@ class ChannelThreadBloc extends Bloc<ChannelThreadEvent, ChannelThreadState> {
     final all = [if (parent != null) parent, ...mentionedMessages, root, ...replies];
     final profiles = await _loadProfiles(all);
     final savedIds = await _loadSavedIds(all);
-    final replyCounts = await _loadReplyCounts(replies);
 
     emit(state.copyWith(
       isLoading: false,
@@ -66,7 +65,6 @@ class ChannelThreadBloc extends Bloc<ChannelThreadEvent, ChannelThreadState> {
       replies: replies,
       profiles: profiles,
       savedIds: savedIds,
-      replyCounts: replyCounts,
     ));
   }
 
@@ -98,16 +96,6 @@ class ChannelThreadBloc extends Bloc<ChannelThreadEvent, ChannelThreadState> {
       r.fold((_) => null, (p) => profiles[pk] = p);
     }
     return profiles;
-  }
-
-  Future<Map<String, int>> _loadReplyCounts(
-      List<ChannelMessageEntity> messages) async {
-    final counts = <String, int>{};
-    for (final msg in messages) {
-      final r = await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
-      r.fold((_) => null, (c) => counts[msg.id] = c);
-    }
-    return counts;
   }
 
   Future<Set<String>> _loadSavedIds(

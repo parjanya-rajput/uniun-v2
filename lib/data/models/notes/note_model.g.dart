@@ -22,44 +22,49 @@ const NoteModelSchema = CollectionSchema(
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
+    r'cachedReplyCount': PropertySchema(
+      id: 1,
+      name: r'cachedReplyCount',
+      type: IsarType.long,
+    ),
+    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
     r'created': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
     r'embedding': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'embedding',
       type: IsarType.doubleList,
     ),
-    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
-    r'isSeen': PropertySchema(id: 6, name: r'isSeen', type: IsarType.bool),
+    r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
+    r'isSeen': PropertySchema(id: 7, name: r'isSeen', type: IsarType.bool),
     r'pTagRefs': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 11, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 12, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 11, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 12, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 13, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -187,19 +192,20 @@ void _noteModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.created);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeDoubleList(offsets[4], object.embedding);
-  writer.writeString(offsets[5], object.eventId);
-  writer.writeBool(offsets[6], object.isSeen);
-  writer.writeStringList(offsets[7], object.pTagRefs);
-  writer.writeString(offsets[8], object.replyToEventId);
-  writer.writeString(offsets[9], object.rootEventId);
-  writer.writeString(offsets[10], object.sig);
-  writer.writeString(offsets[11], object.subject);
-  writer.writeStringList(offsets[12], object.tTags);
-  writer.writeString(offsets[13], object.type.name);
+  writer.writeLong(offsets[1], object.cachedReplyCount);
+  writer.writeString(offsets[2], object.content);
+  writer.writeDateTime(offsets[3], object.created);
+  writer.writeStringList(offsets[4], object.eTagRefs);
+  writer.writeDoubleList(offsets[5], object.embedding);
+  writer.writeString(offsets[6], object.eventId);
+  writer.writeBool(offsets[7], object.isSeen);
+  writer.writeStringList(offsets[8], object.pTagRefs);
+  writer.writeString(offsets[9], object.replyToEventId);
+  writer.writeString(offsets[10], object.rootEventId);
+  writer.writeString(offsets[11], object.sig);
+  writer.writeString(offsets[12], object.subject);
+  writer.writeStringList(offsets[13], object.tTags);
+  writer.writeString(offsets[14], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -210,22 +216,23 @@ NoteModel _noteModelDeserialize(
 ) {
   final object = NoteModel(
     authorPubkey: reader.readString(offsets[0]),
-    content: reader.readString(offsets[1]),
-    created: reader.readDateTime(offsets[2]),
-    eTagRefs: reader.readStringList(offsets[3]) ?? [],
-    eventId: reader.readString(offsets[5]),
-    isSeen: reader.readBool(offsets[6]),
-    pTagRefs: reader.readStringList(offsets[7]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[8]),
-    rootEventId: reader.readStringOrNull(offsets[9]),
-    sig: reader.readString(offsets[10]),
-    subject: reader.readStringOrNull(offsets[11]),
-    tTags: reader.readStringList(offsets[12]) ?? [],
+    cachedReplyCount: reader.readLongOrNull(offsets[1]) ?? 0,
+    content: reader.readString(offsets[2]),
+    created: reader.readDateTime(offsets[3]),
+    eTagRefs: reader.readStringList(offsets[4]) ?? [],
+    eventId: reader.readString(offsets[6]),
+    isSeen: reader.readBool(offsets[7]),
+    pTagRefs: reader.readStringList(offsets[8]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[9]),
+    rootEventId: reader.readStringOrNull(offsets[10]),
+    sig: reader.readString(offsets[11]),
+    subject: reader.readStringOrNull(offsets[12]),
+    tTags: reader.readStringList(offsets[13]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[13])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[14])] ??
         NoteType.text,
   );
-  object.embedding = reader.readDoubleList(offsets[4]);
+  object.embedding = reader.readDoubleList(offsets[5]);
   object.id = id;
   return object;
 }
@@ -240,30 +247,32 @@ P _noteModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 4:
-      return (reader.readDoubleList(offset)) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
+    case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
       return (reader.readStringList(offset) ?? []) as P;
+    case 5:
+      return (reader.readDoubleList(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
-    case 11:
       return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 14:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -786,6 +795,61 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'authorPubkey', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  cachedReplyCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'cachedReplyCount', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  cachedReplyCountGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'cachedReplyCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  cachedReplyCountLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'cachedReplyCount',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  cachedReplyCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'cachedReplyCount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -2738,6 +2802,19 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  sortByCachedReplyCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -2858,6 +2935,19 @@ extension NoteModelQuerySortThenBy
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByAuthorPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'authorPubkey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  thenByCachedReplyCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cachedReplyCount', Sort.desc);
     });
   }
 
@@ -2992,6 +3082,12 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByCachedReplyCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cachedReplyCount');
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByContent({
     bool caseSensitive = true,
   }) {
@@ -3099,6 +3195,12 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String, QQueryOperations> authorPubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authorPubkey');
+    });
+  }
+
+  QueryBuilder<NoteModel, int, QQueryOperations> cachedReplyCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cachedReplyCount');
     });
   }
 

@@ -24,6 +24,7 @@ _NoteEntity _$NoteEntityFromJson(Map<String, dynamic> json) => _NoteEntity(
   isSeen: json['isSeen'] as bool,
   rootEventId: json['rootEventId'] as String?,
   replyToEventId: json['replyToEventId'] as String?,
+  cachedReplyCount: (json['cachedReplyCount'] as num?)?.toInt() ?? 0,
   embedding: (json['embedding'] as List<dynamic>?)
       ?.map((e) => (e as num).toDouble())
       .toList(),
@@ -44,6 +45,7 @@ Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
       'isSeen': instance.isSeen,
       'rootEventId': instance.rootEventId,
       'replyToEventId': instance.replyToEventId,
+      'cachedReplyCount': instance.cachedReplyCount,
       'embedding': instance.embedding,
     };
 

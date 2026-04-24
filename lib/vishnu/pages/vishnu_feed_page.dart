@@ -223,14 +223,12 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
 
                           final note = feedState.notes[i];
                           final profile = feedState.profiles[note.authorPubkey];
-                          final replyCount =
-                              feedState.replyCounts[note.id] ?? 0;
                           final isFollowed = followedIds.contains(note.id);
 
                           return NoteCard(
                             note: note,
                             profile: profile,
-                            replyCount: replyCount,
+                            replyCount: note.cachedReplyCount,
                             isFollowed: isFollowed,
                             isSaved: feedState.savedIds.contains(note.id),
                             onTap: () async {

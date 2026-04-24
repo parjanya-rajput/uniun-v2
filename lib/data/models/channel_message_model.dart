@@ -31,6 +31,9 @@ class ChannelMessageModel {
   late List<String> pTagRefs;
 
   late DateTime created;
+
+  /// Denormalised reply count — incremented in saveMessage when a reply is saved.
+  int cachedReplyCount = 0;
 }
 
 extension ChannelMessageModelExtension on ChannelMessageModel {
@@ -45,5 +48,6 @@ extension ChannelMessageModelExtension on ChannelMessageModel {
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
         created: created,
+        cachedReplyCount: cachedReplyCount,
       );
 }

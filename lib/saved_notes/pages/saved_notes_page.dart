@@ -182,8 +182,7 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                                   note: note.toNoteEntity(
                                       savedEventIds: savedEventIds),
                                   profile: state.profiles[note.authorPubkey],
-                                  replyCount:
-                                      state.replyCounts[note.eventId] ?? 0,
+                                  replyCount: note.cachedReplyCount,
                                   isSaved: true,
                                   isFollowed: isFollowed,
                                   onFollowTap: () {

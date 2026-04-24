@@ -181,6 +181,9 @@ class _NodePanelSlider extends StatelessWidget {
         child: node != null
             ? GraphNodePanel(
                 node: node,
+                profile: node.authorPubkey != null
+                    ? state.profiles[node.authorPubkey]
+                    : null,
                 onClose: () => context
                     .read<GraphBloc>()
                     .add(const DeselectGraphNodeEvent()),

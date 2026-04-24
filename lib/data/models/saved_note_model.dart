@@ -35,6 +35,10 @@ class SavedNoteModel {
   @Index()
   late DateTime savedAt;
 
+  /// Mirror of NoteModel.cachedReplyCount — incremented by Gateway alongside
+  /// the corresponding NoteModel when new replies arrive.
+  int cachedReplyCount = 0;
+
   /// 384-dim L2-normalised float vector from all-MiniLM-L6-v2.
   /// Null until [EmbeddingService] processes this note in the background.
   List<double>? embedding;
@@ -52,6 +56,7 @@ extension SavedNoteModelExtension on SavedNoteModel {
         tTags: tTags,
         created: created,
         savedAt: savedAt,
+        cachedReplyCount: cachedReplyCount,
         embedding: embedding,
       );
 }
