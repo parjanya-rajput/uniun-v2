@@ -54,6 +54,10 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
               eTagRefs: n.eTagRefs,
               type: GraphNodeType.own,
               authorPubkey: n.authorPubkey,
+              sig: n.sig,
+              created: n.created,
+              tTags: n.tTags,
+              pTagRefs: n.pTagRefs,
             ));
           }
         }
@@ -82,6 +86,10 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
               eTagRefs: n.eTagRefs,
               type: GraphNodeType.saved,
               authorPubkey: n.authorPubkey,
+              sig: n.sig,
+              created: n.created,
+              tTags: n.tTags,
+              pTagRefs: n.pTagRefs,
             ))
         .toList();
 

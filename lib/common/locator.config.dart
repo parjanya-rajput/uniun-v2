@@ -70,6 +70,8 @@ import 'package:uniun/domain/usecases/create_channel_usecase.dart' as _i1033;
 import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
 import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart' as _i263;
+import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart'
+    as _i689;
 import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
@@ -81,8 +83,6 @@ import 'package:uniun/domain/usecases/subscribe_channel_usecase.dart' as _i163;
 import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
-import 'package:uniun/followed_notes/followed_note_detail/cubit/followed_note_detail_cubit.dart'
-    as _i464;
 import 'package:uniun/settings/cubit/edit_profile_cubit.dart' as _i195;
 import 'package:uniun/settings/cubit/settings_cubit.dart' as _i731;
 import 'package:uniun/settings/cubit/storage_cubit.dart' as _i888;
@@ -253,6 +253,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
       () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
     );
+    gh.lazySingleton<_i858.GetSavedReplyCountUseCase>(
+      () => _i858.GetSavedReplyCountUseCase(gh<_i43.SavedNoteRepository>()),
+    );
     gh.factory<_i240.StorageRepository>(
       () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -286,11 +289,23 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i799.ImportKeyUseCase>(
       () => _i799.ImportKeyUseCase(gh<_i103.UserRepository>()),
     );
-    gh.factory<_i464.FollowedNoteDetailCubit>(
-      () => _i464.FollowedNoteDetailCubit(
-        gh<_i475.GetNoteByIdUseCase>(),
-        gh<_i475.GetRepliesUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
+    gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
+      () =>
+          _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
+      () => _i689.GetChannelMessageByIdUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageRepliesUseCase>(
+      () => _i689.GetChannelMessageRepliesUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
+      () => _i689.GetChannelMessageReplyCountUseCase(
+        gh<_i964.ChannelMessageRepository>(),
       ),
     );
     gh.lazySingleton<_i58.GetStorageStatsUseCase>(

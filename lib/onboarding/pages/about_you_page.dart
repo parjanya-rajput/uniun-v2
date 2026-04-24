@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -109,7 +110,8 @@ class _AboutYouPageState extends State<AboutYouPage> {
     final pubkeyHex = args['pubkeyHex'] as String? ?? '';
 
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
+    return KeyboardDismissOnTap(
+      child: Scaffold(
       backgroundColor: AppColors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -332,6 +334,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

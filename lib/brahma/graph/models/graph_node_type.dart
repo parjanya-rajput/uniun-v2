@@ -11,6 +11,10 @@ class GraphNodeData {
     required this.eTagRefs,
     required this.type,
     this.authorPubkey,
+    this.sig,
+    this.created,
+    this.tTags = const [],
+    this.pTagRefs = const [],
   });
 
   /// Unique identifier:
@@ -21,4 +25,11 @@ class GraphNodeData {
   final List<String> eTagRefs;
   final GraphNodeType type;
   final String? authorPubkey;
+
+  /// Extra fields populated for saved/own nodes so the panel can render
+  /// a full NoteCard without the bloc importing entity/extension files.
+  final String? sig;
+  final DateTime? created;
+  final List<String> tTags;
+  final List<String> pTagRefs;
 }

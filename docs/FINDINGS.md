@@ -176,6 +176,49 @@ Unseen        → not stored at all
 
 ---
 
+## Finding 008 — Gateway Isolate: Isar as the Cross-Isolate Message Bus
+
+**Context:** Designing the relay sync engine that runs in the background without blocking the Flutter UI.
+
+**Approach:** Rather than the Flutter UI isolate directly managing WebSocket connections, a separate Dart isolate (the Gateway) handles all relay networking. Isar — being file-backed and concurrency-safe — acts as the shared message bus between the two isolates. No `SendPort` or `ReceivePort` is needed.
+
+**How it works:**
+
+```
+Flutter UI isolate (Isolate 1)
+  ↓ writes to Isar (EventQueueModel, RelayModel, FollowedNoteModel)
+  ↑ reads from Isar (NoteModel, ChannelModel, FollowedNoteModel)
+        ↕ Isar file (shared on-disk)
+Gateway isolate (Isolate 2)
+  ↓ Isar.watchLazy() watches for changes written by Isolate 1
+  ↑ writes incoming events to NoteModel (Isar watchers in Isolate 1 fire automatically → UI updates)
+```
+
+**`CentralRelayManager` (Gateway orchestrator):**
+- One `WebSocketService` per relay URL in `RelayModel`.
+- Isar `watchLazy()` on `EventQueueModel` → new queue items trigger immediate send on all write relays.
+- Isar `watchLazy()` on `RelayModel` → runtime relay add/remove syncs `_services` map without restart.
+- Isar `watchLazy()` on `FollowedNoteModel` → refreshes `#e` REQ subscription when user follows/unfollows.
+- `_dequeueTimer` every 5 min purges queue entries older than 30 minutes.
+- Temporary services (5 min TTL) for channel-specific relay URLs found in `ChannelModel.relays`.
+
+**`WebSocketService` (per relay):**
+- Persistent connection with exponential backoff (max 60s between attempts).
+- Outbound: cursor-based queue (`_lastSentQueueId`). One event in-flight at a time; waits for `["OK"]` ACK before advancing. Channel kind events (40–44) are routed to channel-specific relays via `resolveTargets`.
+- Inbound: stores received Kind 1 events to `NoteModel` (idempotent). Bumps `FollowedNoteModel.newReferenceCount` when an incoming event's e-tags match a followed note.
+- Subscriptions sent on connect: `REQ feed_notes` (all Kind 1) + `REQ followed_note_refs` (`{"kinds":[1],"#e":[...followedIds]}`).
+
+**Bootstrap:**
+```dart
+// main.dart (or GatewayBootstrap.start())
+Isolate.spawn(gatewayEntryPoint, GatewayInitMessage(isarDirectory: dir.path));
+// Gateway opens its own Isar instance at the same path — no SendPort needed.
+```
+
+**Key insight:** Isar's on-disk file and its `watch()` / `watchLazy()` streams work across Dart isolates. The UI isolate never polls; the Gateway isolate never calls Flutter methods. The database is the interface.
+
+---
+
 ## Finding 007 — uniun-backend: Own Nostr Relay (Khatru + BadgerDB)
 
 **Context:** Deciding whether to use public Nostr relays or run our own.

@@ -86,3 +86,14 @@ class UpdateEmbeddingUseCase
     }
   }
 }
+
+
+@lazySingleton
+class GetSavedReplyCountUseCase extends UseCase<Either<Failure, int>, String> {
+  final SavedNoteRepository _repository;
+  const GetSavedReplyCountUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, int>> call(String eventId, {bool cached = false}) =>
+      _repository.getSavedReplyCount(eventId);
+}

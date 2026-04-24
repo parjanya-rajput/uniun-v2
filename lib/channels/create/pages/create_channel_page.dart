@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/channels/create/bloc/create_channel_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/l10n/app_localizations.dart';
 
 class CreateChannelPage extends StatelessWidget {
   const CreateChannelPage({super.key});
@@ -100,8 +100,6 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    
     return BlocListener<CreateChannelBloc, CreateChannelState>(
       listener: (context, state) {
         if (state.errorMessage != null) {
@@ -130,7 +128,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
           backgroundColor: AppColors.surface,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary),
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
@@ -138,9 +136,10 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
             style: TextStyle(color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
-        body: BlocBuilder<CreateChannelBloc, CreateChannelState>(
-          builder: (context, state) {
-            return SingleChildScrollView(
+        body: KeyboardDismissOnTap(
+          child: BlocBuilder<CreateChannelBloc, CreateChannelState>(
+            builder: (context, state) {
+              return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,6 +263,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
               ),
             );
           },
+        ),
         ),
       ),
     );

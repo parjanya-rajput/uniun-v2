@@ -477,15 +477,31 @@ classDiagram
     %% DATA LAYER — EMBEDDED SERVER
     %% ════════════════════════════════════════
 
-    class EmbeddedServer {
-        -RelayConnector relayConnector
-        -SyncEngine syncEngine
-        -EventQueue eventQueue
+    class GatewayBootstrap {
         +start() Future~void~
-        +stop() Future~void~
-        +publishEvent(UniunEvent) Future~void~
-        +subscribeToRelay(RelayFilter) void
-        +getStatus() ServerStatus
+        <<spawns Gateway isolate via Isolate.spawn>>
+    }
+
+    class CentralRelayManager {
+        -Map~String,WebSocketService~ services
+        -Isar isar
+        +start() Future~void~
+        +stop() void
+        <<watches EventQueueModel,RelayModel,FollowedNoteModel via watchLazy>>
+        <<dequeue timer every 5 min>>
+    }
+
+    class WebSocketService {
+        -String url
+        -bool read
+        -bool write
+        -int lastSentQueueId
+        +connect() void
+        +disconnect() void
+        +onNewQueueItem() void
+        +onFollowedNotesChanged() void
+        <<exponential backoff reconnect>>
+        <<cursor-based outbound queue>>
     }
 
     class RelayConnector {
@@ -638,18 +654,19 @@ UNIUN is a **decentralized, offline-first note network** — a hybrid of:
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  FLUTTER UI (Presentation Layer)                     │
+│  FLUTTER UI (Isolate 1 — Presentation Layer)         │
 │  Vishnu Feed | Brahma Create | Shiv AI | Drawer     │
 └──────────────────────┬───────────────────────────────┘
-                       │ reads from
+                       │ reads/writes via Isar watchers
 ┌──────────────────────▼───────────────────────────────┐
-│  ISAR DATABASE (Local Source of Truth)               │
-│  Notes · Channels · Messages · AI Conversations      │
+│  ISAR DATABASE (Shared On-Disk — Source of Truth)    │
+│  Notes · Channels · Messages · EventQueue · Relays   │
 └──────────────────────▲───────────────────────────────┘
-                       │ writes to
+                       │ writes incoming / reads queue
 ┌──────────────────────┴───────────────────────────────┐
-│  EMBEDDED SERVER (Dart isolate — separate team)      │
-│  SyncEngine · EventQueue · RelayConnector            │
+│  GATEWAY (Isolate 2 — lib/gateway/)                  │
+│  CentralRelayManager · WebSocketService(s)           │
+│  Watches Isar via watchLazy() — no SendPort needed   │
 └──────────────────────┬───────────────────────────────┘
                        │ WebSocket (NIP-01)
 ┌──────────────────────▼───────────────────────────────┐
@@ -673,9 +690,10 @@ UNIUN is a **decentralized, offline-first note network** — a hybrid of:
 
 ### Key Architectural Principle
 
-> The Flutter UI **never** talks to the relay or API directly.
-> It only reads from Isar.
-> The Embedded Server syncs with relays and writes to Isar.
+> The Flutter UI **never** talks to the relay directly.
+> It only reads/writes Isar.
+> The Gateway isolate (Isolate 2) watches Isar and handles all WebSocket relay communication.
+> Isar's `watchLazy()` streams are the cross-isolate notification mechanism — no `SendPort` needed.
 > This is what makes the app truly offline-first.
 
 ### Architectural Style
@@ -817,7 +835,42 @@ MessageRepository → IsarDataSource
 
 ---
 
-### Module 5: Graph (Note Reference Graph)
+### Module 5: Channels (NIP-28 Public Chat)
+
+**Responsibility:** Create channels (Kind 40), browse channels, send/receive channel messages (Kind 42), manage channel subscriptions.
+
+**Bounded Context:** Channel Domain
+
+**Key Classes:**
+```
+CreateChannelBloc
+  ├── LoadRelaysEvent → GetRelaysUseCase → emits availableRelays list
+  └── SubmitChannelEvent → CreateChannelUseCase → enqueue Kind 40
+
+CreateChannelUseCase
+  ├── Builds Kind 40 event (NIP-28): content = JSON(name, about, picture)
+  ├── channelId = kind40.id  ← the event's id IS the channel id, forever
+  ├── Saves ChannelEntity to ChannelRepository
+  ├── Enqueues Kind 40 in EventQueueRepository (Gateway sends it)
+  └── Saves SubscriptionRecordEntity (kinds 41,42,43,44 + #e=channelId)
+
+ChannelModel (Isar)
+  ├── channelId, name, about, picture, creatorPubKey
+  └── relays: List<String>  ← channel messages routed to these relay URLs
+
+SubscriptionRecordEntity
+  ├── channelId, kinds: [41,42,43,44], eTags: [channelId]
+  └── lastUntilByRelay: Map<url, int>  ← pagination cursor per relay
+```
+
+**NIP-28 rules:**
+- Kind 40 `id` = channel ID. Never generate a separate UUID.
+- Channel messages (Kind 42) tag `["e", channelId, relayUrl, "root"]`.
+- `CentralRelayManager` creates temporary `WebSocketService`s for channel-specific relays when routing Kind 40–44 events.
+
+---
+
+### Module 7: Graph (Note Reference Graph)
 
 **Responsibility:** Visualize note connections, expand node, navigate via graph.
 
@@ -843,7 +896,63 @@ BuildNoteGraphUseCase → GraphRepository → IsarDataSource
 
 ---
 
-### Module 6: Settings / System
+### Module 6: Gateway (Relay Sync Isolate)
+
+**Responsibility:** Own all WebSocket connections to Nostr relays. Publish outbound events from `EventQueueModel`. Receive inbound events and write them to `NoteModel`. Update `FollowedNoteModel` reference counts. Route channel events to channel-specific relays.
+
+**Bounded Context:** Network / Sync (separate isolate — do not modify from Flutter UI code)
+
+**Key Classes:**
+```
+GatewayBootstrap
+  └── Isolate.spawn(gatewayEntryPoint, GatewayInitMessage(isarDirectory))
+
+CentralRelayManager
+  ├── _services: Map<url, WebSocketService>    — one per RelayModel row
+  ├── _tempServices: Map<url, WebSocketService> — channel-specific, 5 min TTL
+  ├── Isar.watchLazy(EventQueueModel)  → _runEventHandlerPass() + svc.onNewQueueItem()
+  ├── Isar.watchLazy(RelayModel)       → _syncRelayServices()
+  ├── Isar.watchLazy(FollowedNoteModel) → svc.onFollowedNotesChanged()
+  └── Timer(5 min)                     → _runDequeuePass() (purge entries > 30 min old)
+
+WebSocketService (per relay)
+  ├── connect() → WebSocketChannel.connect(url) → exponential backoff on failure
+  ├── _subscribeKind1Feed()            → REQ {"kinds":[1]}
+  ├── _subscribeFollowedNoteRefs()     → REQ {"kinds":[1],"#e":[...followedIds]}
+  ├── _processSendQueue()              → cursor-based outbound, one in-flight, waits ["OK"]
+  ├── _handleIncomingKind1Event()      → _storeIncomingEvent() + _bumpFollowedReferenceCounts()
+  └── _parseNoteModel()               → extracts NIP-10 markers (root/reply/mention)
+```
+
+**Data flow (inbound):**
+```
+Relay sends ["EVENT", subId, {...kind1}]
+  ↓
+WebSocketService._storeIncomingEvent() — idempotent, writes NoteModel to Isar
+  ↓
+Isar watcher in Flutter UI isolate fires automatically
+  ↓
+VishnuFeedBloc or FollowedNoteDetailCubit rebuilds UI
+```
+
+**Data flow (outbound):**
+```
+BrahmaCreateBloc enqueues signed event → EventQueueModel row written to Isar
+  ↓
+CentralRelayManager EventQueueModel watcher fires
+  ↓
+WebSocketService._processSendQueue() reads next row, sends ["EVENT", {...}]
+  ↓
+Relay responds ["OK", eventId, true]
+  ↓
+sentCount incremented; _lastSentQueueId advances; next item sent
+  ↓
+CentralRelayManager._runDequeuePass() (5 min timer) purges old entries
+```
+
+---
+
+### Module 8: Settings / System
 
 **Responsibility:** App settings, relay config, AI model settings, theme, preferences.
 

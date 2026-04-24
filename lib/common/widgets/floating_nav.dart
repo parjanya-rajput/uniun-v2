@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-/// Floating pill navigation bar — matches the Brahma UI design.
-/// Each tab is its own rounded pill. Active tab gets primary/10 tint.
-/// The outer row has no background — tabs float freely.
 class FloatingNav extends StatelessWidget {
   const FloatingNav({
     super.key,
@@ -19,21 +17,9 @@ class FloatingNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final items = [
-      _NavItem(
-        icon: Icons.visibility_outlined,
-        activeIcon: Icons.visibility_rounded,
-        label: l10n.navVishnu,
-      ),
-      _NavItem(
-        icon: Icons.add_circle_outline_rounded,
-        activeIcon: Icons.add_circle_rounded,
-        label: l10n.navBrahma,
-      ),
-      _NavItem(
-        icon: Icons.content_cut_outlined,
-        activeIcon: Icons.content_cut_rounded,
-        label: l10n.navShiv,
-      ),
+      _NavItem(asset: 'assets/images/tabs/vishnu.svg', label: l10n.navVishnu),
+      _NavItem(asset: 'assets/images/tabs/brahma.svg', label: l10n.navBrahma),
+      _NavItem(asset: 'assets/images/tabs/shiva.svg', label: l10n.navShiv),
     ];
 
     return Container(
@@ -59,13 +45,8 @@ class FloatingNav extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
-  final IconData icon;
-  final IconData activeIcon;
+  const _NavItem({required this.asset, required this.label});
+  final String asset;
   final String label;
 }
 
@@ -99,8 +80,16 @@ class _NavTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(selected ? item.activeIcon : item.icon, color: color, size: 22),
-            const SizedBox(height: 3),
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: SvgPicture.asset(
+                item.asset,
+                fit: BoxFit.contain,
+                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              ),
+            ),
+
             Text(
               item.label,
               style: TextStyle(

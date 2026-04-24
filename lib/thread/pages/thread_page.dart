@@ -13,10 +13,19 @@ import 'package:uniun/thread/widgets/thread_reply_composer.dart';
 import 'package:uniun/thread/widgets/thread_reply_item.dart';
 import 'package:uniun/thread/widgets/thread_root_note_card.dart';
 
+/// Route argument for [ThreadPage]. Pass either a plain [String] (eventId)
+/// or a [ThreadRouteArgs] when opening from a followed note with unread state.
+class ThreadRouteArgs {
+  const ThreadRouteArgs(this.noteId, {this.hasUnread = false});
+  final String noteId;
+  final bool hasUnread;
+}
+
 class ThreadPage extends StatelessWidget {
-  const ThreadPage({super.key, required this.noteId, this.savedOnly = false});
+  const ThreadPage({super.key, required this.noteId, this.savedOnly = false, this.hasUnread = false});
   final String noteId;
   final bool savedOnly;
+  final bool hasUnread;
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +33,13 @@ class ThreadPage extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (_) => getIt<ThreadBloc>()
-            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly)),
+            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly, hasUnread: hasUnread)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
         ),
       ],
-      child: const _ThreadView(),
+      child: _ThreadView(noteId: noteId),
     );
   }
 }
@@ -38,13 +47,18 @@ class ThreadPage extends StatelessWidget {
 // ── View ──────────────────────────────────────────────────────────────────────
 
 class _ThreadView extends StatefulWidget {
-  const _ThreadView();
+  const _ThreadView({required this.noteId});
+  final String noteId;
 
   @override
   State<_ThreadView> createState() => _ThreadViewState();
 }
 
 class _ThreadViewState extends State<_ThreadView> {
+  // Tracks all noteIds currently open as a ThreadPage anywhere in the stack.
+  // Prevents pushing a duplicate of a page that already exists in the back stack.
+  static final Set<String> _openNoteIds = {};
+
   final _replyController = TextEditingController();
   final _focusNode = FocusNode();
   String? _avatarUrl;
@@ -53,6 +67,7 @@ class _ThreadViewState extends State<_ThreadView> {
   @override
   void initState() {
     super.initState();
+    _openNoteIds.add(widget.noteId);
     _loadUserProfile();
   }
 
@@ -68,8 +83,27 @@ class _ThreadViewState extends State<_ThreadView> {
     });
   }
 
+  void _openThread(BuildContext ctx, String noteId) {
+    // If this noteId is already open somewhere in the back stack, pop back to
+    // it instead of creating a duplicate page.
+    if (_openNoteIds.contains(noteId)) {
+      Navigator.of(ctx).popUntil((route) {
+        final args = route.settings.arguments;
+        final id = args is String
+            ? args
+            : args is ThreadRouteArgs
+                ? args.noteId
+                : null;
+        return id == noteId || route.isFirst;
+      });
+      return;
+    }
+    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: noteId);
+  }
+
   @override
   void dispose() {
+    _openNoteIds.remove(widget.noteId);
     _replyController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -105,14 +139,23 @@ class _ThreadViewState extends State<_ThreadView> {
                 ),
               ThreadStatus.error => ThreadErrorBody(
                   message: state.errorMessage ?? 'Failed to load thread'),
-              _ => _ThreadBody(state: state, focusNode: _focusNode),
+              _ => _ThreadBody(
+                  state: state,
+                  focusNode: _focusNode,
+                  onOpenThread: _openThread,
+                ),
             },
             bottomNavigationBar: ThreadReplyComposer(
-              state: state,
               controller: _replyController,
               focusNode: _focusNode,
               avatarUrl: _avatarUrl,
               pubkeySeed: _pubkeySeed,
+              canPost: state.canPost,
+              isSending: state.postStatus == ThreadPostStatus.posting,
+              replyingToName: state.replyingToName,
+              onSend: () => context.read<ThreadBloc>().add(const PostReplyEvent()),
+              onClearReply: () => context.read<ThreadBloc>().add(const SetReplyTargetEvent()),
+              onTextChanged: (v) => context.read<ThreadBloc>().add(UpdateReplyTextEvent(v)),
             ),
           ),
         );
@@ -124,9 +167,14 @@ class _ThreadViewState extends State<_ThreadView> {
 // ── Body — scroll + sliver layout ────────────────────────────────────────────
 
 class _ThreadBody extends StatelessWidget {
-  const _ThreadBody({required this.state, required this.focusNode});
+  const _ThreadBody({
+    required this.state,
+    required this.focusNode,
+    required this.onOpenThread,
+  });
   final ThreadState state;
   final FocusNode focusNode;
+  final void Function(BuildContext, String) onOpenThread;
 
   @override
   Widget build(BuildContext context) {
@@ -145,9 +193,7 @@ class _ThreadBody extends StatelessWidget {
               child: ThreadParentContext(
                 notes: state.parentChain,
                 profiles: state.profiles,
-                onNoteTap: (noteId) => Navigator.pushNamed(
-                    context, AppRoutes.thread,
-                    arguments: noteId),
+                onNoteTap: (noteId) => onOpenThread(context, noteId),
               ),
             ),
           ),
@@ -164,9 +210,7 @@ class _ThreadBody extends StatelessWidget {
                 notes: state.mentionedNotes,
                 profiles: state.profiles,
                 isSiblingGroup: true,
-                onNoteTap: (noteId) => Navigator.pushNamed(
-                    context, AppRoutes.thread,
-                    arguments: noteId),
+                onNoteTap: (noteId) => onOpenThread(context, noteId),
               ),
             ),
           ),
@@ -182,6 +226,7 @@ class _ThreadBody extends StatelessWidget {
             child: ThreadRootNoteCard(
               note: root,
               profile: state.profileFor(root.authorPubkey),
+              replyCount: state.replies.length,
             ),
           ),
         ),
@@ -212,6 +257,7 @@ class _ThreadBody extends StatelessWidget {
                     replyCounts: state.replyCounts,
                     replyCount: state.replyCounts[reply.id] ?? 0,
                     showThreadLine: i < state.replies.length - 1,
+                    hasUnread: state.hasUnread,
                     onReplyTap: () {
                       ctx.read<ThreadBloc>().add(
                             SetReplyTargetEvent(
@@ -219,12 +265,17 @@ class _ThreadBody extends StatelessWidget {
                           );
                       focusNode.requestFocus();
                     },
+                    onExpandReplies: (id) =>
+                        ctx.read<ThreadBloc>().add(ExpandReplyEvent(id)),
+                    onNestedReplyTap: (id, nestedName) {
+                      ctx.read<ThreadBloc>().add(SetReplyTargetEvent(
+                            replyToId: id,
+                            replyToName: nestedName,
+                          ));
+                      focusNode.requestFocus();
+                    },
                     // Tapping the content area opens the reply's own thread view
-                    onTap: () => Navigator.pushNamed(
-                      ctx,
-                      AppRoutes.thread,
-                      arguments: reply.id,
-                    ),
+                    onTap: () => onOpenThread(ctx, reply.id),
                   );
                 },
                 childCount: state.replies.length,

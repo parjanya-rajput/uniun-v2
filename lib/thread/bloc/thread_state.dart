@@ -20,6 +20,7 @@ class ThreadState {
     this.status = ThreadStatus.initial,
     this.postStatus = ThreadPostStatus.idle,
     this.errorMessage,
+    this.hasUnread = false,
   });
 
   final NoteEntity? rootNote;
@@ -46,6 +47,8 @@ class ThreadState {
   final ThreadStatus status;
   final ThreadPostStatus postStatus;
   final String? errorMessage;
+  /// True when opened from a followed note with unread references.
+  final bool hasUnread;
 
   ProfileEntity? profileFor(String pubkey) => profiles[pubkey];
 
@@ -67,6 +70,7 @@ class ThreadState {
     ThreadStatus? status,
     ThreadPostStatus? postStatus,
     String? errorMessage,
+    bool? hasUnread,
   }) {
     return ThreadState(
       rootNote: rootNote ?? this.rootNote,
@@ -87,6 +91,7 @@ class ThreadState {
       status: status ?? this.status,
       postStatus: postStatus ?? this.postStatus,
       errorMessage: errorMessage,
+      hasUnread: hasUnread ?? this.hasUnread,
     );
   }
 }

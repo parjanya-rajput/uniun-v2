@@ -58,6 +58,11 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
       child: Scaffold(
         backgroundColor: AppColors.surfaceContainerLowest,
         drawer: VishnuDrawer(onSwitchTab: widget.onSwitchTab),
+        onDrawerChanged: (isOpen) {
+          if (isOpen) {
+            _drawerBloc.add(app_drawer.DrawerLoadEvent());
+          }
+        },
         body: Stack(
           children: [
             _VishnuFeedView(onScrollDirection: _onScrollDirection),
@@ -228,11 +233,16 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             replyCount: replyCount,
                             isFollowed: isFollowed,
                             isSaved: feedState.savedIds.contains(note.id),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.thread,
-                              arguments: note.id,
-                            ),
+                            onTap: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                AppRoutes.thread,
+                                arguments: note.id,
+                              );
+                              if (context.mounted) {
+                                context.read<VishnuFeedBloc>().add(const RefreshFeedEvent());
+                              }
+                            },
                             onFollowTap: () => _toggleFollow(
                               context,
                               note.id,

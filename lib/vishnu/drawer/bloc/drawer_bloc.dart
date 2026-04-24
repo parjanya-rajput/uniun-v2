@@ -73,7 +73,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         (list) => list
             .map((c) => DrawerChannelItem(
                   id: c.channelId,
-                  name: c.name ?? 'Unnamed Channel',
+                  name: c.name,
                   hasUnread: false, // Wait for DM / Channel message read tracking
                 ))
             .toList(),

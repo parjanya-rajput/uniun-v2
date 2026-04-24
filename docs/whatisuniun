@@ -173,18 +173,21 @@ NIP-09 is not used.
 Offline-first design:
 
 ```
-Flutter UI
-→ Isar DB (local source of truth)
-← EmbeddedServer (SyncEngine + RelayConnector + EventQueue)
-↔ Relay network (WebSocket)
+Flutter UI (Isolate 1)
+  ↕ reads/writes Isar (shared on-disk file)
+Gateway (Isolate 2 — CentralRelayManager + WebSocketService)
+  ↕ WebSocket NIP-01
+Nostr Relay Network
 ```
+
+The Gateway is a separate Dart isolate launched at app start. It watches Isar for new queue entries (outbound) and writes incoming events to Isar (inbound). The Flutter UI only talks to Isar — never directly to the relay. Isar's `watchLazy()` streams automatically notify the UI when new data arrives.
 
 Relay is used only for:
 
-* publishing events
-* receiving events
+* publishing signed Nostr events (outbound queue in Isar → Gateway → relay)
+* receiving events (relay → Gateway → Isar → UI watcher fires)
 
-All logic is handled inside the app. No backend server.
+All logic is handled inside the app. No custom backend server.
 
 ---
 
@@ -192,15 +195,17 @@ All logic is handled inside the app. No backend server.
 
 NIP set for MVP:
 
-* NIP-01 → base event system (all events)
-* NIP-10 → note references and threading (e-tag markers)
-* NIP-28 → public channels (Kind 40/41/42)
-* NIP-17 → direct messages (Kind 14)
-* NIP-44 → encryption (future, for full DM wrapping)
+* **NIP-01** → base event format and relay protocol (everything)
+* **NIP-10** → note threading and references (`root` / `reply` / `mention` e-tag markers)
+* **NIP-28** → public channels (Kind 40 = create, Kind 41 = metadata, Kind 42 = message)
+* **NIP-17** → direct messages (Kind 14 rumor format)
+* **NIP-44** → encryption for DM payloads (ChaCha20-Poly1305)
+* **NIP-05** → human-readable identifiers (e.g. `user@domain.com` in profiles)
 
-Not used:
+Not used (permanent exclusions):
 
-* NIP-09 → deletion — intentionally excluded (feed freedom)
+* **NIP-09** → event deletion — intentionally excluded. Feed freedom is a core principle. Notes are forever.
+* **NIP-04** → legacy DM encryption — superseded by NIP-44.
 
 ---
 
