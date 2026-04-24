@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -107,9 +108,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
           backgroundColor: AppColors.surface,
           resizeToAvoidBottomInset: true,
           appBar: _buildAppBar(context, isSaving, cubit),
-          body: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            behavior: HitTestBehavior.opaque,
+          body: KeyboardDismissOnTap(
             child: ListView(
             padding: EdgeInsets.only(
                 top: 16,
@@ -224,7 +223,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
               ),
             ],
           ),
-          ),  // GestureDetector
+          ),  // KeyboardDismissOnTap
         );
       },
     );

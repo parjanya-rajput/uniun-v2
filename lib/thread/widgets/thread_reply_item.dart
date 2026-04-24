@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -7,7 +6,6 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
-import 'package:uniun/thread/bloc/thread_bloc.dart';
 import 'package:uniun/thread/utils/thread_formatters.dart';
 
 // ── Top-level reply item (Twitter/X style) ────────────────────────────────────
@@ -25,6 +23,9 @@ class ThreadReplyItem extends StatefulWidget {
     required this.showThreadLine, // kept for API compat — ignored
     required this.onReplyTap,
     this.onTap, // navigate into this reply's detail
+    this.onExpandReplies,
+    this.onNestedReplyTap,
+    this.hasUnread = false,
   });
 
   final NoteEntity reply;
@@ -38,6 +39,12 @@ class ThreadReplyItem extends StatefulWidget {
   final VoidCallback onReplyTap;
   /// Tapping the content area of this reply navigates into its detail thread.
   final VoidCallback? onTap;
+  /// Called when the user expands nested replies (replaces ExpandReplyEvent).
+  final void Function(String replyId)? onExpandReplies;
+  /// Called when user taps reply on a nested item (replaces SetReplyTargetEvent).
+  final void Function(String replyId, String replyName)? onNestedReplyTap;
+  /// Show a primary-colour dot until the user opens this reply's thread.
+  final bool hasUnread;
 
   @override
   State<ThreadReplyItem> createState() => _ThreadReplyItemState();
@@ -46,6 +53,7 @@ class ThreadReplyItem extends StatefulWidget {
 class _ThreadReplyItemState extends State<ThreadReplyItem> {
   bool _isSaved = false;
   bool _showReplies = false;
+  bool _opened = false;
 
   @override
   void initState() {
@@ -96,7 +104,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
     if (!_showReplies &&
         widget.nestedReplies.isEmpty &&
         widget.replyCount > 0) {
-      context.read<ThreadBloc>().add(ExpandReplyEvent(widget.reply.id));
+      widget.onExpandReplies?.call(widget.reply.id);
     }
     setState(() => _showReplies = !_showReplies);
   }
@@ -112,8 +120,13 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Main reply card ────────────────────────────────────────────────────
+        Stack(
+          children: [
         GestureDetector(
-          onTap: widget.onTap,
+          onTap: () {
+            if (widget.hasUnread && !_opened) setState(() => _opened = true);
+            widget.onTap?.call();
+          },
           behavior: HitTestBehavior.opaque,
           child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -200,6 +213,23 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
           ),
         ),
         ), // closes GestureDetector
+            if (widget.hasUnread && !_opened)
+              const Positioned(
+                top: 10,
+                right: 0,
+                child: SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ), // closes Stack
 
         // ── Inline sub-replies (one level max) ────────────────────────────────
         if (_showReplies) ...[
@@ -218,12 +248,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
                 displayName: nestedName,
                 replyCount: nestedCount,
                 onReplyTap: () {
-                  context.read<ThreadBloc>().add(
-                        SetReplyTargetEvent(
-                          replyToId: nested.id,
-                          replyToName: nestedName,
-                        ),
-                      );
+                  widget.onNestedReplyTap?.call(nested.id, nestedName);
                 },
               );
             })

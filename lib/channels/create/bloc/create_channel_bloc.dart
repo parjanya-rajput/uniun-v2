@@ -73,7 +73,7 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
     final userResult = await _getActiveUserUseCase.call();
     final user = userResult.fold((_) => null, (u) => u);
 
-    if (user == null || user.nsec == null) {
+    if (user == null) {
       emit(state.copyWith(
         isSubmitting: false,
         errorMessage: 'Active user not found or missing private key.',
@@ -81,7 +81,7 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
       return;
     }
 
-    String hexPriv = user.nsec!;
+    String hexPriv = user.nsec;
     if (hexPriv.startsWith('nsec1')) {
       try {
         hexPriv = Nip19.decodePrivkey(hexPriv);

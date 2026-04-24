@@ -238,6 +238,12 @@ abstract class AppLocalizations {
   /// **'No channels yet'**
   String get drawerNoChannels;
 
+  /// Placeholder text in the channel message composer input
+  ///
+  /// In en, this message translates to:
+  /// **'Message channel…'**
+  String get channelMessageHint;
+
   /// Empty state for DMs in drawer
   ///
   /// In en, this message translates to:

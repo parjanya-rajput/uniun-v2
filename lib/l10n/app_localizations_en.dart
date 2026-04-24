@@ -81,6 +81,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerNoChannels => 'No channels yet';
 
   @override
+  String get channelMessageHint => 'Message channel…';
+
+  @override
   String get drawerNoMessages => 'No messages yet';
 
   @override

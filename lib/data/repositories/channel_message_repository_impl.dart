@@ -92,4 +92,37 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<ChannelMessageEntity>>> getChannelMessageReplies(
+    String messageId,
+  ) async {
+    try {
+      // Query by eTagRefs containing messageId — matches both direct replies
+      // (replyToEventId) and mention references, mirroring Vishnu note behaviour.
+      final rows = await isar.channelMessageModels
+          .filter()
+          .eTagRefsElementEqualTo(messageId)
+          .sortByCreated()
+          .findAll();
+      return Right(rows.map((m) => m.toDomain()).toList());
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> getChannelMessageReplyCount(
+    String messageId,
+  ) async {
+    try {
+      final count = await isar.channelMessageModels
+          .filter()
+          .eTagRefsElementEqualTo(messageId)
+          .count();
+      return Right(count);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

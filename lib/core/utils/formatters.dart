@@ -1,14 +1,19 @@
 /// Global formatting utilities used across the app.
 
+const _monthNames = [
+  '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 /// Format a DateTime to relative "time ago" string.
-/// Examples: "now", "5m", "2h", "3d", "12/25"
+/// Examples: "now", "5m", "2h", "3d", "25-Dec-2024"
 String formatTimeAgo(DateTime dt) {
   final diff = DateTime.now().difference(dt);
   if (diff.inSeconds < 60) return 'now';
   if (diff.inMinutes < 60) return '${diff.inMinutes}m';
   if (diff.inHours < 24) return '${diff.inHours}h';
   if (diff.inDays < 7) return '${diff.inDays}d';
-  return '${dt.day}/${dt.month}/${dt.year}';
+  return '${dt.day}-${_monthNames[dt.month]}-${dt.year}';
 }
 
 /// Shorten a pubkey to first 8 characters + ellipsis.

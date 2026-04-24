@@ -1,104 +1,118 @@
-For your app, I would not say “use all NIPs.” I would define a **core NIP profile** for UNIUN and then add a few optional ones.
+# UNIUN — Nostr NIP Stack
 
-For a relay + client architecture like yours, these are the most relevant NIPs to use.
+UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented or planned. Everything else is out of scope.
 
-**Must-have core**
+---
 
-* **NIP-01** for the basic client↔relay protocol, event format, and subscription flow. This is the foundation of everything. ([GitHub][1])
-* **NIP-11** so your relay can publish relay capabilities, limits, and the list of supported NIPs. This is important because your client can detect what a relay supports. ([GitHub][2])
-* **NIP-20** for command results and relay responses like success, errors, invalid event, rate-limited, and not implemented. This is important for good UX and debugging. ([GitHub][3])
-* **NIP-42** for relay authentication. Since you want private channels, DMs, and controlled access, this is very useful. ([GitHub][4])
-* **NIP-65** for relay list metadata so users can declare read/write relays. This fits your decentralized, user-controlled model. ([GitHub][5])
+## NIP-01 — Base Protocol
 
-**For notes, threads, and reposting**
+**What it is:** The foundation. Defines the Nostr event format, WebSocket message types (`EVENT`, `REQ`, `CLOSE`, `OK`, `NOTICE`, `EOSE`), and subscription filter syntax.
 
-* **NIP-10** for threading with `e` and `p` tags. Your graph-note/thread structure should build on this. ([GitHub][6])
-* **NIP-18** for reposts, because your “share note to another channel or DM” maps naturally to repost-like behavior. ([GitHub][6])
-* **NIP-27** is also useful if you want text references like note mentions and inline entity references in content. It is commonly used by clients alongside note/thread UX. ([GitHub][7])
-* **NIP-09** for deletion requests. In your app the user “deletes locally,” but for shared/public note removal semantics or hide requests, this is still useful. ([GitHub][6])
+**How UNIUN uses it:**
+- Every note, profile, channel, and message is a `NostrEvent` (id, pubkey, kind, tags, content, created_at, sig).
+- `WebSocketService` speaks raw NIP-01: sends `["REQ", subId, filter]` to subscribe and `["EVENT", {...}]` to publish.
+- Gateway isolate handles `["OK"]` ACK responses to advance the outbound queue cursor.
 
-**For channels, groups, and chat**
+**Event format:**
+```json
+{
+  "id":         "<SHA256 of canonical serialization>",
+  "pubkey":     "<secp256k1 pubkey hex>",
+  "created_at": 1700000000,
+  "kind":       1,
+  "tags":       [["e", "..."], ["p", "..."], ["t", "..."]],
+  "content":    "note text",
+  "sig":        "<Schnorr signature>"
+}
+```
 
-* **NIP-28** for public chat channels. Since you explicitly have public channels, this is one of the best fits. ([GitHub][4])
-* **NIP-29** for relay-based groups is worth considering for private/public group behavior and membership-style features if your relay will actively manage group semantics. It is listed as part of modern client support, though whether you adopt it depends on how strict your group model is. ([GitHub][4])
-* For 1:1 chat, prefer **NIP-17** with modern encrypted private messages rather than relying only on legacy DM behavior. ([GitHub][6])
-* **NIP-44** should be your main encryption format for private content. Modern private messaging and encrypted payloads use it widely. ([GitHub][3])
-* **NIP-04** can be supported only as a legacy fallback for older clients or compatibility. I would not make it your primary private messaging path. ([GitHub][6])
-* **NIP-59** gift wrap is also worth adding if you want stronger private-message delivery/privacy patterns around encrypted events. Modern clients often pair it with private messaging. ([GitHub][4])
+---
 
-**For saved notes, lists, and organization**
+## NIP-10 — Reply Threading
 
-* **NIP-51** is a strong fit for saved notes, pinned notes, mute/block lists, or custom lists. Since your app includes saved notes and user organization, this is very practical. ([GitHub][8])
+**What it is:** Defines how `e` tags are used to build reply threads. Introduces `root`, `reply`, and `mention` markers on e-tags.
 
-**For anti-spam and moderation**
+**How UNIUN uses it:**
+- Every incoming Kind 1 event is parsed for NIP-10 markers in `WebSocketService._parseNoteModel()`.
+- `["e", id, relayUrl, "root"]` → stored as `NoteModel.rootEventId`
+- `["e", id, relayUrl, "reply"]` → stored as `NoteModel.replyToEventId`
+- `["e", id, relayUrl, "mention"]` → stored in `NoteModel.eTagRefs`
+- Reply count = direct `replyToEventId` children + root-tag-only children (no mentions).
+- Knowledge graph edges = all eTagRefs (including root/reply/mention).
 
-* **NIP-13** proof-of-work is optional but useful if your relay wants lightweight anti-spam controls. ([GitHub][6])
-* **NIP-56** reporting is worth considering if you plan abuse reporting or moderation workflows. ([GitHub][9])
-* **NIP-36** sensitive content can be useful if you want media/content warnings. ([GitHub][9])
-* **NIP-22** can help relay-side limits on `created_at` and event validity windows, which improves relay hygiene. ([GitHub][10])
+**Note roles (derived, never stored as a field):**
 
-For **UNIUN specifically**, my recommended stack would be:
+| Role | Condition | Where shown |
+|------|-----------|-------------|
+| Feed post | `rootEventId == null` | Vishnu feed |
+| Reply | `rootEventId != null` | Thread view |
+| Reference | `type == NoteType.reference` | Graph view |
 
-**Phase 1 MVP**
+---
 
-* NIP-01
-* NIP-11
-* NIP-20
-* NIP-42
-* NIP-65
-* NIP-10
-* NIP-18
-* NIP-28
-* NIP-17
-* NIP-44
-* NIP-51
-* NIP-09
+## NIP-28 — Public Channels
 
-**Phase 2**
+**What it is:** Defines public group chat via three event kinds: Kind 40 (channel creation), Kind 41 (channel metadata update), Kind 42 (channel message).
 
-* NIP-29 for stronger group/channel semantics
-* NIP-59 for gift wrap/private delivery improvements
-* NIP-13 for anti-spam
-* NIP-56 for reporting/moderation
-* NIP-36 for sensitive content
-* NIP-27 for richer references
+**How UNIUN uses it:**
+- `CreateChannelUseCase` builds and signs a Kind 40 event. The Kind 40 event's `id` **is** the channel ID — permanently. Never generate a separate channel ID.
+- Channel metadata (name, about, picture) is JSON-encoded in the Kind 40 `content` field.
+- Kind 41 = metadata update (creator only).
+- Kind 42 messages tag `["e", channelId, relayUrl, "root"]` per spec.
+- `CentralRelayManager` routes Kind 40–44 events to channel-specific relays stored in `ChannelModel.relays`.
+- `SubscriptionRecordEntity` tracks channel subscriptions (kinds 41, 42, 43, 44, `#e` = channelId).
+- No private channels in MVP — NIP-28 is public-only.
 
-My honest architectural advice:
+**Relay subscriptions for channels:**
+```json
+{"kinds": [41, 42], "#e": ["<channelId>"], "limit": 100}
+```
 
-* Use **NIP-28** for public channels.
-* Use **NIP-17 + NIP-44** for DMs/private messages.
-* Use **NIP-10** for note references and thread structure.
-* Use your own **app-level note graph semantics on top of Nostr tags**, rather than waiting for a perfect “graph-notes NIP.” Your graph feature can be a UNIUN layer built over standard Nostr events.
-* Keep the relay strict with **NIP-11, 20, 42, 22, 13** so the system stays clean and scalable.
+---
 
-A practical UNIUN rule set could look like this:
+## NIP-17 — Private Direct Messages
 
-* **Public note/feed events** → NIP-01 + NIP-10
-* **Public channels** → NIP-28
-* **Private chats** → NIP-17 + NIP-44
-* **Saved notes / mute / custom collections** → NIP-51
-* **Relay discovery/config** → NIP-65
-* **Auth + relay control** → NIP-42
-* **Deletion / hide semantics** → NIP-09
-* **Reposts / share note** → NIP-18
+**What it is:** Defines Kind 14 as the rumor (actual DM content) and the three-layer encryption structure for private 1:1 messaging.
 
-The one thing to be careful about is **private channels**. Nostr supports pieces of this space, but “private Slack-like channels” often require a combination of relay policy, auth, encryption, and group conventions rather than a single perfect NIP. So for private channels, you’ll likely need:
+**How UNIUN uses it:**
+- Kind 14 = actual message content (unsigned rumor).
+- MVP uses Kind 14 with basic structure; full 3-layer wrapping (Kind 13 seal → Kind 1059 gift wrap) is future scope.
+- Subscription: `{"kinds": [1059], "#p": ["myPubkey"]}` for receiving DMs.
+- `DMReadStateModel` tracks unread position via `lastReadEventId`.
 
-* relay access control,
-* encrypted payloads,
-* membership rules,
-* and app-level client behavior on top of NIPs. ([GitHub][4])
+---
 
-If you want, I can map your exact UNIUN features one by one to:
-**feature → NIP → event kind → relay rule**.
+## NIP-44 — Encryption
 
-[1]: https://github.com/nostr-protocol/nips?utm_source=chatgpt.com "nostr-protocol/nips: Nostr Implementation Possibilities"
-[2]: https://github.com/nostr-protocol/nips/blob/master/11.md?utm_source=chatgpt.com "nips/11.md at master · nostr-protocol/nips"
-[3]: https://github.com/nostr-protocol/nips/blob/master/47.md?utm_source=chatgpt.com "nips/47.md at master · nostr-protocol/nips"
-[4]: https://github.com/0xchat-app/nostr-dart?utm_source=chatgpt.com "0xchat-app/nostr-dart: This is a Dart implementation of the ..."
-[5]: https://github.com/nostr-protocol/nips/blob/master/65.md?utm_source=chatgpt.com "nips/65.md at master · nostr-protocol/nips"
-[6]: https://github.com/ethicnology/dart-nostr?utm_source=chatgpt.com "ethicnology/dart-nostr: nostr library in dart"
-[7]: https://github.com/v0l/snort?utm_source=chatgpt.com "v0l/snort: Feature packed nostr web UI"
-[8]: https://github.com/nostr-protocol/nips/blob/master/51.md?utm_source=chatgpt.com "nips/51.md at master · nostr-protocol/nips"
-[9]: https://github.com/Sgiath/nostr-lib?utm_source=chatgpt.com "Sgiath/nostr-lib: Library implementing Nostr specs"
-[10]: https://github.com/cameri/nostream?utm_source=chatgpt.com "cameri/nostream: A Nostr Relay written in TypeScript"
+**What it is:** The encryption standard used for private message payloads — ChaCha20-Poly1305 + HMAC-SHA256.
+
+**How UNIUN uses it:**
+- Used to encrypt Kind 14 DM content in the full 3-layer wrapping flow.
+- Replaces legacy NIP-04 (AES-CBC) — NIP-04 is explicitly NOT used.
+- MVP layer: Kind 14 → NIP-44 encrypt → Kind 13 (seal) → NIP-44 encrypt with ephemeral key → Kind 1059 (gift wrap).
+
+---
+
+## NIP-05 — Human-Readable Identifiers
+
+**What it is:** Maps a Nostr pubkey to a DNS-based human-readable identifier (e.g. `user@domain.com`).
+
+**How UNIUN uses it:**
+- Stored in `ProfileModel.nip05` (Kind 0 metadata field).
+- Displayed in profile view and channel member lists.
+- Resolved by looking up `https://<domain>/.well-known/nostr.json?name=<name>`.
+- Primarily received from profiles published by other apps on the network — not generated by UNIUN itself.
+
+---
+
+## NIPs Explicitly NOT Used
+
+| NIP | Why excluded |
+|-----|--------------|
+| NIP-09 | Event deletion — **permanently excluded**. Feed freedom is a core UNIUN principle. Notes are forever. Never implement. |
+| NIP-04 | Legacy DM encryption (AES-CBC) — superseded by NIP-44. |
+| NIP-11 | Relay info advertisement — handled automatically by Khatru on the relay side; Flutter client does not implement it. |
+| NIP-18 | Reposts — not in scope for v1. |
+| NIP-51 | Lists (saved notes, mute lists) — saved notes are local-only in Isar, not published as Nostr events. |
+| NIP-59 | Gift wrap — future scope only (full 3-layer DM encryption). |
+| NIP-65 | Relay list metadata (Kind 10002) — relay list is managed locally in `RelayModel` (Isar), not via Nostr events. |

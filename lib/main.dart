@@ -8,7 +8,6 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/home/pages/home_page.dart';
 import 'package:uniun/onboarding/pages/about_you_page.dart';
-import 'package:uniun/followed_notes/followed_note_detail/pages/followed_note_detail_page.dart';
 import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/shiv/model_select/pages/ai_model_selection_page.dart';
 import 'package:uniun/settings/pages/edit_profile_page.dart';
@@ -19,6 +18,7 @@ import 'package:uniun/onboarding/pages/splash_page.dart';
 import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/channels/create/pages/create_channel_page.dart';
+import 'package:uniun/channels/feed/pages/channel_feed_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
@@ -76,13 +76,17 @@ class UniunApp extends StatelessWidget {
         AppRoutes.settings: (_) => const SettingsPage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.privacyPolicy: (_) => const PrivacyPolicyPage(),
-        AppRoutes.followedNoteDetail: (ctx) => FollowedNoteDetailPage(
-          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-        ),
-        AppRoutes.thread: (ctx) => ThreadPage(
-          noteId: ModalRoute.of(ctx)!.settings.arguments as String,
-        ),
+        AppRoutes.thread: (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments;
+          if (args is ThreadRouteArgs) {
+            return ThreadPage(noteId: args.noteId, hasUnread: args.hasUnread);
+          }
+          return ThreadPage(noteId: args as String);
+        },
         AppRoutes.createChannel: (_) => const CreateChannelPage(),
+        AppRoutes.channelDetail: (ctx) => ChannelFeedPage(
+          channelId: ModalRoute.of(ctx)!.settings.arguments as String,
+        ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
         AppRoutes.graph: (_) => MultiBlocProvider(

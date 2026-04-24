@@ -15,4 +15,7 @@ abstract class SavedNoteRepository {
 
   /// All saved notes, newest-saved first.
   Future<Either<Failure, List<SavedNoteEntity>>> getAll();
+
+  /// Count of saved notes that are direct replies in a thread (rootEventId == eventId).
+  Future<Either<Failure, int>> getSavedReplyCount(String eventId);
 }

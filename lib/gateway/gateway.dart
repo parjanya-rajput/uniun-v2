@@ -1,6 +1,7 @@
+import 'dart:isolate';
+import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:isolate';
 import 'package:uniun/gateway/central_relay_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
@@ -30,7 +31,7 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
 
     await manager.start();
 
-    print("Gateway isolate fully started!");
+    debugPrint("Gateway isolate fully started!");
   } catch (e, stackTrace) {
     // 4. Catch and print any silent crashes
     throw Exception("$e\n$stackTrace");

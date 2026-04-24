@@ -73,6 +73,9 @@
   "drawerNoChannels": "No channels yet",
   "@drawerNoChannels": { "description": "Empty state for channels in drawer" },
 
+  "channelMessageHint": "Message channel…",
+  "@channelMessageHint": { "description": "Placeholder text in the channel message composer input" },
+
   "drawerNoMessages": "No messages yet",
   "@drawerNoMessages": { "description": "Empty state for DMs in drawer" },
 

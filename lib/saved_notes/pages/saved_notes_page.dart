@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
+import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_cubit.dart';
 import 'package:uniun/saved_notes/cubit/saved_notes_state.dart';
 import 'package:uniun/thread/pages/thread_page.dart';
+import 'package:uniun/vishnu/widgets/note_card.dart';
 
 class SavedNotesPage extends StatelessWidget {
   const SavedNotesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => SavedNotesCubit()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => SavedNotesCubit()..load()),
+        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
+      ],
       child: const _SavedNotesView(),
     );
   }
@@ -66,7 +73,8 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
         iconTheme: const IconThemeData(color: AppColors.onSurface),
         elevation: 0,
       ),
-      body: BlocBuilder<SavedNotesCubit, SavedNotesState>(
+      body: KeyboardDismissOnTap(
+        child: BlocBuilder<SavedNotesCubit, SavedNotesState>(
         builder: (context, state) {
           if (state.status == SavedNotesStatus.initial ||
               state.status == SavedNotesStatus.loading) {
@@ -152,25 +160,57 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                             ),
                           ],
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.only(
-                              left: 16, right: 16, bottom: 24),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (ctx, i) {
-                            final cubit = context.read<SavedNotesCubit>();
-                            return _SavedNoteCard(
-                              note: filtered[i],
-                              onTap: () => Navigator.push(
-                                ctx,
-                                MaterialPageRoute(
-                                  builder: (_) => ThreadPage(
-                                    noteId: filtered[i].eventId,
-                                    savedOnly: true,
-                                  ),
-                                ),
-                              ).then((_) => cubit.load()),
+                      : BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
+                          builder: (ctx, followedState) {
+                            final followedIds = followedState.notes
+                                .map((n) => n.eventId)
+                                .toSet();
+                            return ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox.shrink(),
+                              itemBuilder: (ctx, i) {
+                                final cubit = context.read<SavedNotesCubit>();
+                                final note = filtered[i];
+                                final savedEventIds = state.notes
+                                    .map((n) => n.eventId)
+                                    .toSet();
+                                final isFollowed =
+                                    followedIds.contains(note.eventId);
+                                return NoteCard(
+                                  note: note.toNoteEntity(
+                                      savedEventIds: savedEventIds),
+                                  profile: state.profiles[note.authorPubkey],
+                                  replyCount:
+                                      state.replyCounts[note.eventId] ?? 0,
+                                  isSaved: true,
+                                  isFollowed: isFollowed,
+                                  onFollowTap: () {
+                                    final followCubit =
+                                        ctx.read<FollowedNotesCubit>();
+                                    if (isFollowed) {
+                                      followCubit.unfollowNote(note.eventId);
+                                    } else {
+                                      followCubit.followNote(
+                                        note.eventId,
+                                        note.content.length > 80
+                                            ? note.content.substring(0, 80)
+                                            : note.content,
+                                      );
+                                    }
+                                  },
+                                  onTap: () => Navigator.push(
+                                    ctx,
+                                    MaterialPageRoute(
+                                      builder: (_) => ThreadPage(
+                                        noteId: note.eventId,
+                                        savedOnly: true,
+                                      ),
+                                    ),
+                                  ).then((_) => cubit.load()),
+                                );
+                              },
                             );
                           },
                         ),
@@ -179,6 +219,7 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
             ],
           );
         },
+        ),
       ),
     );
   }
@@ -246,110 +287,3 @@ class _NoResultsState extends StatelessWidget {
   }
 }
 
-// ── Saved note card ────────────────────────────────────────────────────────────
-
-class _SavedNoteCard extends StatelessWidget {
-  const _SavedNoteCard({required this.note, required this.onTap});
-
-  final SavedNoteEntity note;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final shortKey = note.authorPubkey.length >= 8
-        ? note.authorPubkey.substring(0, 8)
-        : note.authorPubkey;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Author + saved time
-            Row(
-              children: [
-                Text(
-                  shortKey,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.bookmark_rounded,
-                  size: 14,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDate(note.savedAt),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Full content — no truncation
-            Text(
-              note.content,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.onSurface,
-                height: 1.5,
-              ),
-            ),
-            if (note.tTags.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: note.tTags.map((tag) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '#$tag',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${dt.day}/${dt.month}/${dt.year}';
-  }
-}

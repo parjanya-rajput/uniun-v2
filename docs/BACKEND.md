@@ -76,14 +76,17 @@ Upload flow:
 ## How the Flutter App Connects
 
 ```
-Flutter App
-  └─ EmbeddedServer (Dart isolate)
-        └─ RelayConnector
+Flutter App (UI isolate)
+  └─ Isar (shared on-disk file)
+        ↑ written by
+Gateway isolate (lib/gateway/)
+  └─ CentralRelayManager
+        └─ WebSocketService(s)
               └─ WebSocket connection → ws://localhost:8080 (dev)
                                       → wss://relay.uniun.app (prod)
 ```
 
-The Flutter app **never** calls this relay directly from Dart UI code. Only the EmbeddedServer (running in a background isolate) handles the WebSocket connection.
+The Flutter UI **never** calls this relay directly. Only the Gateway isolate (running independently) manages WebSocket connections. The UI only reads/writes Isar; Isar watchers bridge the two isolates.
 
 ---
 
@@ -91,22 +94,23 @@ The Flutter app **never** calls this relay directly from Dart UI code. Only the 
 
 The relay should only accept these Nostr event kinds (defined in `RejectEvent`):
 
-| Kind | What it is | Used by |
-|------|-----------|---------|
-| 0 | User profile (name, avatar, bio) | Settings, profile display |
-| 1 | Short text note | Vishnu feed, threads |
-| 6 | Repost | Feed reposts |
-| 7 | Reaction (like/emoji) | Note reactions |
-| 13 | Seal (DM encryption layer 2) | DMs |
-| 14 | DM chat message (inner content) | DMs |
-| 40 | Channel creation | Channels |
-| 41 | Channel metadata update | Channels |
-| 42 | Channel message | Channels |
-| 1059 | Gift wrap (DM encryption outer layer) | DMs |
-| 10063 | User's Blossom server list | Media uploads |
-| 24242 | Blossom auth token | Media upload authorization |
+| Kind | What it is | Used by | Status |
+|------|-----------|---------|--------|
+| 0 | User profile (name, avatar, bio) | Profile display, NIP-05 | ✅ Active |
+| 1 | Short text note | Vishnu feed, threads, graph | ✅ Active |
+| 7 | Reaction (like/emoji) | Note reactions | ✅ Active |
+| 14 | DM chat message (Kind 14 rumor) | DMs (NIP-17) | 🔲 In progress |
+| 13 | Seal (DM encryption layer 2) | DMs — full 3-layer wrap | 🔲 Future |
+| 40 | Channel creation | Channels (NIP-28) | ✅ Active |
+| 41 | Channel metadata update | Channels | ✅ Active |
+| 42 | Channel message | Channels | ✅ Active |
+| 1059 | Gift wrap (DM outer envelope) | DMs — full 3-layer wrap | 🔲 Future |
+| 10063 | User's Blossom server list | Media uploads | ✅ Active |
+| 24242 | Blossom auth token | Media upload authorization | ✅ Active |
 
-Everything else should be rejected.
+Not accepted:
+- Kind 6 (repost) — not implemented in Flutter client yet; leave out of allowlist for now.
+- Everything else should be rejected.
 
 ---
 
@@ -120,7 +124,7 @@ Everything else should be rejected.
 func RejectEvent(ctx context.Context, event *nostr.Event) (reject bool, msg string) {
     // 1. Only accept kinds we actually use
     allowedKinds := map[int]bool{
-        0: true, 1: true, 6: true, 7: true, 13: true, 14: true,
+        0: true, 1: true, 7: true, 13: true, 14: true,
         40: true, 41: true, 42: true, 1059: true, 10063: true, 24242: true,
     }
     if !allowedKinds[event.Kind] {

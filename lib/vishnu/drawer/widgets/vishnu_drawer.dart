@@ -6,6 +6,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/thread/pages/thread_page.dart';
 import 'package:uniun/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
@@ -70,37 +73,42 @@ class VishnuDrawer extends StatelessWidget {
                     _CollapsibleFollowingSection(
                       items: loaded?.followedNotes ?? [],
                       onAdd: () => _showComingSoon(context, l10n.drawerHome),
-                      onItemTap: (eventId) {
+                      onItemTap: (item) async {
                         _close(context);
-                        Navigator.pushNamed(
+                        getIt<ClearNewReferencesUseCase>().call(item.eventId);
+                        await Navigator.pushNamed(
                           context,
-                          AppRoutes.followedNoteDetail,
-                          arguments: eventId,
+                          AppRoutes.thread,
+                          arguments: ThreadRouteArgs(
+                            item.eventId,
+                            hasUnread: item.newReferenceCount > 0,
+                          ),
                         );
+                        // ignore: use_build_context_synchronously
+                        if (context.mounted) {
+                          context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
+                        }
                       },
                     ),
 
                     const SizedBox(height: 16),
 
-                    // ── Channels ──────────────────────────────────────────
-                    _SectionHeader(
-                      label: l10n.drawerChannels,
+                    // ── Channels (collapsible) ────────────────────────────
+                    _CollapsibleChannelSection(
+                      items: loaded?.channels ?? [],
                       onAdd: () {
                         _close(context);
                         Navigator.pushNamed(context, AppRoutes.createChannel);
                       },
+                      onItemTap: (channelId) {
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.channelDetail,
+                          arguments: channelId,
+                        );
+                      },
                     ),
-                    const SizedBox(height: 4),
-                    if ((loaded?.channels ?? []).isEmpty)
-                      _EmptyHint(l10n.drawerNoChannels)
-                    else
-                      ...loaded!.channels.map((ch) => _ChannelRow(
-                            channel: ch,
-                            onTap: () {
-                              _close(context);
-                              _showComingSoon(context, '#${ch.name}');
-                            },
-                          )),
 
                     const SizedBox(height: 16),
 
@@ -422,19 +430,11 @@ class _FollowedNoteRow extends StatelessWidget {
             ),
             if (item.newReferenceCount > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${item.newReferenceCount}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onPrimary,
-                  ),
+                  shape: BoxShape.circle,
                 ),
               ),
           ],
@@ -455,7 +455,7 @@ class _CollapsibleFollowingSection extends StatefulWidget {
 
   final List<app_drawer.DrawerFollowedNoteItem> items;
   final VoidCallback onAdd;
-  final ValueChanged<String> onItemTap;
+  final void Function(app_drawer.DrawerFollowedNoteItem) onItemTap;
 
   @override
   State<_CollapsibleFollowingSection> createState() =>
@@ -521,7 +521,94 @@ class _CollapsibleFollowingSectionState
                 ...widget.items.map(
                   (n) => _FollowedNoteRow(
                     item: n,
-                    onTap: () => widget.onItemTap(n.eventId),
+                    onTap: () => widget.onItemTap(n),
+                  ),
+                ),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Collapsible channel section ───────────────────────────────────────────────
+
+class _CollapsibleChannelSection extends StatefulWidget {
+  const _CollapsibleChannelSection({
+    required this.items,
+    required this.onAdd,
+    required this.onItemTap,
+  });
+
+  final List<app_drawer.DrawerChannelItem> items;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onItemTap;
+
+  @override
+  State<_CollapsibleChannelSection> createState() =>
+      _CollapsibleChannelSectionState();
+}
+
+class _CollapsibleChannelSectionState
+    extends State<_CollapsibleChannelSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.drawerChannels,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: widget.onAdd,
+                  child: const Icon(Icons.add_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState:
+              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Column(
+            children: [
+              const SizedBox(height: 4),
+              if (widget.items.isEmpty)
+                _EmptyHint(l10n.drawerNoChannels)
+              else
+                ...widget.items.map(
+                  (ch) => _ChannelRow(
+                    channel: ch,
+                    onTap: () => widget.onItemTap(ch.id),
                   ),
                 ),
             ],
