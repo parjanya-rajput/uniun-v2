@@ -7,7 +7,10 @@ import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
+import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -27,6 +30,9 @@ class WebSocketService {
   /// NIP-01 [REQ] id for followed-note thread refs (`#e` = followed root ids).
   static const _followedNoteRefsSubscriptionId = 'followed_note_refs';
 
+  static const _dmSubscriptionId = 'dms';
+  static const _kind0SubscriptionId = 'profiles';
+
   final String url;
   final bool read;
   final bool write;
@@ -34,6 +40,7 @@ class WebSocketService {
 
   WebSocketChannel? _socket;
   StreamSubscription<dynamic>? _socketSub;
+  StreamSubscription<void>? _missingPubkeysWatcher;
 
   /// Isar autoincrement id of the last successfully ACK'd queue item.
   /// The service sends items with id > [_lastSentQueueId].
@@ -54,6 +61,8 @@ class WebSocketService {
   /// delivered twice (e.g. matches both `feed_notes` and `followed_note_refs`).
   final Set<String> _processedFollowReferenceBumps = {};
 
+  final String? activePubkey;
+
   final void Function(RelayStatus)? onStatusChanged;
   final Future<List<String>?> Function(EventQueueModel)? resolveTargets;
 
@@ -63,6 +72,7 @@ class WebSocketService {
     required this.write,
     required Isar isar,
     required int startFromQueueId,
+    this.activePubkey,
     this.onStatusChanged,
     this.resolveTargets,
   }) : _isar = isar,
@@ -93,6 +103,9 @@ class WebSocketService {
             _reconnectAttempt = 0;
             _updateStatus(RelayStatus.connected);
             _subscribeKind1Feed();
+            _subscribeDms();
+            _ensureMissingPubkeysWatcher();
+            unawaited(_subscribeKind0Profiles());
             unawaited(_subscribeFollowedNoteRefs());
             _processSendQueue();
           })
@@ -116,6 +129,45 @@ class WebSocketService {
         },
       ]),
     );
+  }
+
+  void _subscribeDms() {
+    if (!read || _disposed || _socket == null || activePubkey == null) return;
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        _dmSubscriptionId,
+        {
+          'kinds': [1059],
+          '#p': [activePubkey],
+        },
+      ]),
+    );
+  }
+
+  Future<void> _subscribeKind0Profiles() async {
+    if (!read || _disposed || _socket == null) return;
+    _socket!.sink.add(jsonEncode(['CLOSE', _kind0SubscriptionId]));
+    final missing = await _isar.missingProfilePubkeyModels.where().findAll();
+    if (missing.isEmpty) return;
+
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        _kind0SubscriptionId,
+        {
+          'kinds': [0],
+          'authors': missing.map((m) => m.pubkey).toList(),
+        },
+      ]),
+    );
+  }
+
+  void _ensureMissingPubkeysWatcher() {
+    if (_missingPubkeysWatcher != null) return;
+    _missingPubkeysWatcher = _isar.missingProfilePubkeyModels
+        .watchLazy()
+        .listen((_) => unawaited(_subscribeKind0Profiles()));
   }
 
   /// Refreshes the `#e`-filtered [REQ] for all rows in [FollowedNoteModel].
@@ -150,6 +202,8 @@ class WebSocketService {
   void disconnect() {
     _disposed = true;
     _reconnectTimer?.cancel();
+    _missingPubkeysWatcher?.cancel();
+    _missingPubkeysWatcher = null;
     _socketSub?.cancel();
     _socket?.sink.close();
     _isConnected = false;
@@ -221,7 +275,16 @@ class WebSocketService {
         break;
       case 'EVENT':
         if (read && data.length >= 3) {
-          unawaited(_handleIncomingKind1Event(data[2] as Map<String, dynamic>));
+          final eventMap = data[2] as Map<String, dynamic>;
+          unawaited(_trackMissingProfilePubkey(eventMap));
+          final kind = eventMap['kind'] as int?;
+          if (kind == 1) {
+            unawaited(_handleIncomingKind1Event(eventMap));
+          } else if (kind == 0) {
+            unawaited(_storeIncomingKind0Profile(eventMap));
+          } else if (kind == 1059) {
+            unawaited(_storeEncryptedDm(eventMap));
+          }
         }
         break;
       case 'EOSE':
@@ -252,7 +315,9 @@ class WebSocketService {
           await _isar.eventQueueModels.put(item);
         }
       });
-      _lastSentQueueId = _pendingQueueId!;
+      if (_pendingQueueId != null) {
+        _lastSentQueueId = _pendingQueueId!;
+      }
     }
 
     // Whether accepted or rejected, release the pending slot and move on.
@@ -277,17 +342,141 @@ class WebSocketService {
     final eventId = event['id'] as String?;
     if (eventId == null) return;
 
-    final existing = await _isar.noteModels
-        .where()
-        .eventIdEqualTo(eventId)
-        .findFirst();
-    if (existing != null) return;
-
     final model = _parseNoteModel(event);
-    await _isar.writeTxn(() async {
-      await _isar.noteModels.put(model);
-    });
+    try {
+      await _isar.writeTxn(() async {
+        final existing = await _isar.noteModels
+            .where()
+            .eventIdEqualTo(eventId)
+            .findFirst();
+        if (existing != null) return;
+        await _isar.noteModels.put(model);
+      });
+    } catch (_) {
+      // Another concurrent relay delivery may have inserted the same eventId.
+      return;
+    }
     // Isar watcher in Isolate 1 fires automatically — Flutter UI updates.
+  }
+
+  Future<void> _storeEncryptedDm(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    if (eventId == null) return;
+
+    final rawTags = (event['tags'] as List<dynamic>? ?? []);
+    String? pTagRef;
+    for (final tag in rawTags) {
+      if (tag is List && tag.length >= 2 && tag[0] == 'p') {
+        pTagRef = tag[1] as String;
+        break;
+      }
+    }
+
+    if (pTagRef == null) return;
+
+    final model = EncryptedDmModel(
+      eventId: eventId,
+      sig: event['sig'] as String? ?? '',
+      authorPubkey: event['pubkey'] as String? ?? '',
+      pTagRef: pTagRef,
+      content: event['content'] as String? ?? '',
+      kind: event['kind'] as int? ?? 1059,
+      created: DateTime.fromMillisecondsSinceEpoch((event['created_at'] as int? ?? 0) * 1000),
+    );
+
+    try {
+      await _isar.writeTxn(() async {
+        final existing = await _isar.encryptedDmModels
+            .where()
+            .eventIdEqualTo(eventId)
+            .findFirst();
+        if (existing != null) return;
+        await _isar.encryptedDmModels.put(model);
+      });
+    } catch (_) {
+      // Duplicate write race from concurrent relay deliveries.
+      return;
+    }
+  }
+
+  Future<void> _storeIncomingKind0Profile(Map<String, dynamic> event) async {
+    final pubkey = event['pubkey'] as String?;
+    final createdAtSec = event['created_at'] as int?;
+    if (pubkey == null || pubkey.isEmpty || createdAtSec == null) return;
+
+    Map<String, dynamic> metadata;
+    try {
+      metadata = jsonDecode(event['content'] as String? ?? '') as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    final incomingUpdatedAt = DateTime.fromMillisecondsSinceEpoch(createdAtSec * 1000);
+    try {
+      await _isar.writeTxn(() async {
+        final existing = await _isar.profileModels
+            .where()
+            .pubkeyEqualTo(pubkey)
+            .findFirst();
+        if (existing != null && incomingUpdatedAt.isBefore(existing.updatedAt)) {
+          return;
+        }
+
+        final model = existing ?? ProfileModel();
+        model.pubkey = pubkey;
+        model.name =
+            metadata['display_name'] as String? ?? metadata['name'] as String?;
+        model.username = metadata['name'] as String?;
+        model.about = metadata['about'] as String?;
+        model.avatarUrl = metadata['picture'] as String?;
+        model.nip05 = metadata['nip05'] as String?;
+        model.updatedAt = incomingUpdatedAt;
+        model.lastSeenAt = existing?.lastSeenAt;
+
+        await _isar.profileModels.put(model);
+
+        final missing = await _isar.missingProfilePubkeyModels
+            .where()
+            .pubkeyEqualTo(pubkey)
+            .findFirst();
+        if (missing != null) {
+          await _isar.missingProfilePubkeyModels.delete(missing.id);
+        }
+      });
+    } catch (_) {
+      // Duplicate upsert race from concurrent kind-0 deliveries.
+      return;
+    }
+  }
+
+  Future<void> _trackMissingProfilePubkey(Map<String, dynamic> event) async {
+    final pubkey = event['pubkey'] as String?;
+    if (pubkey == null || pubkey.isEmpty) return;
+
+    final existingProfile = await _isar.profileModels
+        .where()
+        .pubkeyEqualTo(pubkey)
+        .findFirst();
+    if (existingProfile != null) return;
+    try {
+      await _isar.writeTxn(() async {
+        // Keep check+insert in one write transaction to avoid races when
+        // duplicate relay deliveries arrive concurrently.
+        final existingMissing = await _isar.missingProfilePubkeyModels
+            .where()
+            .pubkeyEqualTo(pubkey)
+            .findFirst();
+        if (existingMissing != null) return;
+
+        final row = MissingProfilePubkeyModel()
+          ..pubkey = pubkey
+          ..firstSeenAt = DateTime.now();
+        await _isar.missingProfilePubkeyModels.put(row);
+      });
+    } catch (_) {
+      // Best-effort tracking only. If another concurrent writer inserted the
+      // same pubkey first (unique index), we can safely ignore.
+    }
   }
 
   Future<void> _bumpFollowedReferenceCountsIfNeeded(

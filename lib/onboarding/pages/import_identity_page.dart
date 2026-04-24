@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
+import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/onboarding/widgets/onboarding_app_bar.dart';
 
@@ -62,17 +65,45 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
 
       final result = await getIt<ImportKeyUseCase>().call(input);
       if (!mounted) return;
-      result.fold(
-        (failure) => _showError(l10n.importFailed),
-        (_) => Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.home,
-          (route) => false,
-        ),
+      await result.fold(
+        (failure) async => _showError(l10n.importFailed),
+        (user) async {
+          await _addImportedPubkeyToMissingList(user.pubkeyHex);
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.home,
+            (route) => false,
+          );
+        },
       );
       return;
     } catch (_) {
       _showError(l10n.importInvalidKey);
+    }
+  }
+
+  Future<void> _addImportedPubkeyToMissingList(String pubkeyHex) async {
+    if (pubkeyHex.isEmpty) return;
+    final isar = getIt<Isar>();
+    try {
+      final profile = await isar.profileModels.where().pubkeyEqualTo(pubkeyHex).findFirst();
+      if (profile != null) return;
+
+      await isar.writeTxn(() async {
+        final existing = await isar.missingProfilePubkeyModels
+            .where()
+            .pubkeyEqualTo(pubkeyHex)
+            .findFirst();
+        if (existing != null) return;
+
+        final row = MissingProfilePubkeyModel()
+          ..pubkey = pubkeyHex
+          ..firstSeenAt = DateTime.now();
+        await isar.missingProfilePubkeyModels.put(row);
+      });
+    } catch (_) {
+      // Best-effort only. Import should succeed even if this tracking fails.
     }
   }
 

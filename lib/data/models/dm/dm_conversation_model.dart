@@ -11,13 +11,13 @@ class DmConversationModel {
   @Index(unique: true)
   late String otherPubkey;
 
-  String? relayUrl;
+  List<String> relays = [];
 }
 
 extension DmConversationModelExtension on DmConversationModel {
   DmConversationEntity toDomain() => DmConversationEntity(
     id: id,
     otherPubkey: otherPubkey,
-    relayUrl: relayUrl,
+    relays: relays,
   );
 }

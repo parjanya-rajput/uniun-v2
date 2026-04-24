@@ -5,9 +5,11 @@ import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/user_key_model.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/repositories/relay_repository_impl.dart';
 import 'package:uniun/gateway/websocket_service.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 
 /// Orchestrates all relay connections inside the Gateway isolate.
 ///
@@ -32,6 +34,7 @@ class CentralRelayManager {
   final Map<String, Timer> _tempRelayTimers = {};
   final Map<String, WebSocketService> _tempServices = {};
   int _lastHandledQueueId = 0;
+  String? _activePubkey;
 
   Timer? _dequeueTimer;
   StreamSubscription<void>? _queueWatcher;
@@ -43,9 +46,14 @@ class CentralRelayManager {
   // ── Startup ────────────────────────────────────────────────────────────────
 
   Future<void> start() async {
+    final activeKey = await _isar.userKeyModels
+        .where()
+        .findFirst();
+    _activePubkey = activeKey?.pubkeyHex;
+
     // 1. Spin up one WebSocketService per persisted relay.
     var relays = await _isar.relayModels.where().findAll();
-    
+
     // If no relays exist, save and use the default relay.
     if (relays.isEmpty) {
       final repo = RelayRepositoryImpl(isar: _isar);
@@ -57,7 +65,13 @@ class CentralRelayManager {
     _lastHandledQueueId = allItems.isEmpty ? 0 : allItems.last.id;
 
     for (final relay in relays) {
-      _addService(relay.url, read: relay.read, write: relay.write, fromTail: false);
+      _addService(
+        relay.url,
+        read: relay.read,
+        write: relay.write,
+        fromTail: false,
+        activePubkey: _activePubkey,
+      );
     }
 
     // 2. Watch EventQueueModel so services send new items immediately.
@@ -135,6 +149,23 @@ class CentralRelayManager {
       // If channel not found or has no relays, fallback to all main relays.
       return null;
     }
+
+    if (kind == 1059) {
+      // Direct message routing. Read #p from EventQueueModel's pTagRefs.
+      if (event.pTagRefs.isNotEmpty) {
+        final receiverPubkey = event.pTagRefs.first;
+        final conversation = await _isar.dmConversationModels
+            .where()
+            .otherPubkeyEqualTo(receiverPubkey)
+            .findFirst();
+
+        if (conversation != null && conversation.relays.isNotEmpty) {
+          return conversation.relays;
+        }
+      }
+      return null;
+    }
+
     // kind == 1 or others fall back to main relays.
     return null;
   }
@@ -154,8 +185,7 @@ class CentralRelayManager {
     if (expired.isEmpty) return;
 
     await _isar.writeTxn(() async {
-      await _isar.eventQueueModels
-          .deleteAll(expired.map((e) => e.id).toList());
+      await _isar.eventQueueModels.deleteAll(expired.map((e) => e.id).toList());
     });
   }
 
@@ -171,7 +201,13 @@ class CentralRelayManager {
     for (final relay in current) {
       if (!serviceUrls.contains(relay.url)) {
         // New relay starts from the current queue tail (only new events).
-        _addService(relay.url, read: relay.read, write: relay.write, fromTail: true);
+        _addService(
+          relay.url,
+          read: relay.read,
+          write: relay.write,
+          fromTail: true,
+          activePubkey: _activePubkey,
+        );
       }
     }
 
@@ -201,6 +237,7 @@ class CentralRelayManager {
     required bool read,
     required bool write,
     required bool fromTail,
+    String? activePubkey,
   }) async {
     int startId = 0;
     if (fromTail) {
@@ -217,6 +254,7 @@ class CentralRelayManager {
       write: write,
       isar: _isar,
       startFromQueueId: startId,
+      activePubkey: activePubkey,
       onStatusChanged: (status) => _updateRelayStatus(url, status),
       resolveTargets: getTargetRelaysForEvent,
     );
@@ -236,6 +274,7 @@ class CentralRelayManager {
       write: true,
       isar: _isar,
       startFromQueueId: _lastHandledQueueId,
+      activePubkey: _activePubkey,
       resolveTargets: getTargetRelaysForEvent,
     );
     _tempServices[url] = svc;
