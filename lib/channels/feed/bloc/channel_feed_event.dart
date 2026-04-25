@@ -5,8 +5,11 @@ abstract class ChannelFeedEvent {
 }
 
 class LoadChannelFeedEvent extends ChannelFeedEvent {
-  const LoadChannelFeedEvent(this.channelId);
+  const LoadChannelFeedEvent(this.channelId, {this.silent = false});
   final String channelId;
+  /// When true the loading spinner is suppressed — used for background
+  /// refreshes (e.g. returning from a thread) so scroll position is preserved.
+  final bool silent;
 }
 
 class SendChannelMessageEvent extends ChannelFeedEvent {

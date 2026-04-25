@@ -1,7 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/brahma/graph/models/graph_node_type.dart';
@@ -16,6 +18,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
   final GetDraftsUseCase _getDrafts;
   final GetActiveUserProfileUseCase _getActiveUserProfile;
   final DeleteDraftUseCase _deleteDraft;
+  final GetProfileUseCase _getProfile;
 
   GraphBloc(
     this._getAllSavedNotes,
@@ -23,6 +26,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     this._getDrafts,
     this._getActiveUserProfile,
     this._deleteDraft,
+    this._getProfile,
   ) : super(const GraphState()) {
     on<LoadGraphEvent>(_onLoad);
     on<SelectGraphNodeEvent>(_onSelect);
@@ -95,10 +99,22 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
 
     final allNodes = [...savedNodes, ...ownNotes, ...draftNodes];
 
+    // ── 5. Load profiles for non-draft nodes ─────────────────────────────────
+    final profiles = <String, ProfileEntity>{};
+    for (final node in allNodes) {
+      final pubkey = node.authorPubkey;
+      if (pubkey == null || pubkey.isEmpty || profiles.containsKey(pubkey)) {
+        continue;
+      }
+      final r = await _getProfile.call(pubkey);
+      r.fold((_) {}, (p) => profiles[p.pubkey] = p);
+    }
+
     emit(state.copyWith(
       status: GraphStatus.loaded,
       nodes: allNodes,
       adjacency: _buildAdjacency(allNodes),
+      profiles: profiles,
     ));
   }
 

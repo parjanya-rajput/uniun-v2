@@ -33,10 +33,45 @@ class NoteRepositoryImpl extends NoteRepository {
                 .limit(limit)
                 .findAll();
 
+      await _backfillReplyCountsIfNeeded(notes);
       return Right(notes.map((n) => n.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
+  }
+
+  /// One-time lazy migration: for notes created before cachedReplyCount was
+  /// added, compute the count from existing Isar records and persist it.
+  /// After the first run each note has the correct count and this is a no-op.
+  Future<void> _backfillReplyCountsIfNeeded(List<NoteModel> models) async {
+    final toUpdate = <NoteModel>[];
+    for (final m in models) {
+      // Total notes that have m in their eTagRefs.
+      final totalEtag = await isar.noteModels
+          .filter()
+          .eTagRefsElementEqualTo(m.eventId)
+          .count();
+      // Subtract nested-thread replies: notes where m is the root but
+      // replyToEventId points elsewhere (they are NOT direct replies to m).
+      final nestedOnly = await isar.noteModels
+          .filter()
+          .rootEventIdEqualTo(m.eventId)
+          .not()
+          .replyToEventIdEqualTo(m.eventId)
+          .replyToEventIdIsNotNull()
+          .count();
+      final count = totalEtag - nestedOnly;
+      if (count != m.cachedReplyCount) {
+        m.cachedReplyCount = count;
+        toUpdate.add(m);
+      }
+    }
+    if (toUpdate.isEmpty) return;
+    await isar.writeTxn(() async {
+      for (final m in toUpdate) {
+        await isar.noteModels.put(m);
+      }
+    });
   }
 
   @override
@@ -155,6 +190,29 @@ class NoteRepositoryImpl extends NoteRepository {
 
       await isar.writeTxn(() async {
         await isar.noteModels.put(model);
+        // Increment the direct parent and any mention-references.
+        // Explicitly exclude the root-tag ref when it differs from the reply
+        // target — that avoids double-counting nested thread replies on the
+        // thread root (e.g. n4→n3 inside n1's thread must NOT increment n1).
+        final toIncrement = <String>{};
+        if (note.replyToEventId != null) {
+          toIncrement.add(note.replyToEventId!);
+        }
+        for (final ref in note.eTagRefs) {
+          if (ref != note.rootEventId && ref != note.replyToEventId) {
+            toIncrement.add(ref); // pure mention / reference
+          }
+        }
+        for (final refId in toIncrement) {
+          final ref = await isar.noteModels
+              .where()
+              .eventIdEqualTo(refId)
+              .findFirst();
+          if (ref != null) {
+            ref.cachedReplyCount++;
+            await isar.noteModels.put(ref);
+          }
+        }
       });
 
       return Right(model.toDomain());

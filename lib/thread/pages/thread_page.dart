@@ -16,9 +16,10 @@ import 'package:uniun/thread/widgets/thread_root_note_card.dart';
 /// Route argument for [ThreadPage]. Pass either a plain [String] (eventId)
 /// or a [ThreadRouteArgs] when opening from a followed note with unread state.
 class ThreadRouteArgs {
-  const ThreadRouteArgs(this.noteId, {this.hasUnread = false});
+  const ThreadRouteArgs(this.noteId, {this.hasUnread = false, this.savedOnly = false});
   final String noteId;
   final bool hasUnread;
+  final bool savedOnly;
 }
 
 class ThreadPage extends StatelessWidget {
@@ -98,7 +99,16 @@ class _ThreadViewState extends State<_ThreadView> {
       });
       return;
     }
-    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: noteId);
+    final bloc = context.read<ThreadBloc>();
+    // Propagate savedOnly so child threads also filter to saved notes only.
+    final args = bloc.state.savedOnly
+        ? ThreadRouteArgs(noteId, savedOnly: true)
+        : noteId as Object;
+    // Reload this thread when the child thread is popped so reply counts and
+    // newly created nested replies are reflected without a manual refresh.
+    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: args).then((_) {
+      if (mounted) bloc.add(LoadThreadEvent(widget.noteId, savedOnly: bloc.state.savedOnly));
+    });
   }
 
   @override
@@ -254,8 +264,6 @@ class _ThreadBody extends StatelessWidget {
                     nestedReplies: state.nestedReplies[reply.id] ?? [],
                     nestedProfiles: state.profiles,
                     allNestedReplies: state.nestedReplies,
-                    replyCounts: state.replyCounts,
-                    replyCount: state.replyCounts[reply.id] ?? 0,
                     showThreadLine: i < state.replies.length - 1,
                     hasUnread: state.hasUnread,
                     onReplyTap: () {

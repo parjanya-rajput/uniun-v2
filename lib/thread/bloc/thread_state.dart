@@ -10,7 +10,6 @@ class ThreadState {
     this.parentChain = const [],
     this.profiles = const {},
     this.replies = const [],
-    this.replyCounts = const {},
     this.nestedReplies = const {},
     this.mentionedNotes = const [],
     this.replyText = '',
@@ -21,6 +20,8 @@ class ThreadState {
     this.postStatus = ThreadPostStatus.idle,
     this.errorMessage,
     this.hasUnread = false,
+    this.savedOnly = false,
+    this.savedOnlyIds = const {},
   });
 
   final NoteEntity? rootNote;
@@ -31,8 +32,6 @@ class ThreadState {
   final Map<String, ProfileEntity> profiles;
   /// Direct replies to the root note (replyToEventId == rootNote.id)
   final List<NoteEntity> replies;
-  /// noteId → reply count (used on reply items themselves)
-  final Map<String, int> replyCounts;
   /// replyId → its direct replies (one level of nesting)
   final Map<String, List<NoteEntity>> nestedReplies;
   /// Notes referenced by the root note's mention e-tags (not root/reply markers).
@@ -49,6 +48,10 @@ class ThreadState {
   final String? errorMessage;
   /// True when opened from a followed note with unread references.
   final bool hasUnread;
+  /// True when opened from Saved Notes — only saved notes are shown.
+  final bool savedOnly;
+  /// Event IDs of all saved notes (populated when savedOnly=true).
+  final Set<String> savedOnlyIds;
 
   ProfileEntity? profileFor(String pubkey) => profiles[pubkey];
 
@@ -60,7 +63,6 @@ class ThreadState {
     List<NoteEntity>? parentChain,
     Map<String, ProfileEntity>? profiles,
     List<NoteEntity>? replies,
-    Map<String, int>? replyCounts,
     Map<String, List<NoteEntity>>? nestedReplies,
     List<NoteEntity>? mentionedNotes,
     String? replyText,
@@ -71,13 +73,14 @@ class ThreadState {
     ThreadPostStatus? postStatus,
     String? errorMessage,
     bool? hasUnread,
+    bool? savedOnly,
+    Set<String>? savedOnlyIds,
   }) {
     return ThreadState(
       rootNote: rootNote ?? this.rootNote,
       parentChain: parentChain ?? this.parentChain,
       profiles: profiles ?? this.profiles,
       replies: replies ?? this.replies,
-      replyCounts: replyCounts ?? this.replyCounts,
       nestedReplies: nestedReplies ?? this.nestedReplies,
       mentionedNotes: mentionedNotes ?? this.mentionedNotes,
       replyText: replyText ?? this.replyText,
@@ -92,6 +95,8 @@ class ThreadState {
       postStatus: postStatus ?? this.postStatus,
       errorMessage: errorMessage,
       hasUnread: hasUnread ?? this.hasUnread,
+      savedOnly: savedOnly ?? this.savedOnly,
+      savedOnlyIds: savedOnlyIds ?? this.savedOnlyIds,
     );
   }
 }

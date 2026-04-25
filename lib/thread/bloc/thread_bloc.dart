@@ -7,6 +7,7 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
@@ -24,7 +25,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final GetRepliesUseCase _getReplies;
   final PublishNoteUseCase _publishNote;
   final GetProfileUseCase _getProfile;
-  final GetReplyCountUseCase _getReplyCount;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final GetAllSavedNotesUseCase _getAllSavedNotes;
@@ -34,7 +34,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     this._getReplies,
     this._publishNote,
     this._getProfile,
-    this._getReplyCount,
     this._getActiveUserKeys,
     this._embedAndStore,
     this._getAllSavedNotes,
@@ -68,32 +67,34 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
 
     // ── Phase 2: fetch root profile + direct replies + parent chain in parallel
     final profiles = <String, ProfileEntity>{};
-    final replyCounts = <String, int>{};
 
     final rootProfileFuture = _getProfile.call(rootNote.authorPubkey);
-    final repliesResult = await _getReplies.call(event.noteId);
-    var directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
 
-    // When opened from Saved Notes — only show replies/refs that are also saved.
+    // When opened from Saved Notes — load from savedNoteModels directly so
+    // cachedReplyCount is the saved-only count (not the total relay count).
     Set<String> savedOnlyIds = {};
+    List<NoteEntity> directReplies;
     if (event.savedOnly) {
       final savedResult = await _getAllSavedNotes.call();
-      savedOnlyIds = savedResult.fold(
-        (_) => <String>{},
-        (notes) => notes.map((n) => n.eventId).toSet(),
-      );
-      directReplies = directReplies
-          .where((r) => savedOnlyIds.contains(r.id))
-          .toList();
+      final allSaved = savedResult.fold((_) => <SavedNoteEntity>[], (n) => n);
+      savedOnlyIds = {for (final s in allSaved) s.eventId};
+      directReplies = allSaved
+          .where((s) =>
+              s.eventId != event.noteId &&
+              s.eTagRefs.contains(event.noteId))
+          .map((s) => s.toNoteEntity(savedEventIds: savedOnlyIds))
+          .toList()
+        ..sort((a, b) => a.created.compareTo(b.created));
+    } else {
+      final repliesResult = await _getReplies.call(event.noteId);
+      directReplies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
     }
 
     final rootProfile = await rootProfileFuture;
     rootProfile.fold((_) {}, (p) => profiles[p.pubkey] = p);
 
-    // Profiles + counts for direct replies — all parallel
+    // Load profiles for direct replies — all parallel
     await Future.wait(directReplies.map((reply) async {
-      final cr = await _getReplyCount.call(reply.id);
-      cr.fold((_) {}, (c) => replyCounts[reply.id] = c);
       final pr = await _getProfile.call(reply.authorPubkey);
       pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
     }));
@@ -141,11 +142,12 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       parentChain: parentChain,
       profiles: Map.from(profiles),
       replies: directReplies,
-      replyCounts: Map.from(replyCounts),
       nestedReplies: const {},
       mentionedNotes: mentionedNotes,
       status: ThreadStatus.loaded,
       hasUnread: event.hasUnread,
+      savedOnly: event.savedOnly,
+      savedOnlyIds: savedOnlyIds,
     ));
   }
 
@@ -158,19 +160,35 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     // Already loaded — nothing to do
     if (state.nestedReplies.containsKey(event.replyId)) return;
 
-    final nr = await _getReplies.call(event.replyId);
-    if (nr.isLeft()) return;
+    List<NoteEntity> children;
 
-    final children = nr.getOrElse(() => []);
+    if (state.savedOnly) {
+      // In saved-only mode: only show nested notes that are also saved, and
+      // use SavedNoteEntity.toNoteEntity() so cachedReplyCount is saved-only.
+      final savedResult = await _getAllSavedNotes.call();
+      final allSaved = savedResult.fold(
+        (_) => <SavedNoteEntity>[],
+        (n) => n,
+      );
+      final savedIds = {for (final s in allSaved) s.eventId};
+      children = allSaved
+          .where((s) =>
+              s.eventId != event.replyId &&
+              s.eTagRefs.contains(event.replyId))
+          .map((s) => s.toNoteEntity(savedEventIds: savedIds))
+          .toList()
+        ..sort((a, b) => a.created.compareTo(b.created));
+    } else {
+      final nr = await _getReplies.call(event.replyId);
+      if (nr.isLeft()) return;
+      children = nr.getOrElse(() => []);
+    }
+
     if (children.isEmpty) return;
 
     final profiles = Map<String, ProfileEntity>.from(state.profiles);
-    final replyCounts = Map<String, int>.from(state.replyCounts);
 
     await Future.wait(children.map((child) async {
-      final cr = await _getReplyCount.call(child.id);
-      cr.fold((_) {}, (c) => replyCounts[child.id] = c);
-
       if (!profiles.containsKey(child.authorPubkey)) {
         final pr = await _getProfile.call(child.authorPubkey);
         pr.fold((_) {}, (p) => profiles[p.pubkey] = p);
@@ -183,7 +201,6 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     if (!emit.isDone) {
       emit(state.copyWith(
         nestedReplies: updated,
-        replyCounts: replyCounts,
         profiles: profiles,
       ));
     }
@@ -290,11 +307,8 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
             ...(updatedNested[replyToId] ?? []),
             published,
           ];
-          final updatedCounts = Map<String, int>.from(state.replyCounts);
-          updatedCounts[replyToId] = (updatedCounts[replyToId] ?? 0) + 1;
           emit(updatedState.copyWith(
             nestedReplies: updatedNested,
-            replyCounts: updatedCounts,
           ));
         }
       },

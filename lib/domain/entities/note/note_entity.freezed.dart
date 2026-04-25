@@ -17,7 +17,8 @@ mixin _$NoteEntity {
 
  String get id; String get sig; String get authorPubkey; String get content; String? get subject; NoteType get type; List<String> get eTagRefs; List<String> get pTagRefs; List<String> get tTags; DateTime get created; bool get isSeen;/// NIP-10 "root" marker — null means this IS a top-level note.
  String? get rootEventId;/// NIP-10 "reply" marker — the direct parent note this replies to.
- String? get replyToEventId;/// 384-dim embedding vector. Non-null only for own notes after RAG init.
+ String? get replyToEventId;/// Denormalised reply count from NoteModel — updated by Gateway and saveNote.
+ int get cachedReplyCount;/// 384-dim embedding vector. Non-null only for own notes after RAG init.
  List<double>? get embedding;
 /// Create a copy of NoteEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -31,16 +32,16 @@ $NoteEntityCopyWith<NoteEntity> get copyWith => _$NoteEntityCopyWithImpl<NoteEnt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NoteEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.sig, sig) || other.sig == sig)&&(identical(other.authorPubkey, authorPubkey) || other.authorPubkey == authorPubkey)&&(identical(other.content, content) || other.content == content)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.eTagRefs, eTagRefs)&&const DeepCollectionEquality().equals(other.pTagRefs, pTagRefs)&&const DeepCollectionEquality().equals(other.tTags, tTags)&&(identical(other.created, created) || other.created == created)&&(identical(other.isSeen, isSeen) || other.isSeen == isSeen)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other.embedding, embedding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NoteEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.sig, sig) || other.sig == sig)&&(identical(other.authorPubkey, authorPubkey) || other.authorPubkey == authorPubkey)&&(identical(other.content, content) || other.content == content)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.eTagRefs, eTagRefs)&&const DeepCollectionEquality().equals(other.pTagRefs, pTagRefs)&&const DeepCollectionEquality().equals(other.tTags, tTags)&&(identical(other.created, created) || other.created == created)&&(identical(other.isSeen, isSeen) || other.isSeen == isSeen)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&(identical(other.cachedReplyCount, cachedReplyCount) || other.cachedReplyCount == cachedReplyCount)&&const DeepCollectionEquality().equals(other.embedding, embedding));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sig,authorPubkey,content,subject,type,const DeepCollectionEquality().hash(eTagRefs),const DeepCollectionEquality().hash(pTagRefs),const DeepCollectionEquality().hash(tTags),created,isSeen,rootEventId,replyToEventId,const DeepCollectionEquality().hash(embedding));
+int get hashCode => Object.hash(runtimeType,id,sig,authorPubkey,content,subject,type,const DeepCollectionEquality().hash(eTagRefs),const DeepCollectionEquality().hash(pTagRefs),const DeepCollectionEquality().hash(tTags),created,isSeen,rootEventId,replyToEventId,cachedReplyCount,const DeepCollectionEquality().hash(embedding));
 
 @override
 String toString() {
-  return 'NoteEntity(id: $id, sig: $sig, authorPubkey: $authorPubkey, content: $content, subject: $subject, type: $type, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, created: $created, isSeen: $isSeen, rootEventId: $rootEventId, replyToEventId: $replyToEventId, embedding: $embedding)';
+  return 'NoteEntity(id: $id, sig: $sig, authorPubkey: $authorPubkey, content: $content, subject: $subject, type: $type, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, created: $created, isSeen: $isSeen, rootEventId: $rootEventId, replyToEventId: $replyToEventId, cachedReplyCount: $cachedReplyCount, embedding: $embedding)';
 }
 
 
@@ -51,7 +52,7 @@ abstract mixin class $NoteEntityCopyWith<$Res>  {
   factory $NoteEntityCopyWith(NoteEntity value, $Res Function(NoteEntity) _then) = _$NoteEntityCopyWithImpl;
 @useResult
 $Res call({
- String id, String sig, String authorPubkey, String content, String? subject, NoteType type, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime created, bool isSeen, String? rootEventId, String? replyToEventId, List<double>? embedding
+ String id, String sig, String authorPubkey, String content, String? subject, NoteType type, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime created, bool isSeen, String? rootEventId, String? replyToEventId, int cachedReplyCount, List<double>? embedding
 });
 
 
@@ -68,7 +69,7 @@ class _$NoteEntityCopyWithImpl<$Res>
 
 /// Create a copy of NoteEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sig = null,Object? authorPubkey = null,Object? content = null,Object? subject = freezed,Object? type = null,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? created = null,Object? isSeen = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? embedding = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sig = null,Object? authorPubkey = null,Object? content = null,Object? subject = freezed,Object? type = null,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? created = null,Object? isSeen = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? cachedReplyCount = null,Object? embedding = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sig: null == sig ? _self.sig : sig // ignore: cast_nullable_to_non_nullable
@@ -83,7 +84,8 @@ as List<String>,created: null == created ? _self.created : created // ignore: ca
 as DateTime,isSeen: null == isSeen ? _self.isSeen : isSeen // ignore: cast_nullable_to_non_nullable
 as bool,rootEventId: freezed == rootEventId ? _self.rootEventId : rootEventId // ignore: cast_nullable_to_non_nullable
 as String?,replyToEventId: freezed == replyToEventId ? _self.replyToEventId : replyToEventId // ignore: cast_nullable_to_non_nullable
-as String?,embedding: freezed == embedding ? _self.embedding : embedding // ignore: cast_nullable_to_non_nullable
+as String?,cachedReplyCount: null == cachedReplyCount ? _self.cachedReplyCount : cachedReplyCount // ignore: cast_nullable_to_non_nullable
+as int,embedding: freezed == embedding ? _self.embedding : embedding // ignore: cast_nullable_to_non_nullable
 as List<double>?,
   ));
 }
@@ -169,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  List<double>? embedding)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  int cachedReplyCount,  List<double>? embedding)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NoteEntity() when $default != null:
-return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.embedding);case _:
+return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.cachedReplyCount,_that.embedding);case _:
   return orElse();
 
 }
@@ -190,10 +192,10 @@ return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subjec
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  List<double>? embedding)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  int cachedReplyCount,  List<double>? embedding)  $default,) {final _that = this;
 switch (_that) {
 case _NoteEntity():
-return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.embedding);case _:
+return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.cachedReplyCount,_that.embedding);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +212,10 @@ return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subjec
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  List<double>? embedding)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sig,  String authorPubkey,  String content,  String? subject,  NoteType type,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime created,  bool isSeen,  String? rootEventId,  String? replyToEventId,  int cachedReplyCount,  List<double>? embedding)?  $default,) {final _that = this;
 switch (_that) {
 case _NoteEntity() when $default != null:
-return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.embedding);case _:
+return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subject,_that.type,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.created,_that.isSeen,_that.rootEventId,_that.replyToEventId,_that.cachedReplyCount,_that.embedding);case _:
   return null;
 
 }
@@ -225,7 +227,7 @@ return $default(_that.id,_that.sig,_that.authorPubkey,_that.content,_that.subjec
 @JsonSerializable()
 
 class _NoteEntity implements NoteEntity {
-  const _NoteEntity({required this.id, required this.sig, required this.authorPubkey, required this.content, this.subject, required this.type, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.created, required this.isSeen, this.rootEventId, this.replyToEventId, final  List<double>? embedding}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags,_embedding = embedding;
+  const _NoteEntity({required this.id, required this.sig, required this.authorPubkey, required this.content, this.subject, required this.type, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.created, required this.isSeen, this.rootEventId, this.replyToEventId, this.cachedReplyCount = 0, final  List<double>? embedding}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags,_embedding = embedding;
   factory _NoteEntity.fromJson(Map<String, dynamic> json) => _$NoteEntityFromJson(json);
 
 @override final  String id;
@@ -261,6 +263,8 @@ class _NoteEntity implements NoteEntity {
 @override final  String? rootEventId;
 /// NIP-10 "reply" marker — the direct parent note this replies to.
 @override final  String? replyToEventId;
+/// Denormalised reply count from NoteModel — updated by Gateway and saveNote.
+@override@JsonKey() final  int cachedReplyCount;
 /// 384-dim embedding vector. Non-null only for own notes after RAG init.
  final  List<double>? _embedding;
 /// 384-dim embedding vector. Non-null only for own notes after RAG init.
@@ -286,16 +290,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NoteEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.sig, sig) || other.sig == sig)&&(identical(other.authorPubkey, authorPubkey) || other.authorPubkey == authorPubkey)&&(identical(other.content, content) || other.content == content)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._eTagRefs, _eTagRefs)&&const DeepCollectionEquality().equals(other._pTagRefs, _pTagRefs)&&const DeepCollectionEquality().equals(other._tTags, _tTags)&&(identical(other.created, created) || other.created == created)&&(identical(other.isSeen, isSeen) || other.isSeen == isSeen)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other._embedding, _embedding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NoteEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.sig, sig) || other.sig == sig)&&(identical(other.authorPubkey, authorPubkey) || other.authorPubkey == authorPubkey)&&(identical(other.content, content) || other.content == content)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._eTagRefs, _eTagRefs)&&const DeepCollectionEquality().equals(other._pTagRefs, _pTagRefs)&&const DeepCollectionEquality().equals(other._tTags, _tTags)&&(identical(other.created, created) || other.created == created)&&(identical(other.isSeen, isSeen) || other.isSeen == isSeen)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&(identical(other.cachedReplyCount, cachedReplyCount) || other.cachedReplyCount == cachedReplyCount)&&const DeepCollectionEquality().equals(other._embedding, _embedding));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sig,authorPubkey,content,subject,type,const DeepCollectionEquality().hash(_eTagRefs),const DeepCollectionEquality().hash(_pTagRefs),const DeepCollectionEquality().hash(_tTags),created,isSeen,rootEventId,replyToEventId,const DeepCollectionEquality().hash(_embedding));
+int get hashCode => Object.hash(runtimeType,id,sig,authorPubkey,content,subject,type,const DeepCollectionEquality().hash(_eTagRefs),const DeepCollectionEquality().hash(_pTagRefs),const DeepCollectionEquality().hash(_tTags),created,isSeen,rootEventId,replyToEventId,cachedReplyCount,const DeepCollectionEquality().hash(_embedding));
 
 @override
 String toString() {
-  return 'NoteEntity(id: $id, sig: $sig, authorPubkey: $authorPubkey, content: $content, subject: $subject, type: $type, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, created: $created, isSeen: $isSeen, rootEventId: $rootEventId, replyToEventId: $replyToEventId, embedding: $embedding)';
+  return 'NoteEntity(id: $id, sig: $sig, authorPubkey: $authorPubkey, content: $content, subject: $subject, type: $type, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, created: $created, isSeen: $isSeen, rootEventId: $rootEventId, replyToEventId: $replyToEventId, cachedReplyCount: $cachedReplyCount, embedding: $embedding)';
 }
 
 
@@ -306,7 +310,7 @@ abstract mixin class _$NoteEntityCopyWith<$Res> implements $NoteEntityCopyWith<$
   factory _$NoteEntityCopyWith(_NoteEntity value, $Res Function(_NoteEntity) _then) = __$NoteEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String sig, String authorPubkey, String content, String? subject, NoteType type, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime created, bool isSeen, String? rootEventId, String? replyToEventId, List<double>? embedding
+ String id, String sig, String authorPubkey, String content, String? subject, NoteType type, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime created, bool isSeen, String? rootEventId, String? replyToEventId, int cachedReplyCount, List<double>? embedding
 });
 
 
@@ -323,7 +327,7 @@ class __$NoteEntityCopyWithImpl<$Res>
 
 /// Create a copy of NoteEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sig = null,Object? authorPubkey = null,Object? content = null,Object? subject = freezed,Object? type = null,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? created = null,Object? isSeen = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? embedding = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sig = null,Object? authorPubkey = null,Object? content = null,Object? subject = freezed,Object? type = null,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? created = null,Object? isSeen = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? cachedReplyCount = null,Object? embedding = freezed,}) {
   return _then(_NoteEntity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sig: null == sig ? _self.sig : sig // ignore: cast_nullable_to_non_nullable
@@ -338,7 +342,8 @@ as List<String>,created: null == created ? _self.created : created // ignore: ca
 as DateTime,isSeen: null == isSeen ? _self.isSeen : isSeen // ignore: cast_nullable_to_non_nullable
 as bool,rootEventId: freezed == rootEventId ? _self.rootEventId : rootEventId // ignore: cast_nullable_to_non_nullable
 as String?,replyToEventId: freezed == replyToEventId ? _self.replyToEventId : replyToEventId // ignore: cast_nullable_to_non_nullable
-as String?,embedding: freezed == embedding ? _self._embedding : embedding // ignore: cast_nullable_to_non_nullable
+as String?,cachedReplyCount: null == cachedReplyCount ? _self.cachedReplyCount : cachedReplyCount // ignore: cast_nullable_to_non_nullable
+as int,embedding: freezed == embedding ? _self._embedding : embedding // ignore: cast_nullable_to_non_nullable
 as List<double>?,
   ));
 }

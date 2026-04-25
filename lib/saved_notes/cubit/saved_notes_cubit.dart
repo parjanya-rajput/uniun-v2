@@ -20,13 +20,10 @@ class SavedNotesCubit extends Cubit<SavedNotesState> {
       (notes) async {
         final profiles = await _loadProfiles(notes);
         if (isClosed) return;
-        final replyCounts = await _loadReplyCounts(notes);
-        if (isClosed) return;
         emit(state.copyWith(
           status: SavedNotesStatus.loaded,
           notes: notes,
           profiles: profiles,
-          replyCounts: replyCounts,
         ));
       },
     );
@@ -41,16 +38,5 @@ class SavedNotesCubit extends Cubit<SavedNotesState> {
       result.fold((_) => null, (p) => profiles[pk] = p);
     }
     return profiles;
-  }
-
-  Future<Map<String, int>> _loadReplyCounts(
-      List<SavedNoteEntity> notes) async {
-    final counts = <String, int>{};
-    for (final note in notes) {
-      final result =
-          await getIt<GetSavedReplyCountUseCase>().call(note.eventId);
-      result.fold((_) => null, (c) => counts[note.eventId] = c);
-    }
-    return counts;
   }
 }
