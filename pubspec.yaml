@@ -55,6 +55,7 @@ dependencies:
       url: https://github.com/chebizarro/dart-nip44.git
       ref: master
   disk_space_plus: ^0.2.6
+  nip77: ^1.0.1
   flutter_svg: ^2.2.4
 
 dev_dependencies:

@@ -5,6 +5,7 @@ import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/user_key_model.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/repositories/relay_repository_impl.dart';
@@ -40,6 +41,7 @@ class CentralRelayManager {
   StreamSubscription<void>? _queueWatcher;
   StreamSubscription<void>? _relayWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
+  StreamSubscription<void>? _subscriptionsWatcher;
 
   CentralRelayManager({required Isar isar}) : _isar = isar;
 
@@ -95,6 +97,14 @@ class CentralRelayManager {
         svc.onFollowedNotesChanged();
       }
     });
+
+    _subscriptionsWatcher = _isar.subscriptionRecordModels
+        .watchLazy()
+        .listen((_) {
+          for (final svc in _services.values) {
+            svc.onSubscriptionsChanged();
+          }
+        });
 
     // 4. Start dequeue cleanup timer.
     _dequeueTimer = Timer.periodic(const Duration(minutes: 5), (_) {
@@ -297,6 +307,7 @@ class CentralRelayManager {
     _queueWatcher?.cancel();
     _relayWatcher?.cancel();
     _followedNotesWatcher?.cancel();
+    _subscriptionsWatcher?.cancel();
     _dequeueTimer?.cancel();
     for (final svc in _services.values) {
       svc.disconnect();
