@@ -6,7 +6,6 @@ import 'package:uniun/domain/usecases/create_channel_usecase.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/save_channel_usecase.dart';
-import 'package:uniun/domain/usecases/subscribe_channel_usecase.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 
 part 'create_channel_event.dart';
@@ -18,14 +17,12 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
   final GetActiveUserUseCase _getActiveUserUseCase;
   final CreateChannelUseCase _createChannelUseCase;
   final SaveChannelUseCase _saveChannelUseCase;
-  final SubscribeChannelUseCase _subscribeChannelUseCase;
 
   CreateChannelBloc(
     this._getRelaysUseCase,
     this._getActiveUserUseCase,
     this._createChannelUseCase,
     this._saveChannelUseCase,
-    this._subscribeChannelUseCase,
   ) : super(const CreateChannelState()) {
     on<LoadRelaysEvent>(_onLoadRelays);
     on<SubmitChannelEvent>(_onSubmitChannel);
@@ -157,7 +154,7 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
 
     emit(state.copyWith(isSubmitting: true, errorMessage: null));
 
-    // Save initial placeholder channel
+    // Save initial placeholder channel — presence = subscribed; gateway resyncs from [ChannelModel] watcher
     final channelInput = ChannelEntity(
       channelId: event.channelId.trim(),
       creatorPubKey: '',
@@ -180,22 +177,6 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
       return;
     }
 
-    // Subscribe to channel
-    final subInput = SubscribeChannelInput(channelId: event.channelId.trim());
-    final subResult = await _subscribeChannelUseCase.call(subInput);
-
-    subResult.fold(
-      (failure) {
-        emit(
-          state.copyWith(
-            isSubmitting: false,
-            errorMessage: 'Failed to subscribe to channel: ${failure.message}',
-          ),
-        );
-      },
-      (record) {
-        emit(state.copyWith(isSubmitting: false, isSuccess: true));
-      },
-    );
+    emit(state.copyWith(isSubmitting: false, isSuccess: true));
   }
 }

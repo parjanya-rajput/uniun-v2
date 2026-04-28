@@ -5,7 +5,6 @@ import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
-import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/user_key_model.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/repositories/relay_repository_impl.dart';
@@ -21,6 +20,8 @@ import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 ///     relay at runtime, sync the [_services] map accordingly.
 ///  3. **Isar watcher on [FollowedNoteModel]** — refresh `#e` [REQ] filters on
 ///     all [WebSocketService]s when the user follows/unfollows notes.
+///  3b. **Isar watcher on [ChannelModel]** — re-run channel NIP-77 sync when
+///      the user joins/leaves a channel (row added/removed).
 ///  4. **Dequeue timer** — every 5 minutes, delete queue entries that have
 ///     been sent by every active write relay AND are older than 30 minutes.
 ///
@@ -41,7 +42,8 @@ class CentralRelayManager {
   StreamSubscription<void>? _queueWatcher;
   StreamSubscription<void>? _relayWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
-  StreamSubscription<void>? _subscriptionsWatcher;
+  StreamSubscription<void>? _channelModelsWatcher;
+  int _knownChannelCount = 0;
 
   CentralRelayManager({required Isar isar}) : _isar = isar;
 
@@ -98,13 +100,19 @@ class CentralRelayManager {
       }
     });
 
-    _subscriptionsWatcher = _isar.subscriptionRecordModels
-        .watchLazy()
-        .listen((_) {
-          for (final svc in _services.values) {
-            svc.onSubscriptionsChanged();
-          }
-        });
+    _knownChannelCount = await _loadChannelCount();
+    _channelModelsWatcher = _isar.channelModels.watchLazy().listen((_) async {
+      final currentCount = await _loadChannelCount();
+      if (currentCount <= _knownChannelCount) {
+        // Ignore metadata updates and non-additive changes.
+        _knownChannelCount = currentCount;
+        return;
+      }
+      _knownChannelCount = currentCount;
+      for (final svc in _services.values) {
+        svc.onChannelSubscriptionsChanged();
+      }
+    });
 
     // 4. Start dequeue cleanup timer.
     _dequeueTimer = Timer.periodic(const Duration(minutes: 5), (_) {
@@ -301,13 +309,17 @@ class CentralRelayManager {
     });
   }
 
+  Future<int> _loadChannelCount() async {
+    return _isar.channelModels.count();
+  }
+
   // ── Shutdown ───────────────────────────────────────────────────────────────
 
   void stop() {
     _queueWatcher?.cancel();
     _relayWatcher?.cancel();
     _followedNotesWatcher?.cancel();
-    _subscriptionsWatcher?.cancel();
+    _channelModelsWatcher?.cancel();
     _dequeueTimer?.cancel();
     for (final svc in _services.values) {
       svc.disconnect();

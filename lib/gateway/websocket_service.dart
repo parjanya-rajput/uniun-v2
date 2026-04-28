@@ -14,8 +14,6 @@ import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
-import 'package:uniun/data/models/subscription_record_model.dart';
-import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:nip77/nip77.dart';
 
@@ -160,13 +158,10 @@ class WebSocketService {
       );
     }
 
-    // 5. Channels (from active subscriptions)
-    final subscriptions = await _isar.subscriptionRecordModels
-        .where()
-        .enabledEqualTo(true)
-        .findAll();
-    if (subscriptions.isNotEmpty) {
-      final channelIds = subscriptions.map((s) => s.channelId).toList();
+    // 5. Channels — [ChannelModel] presence means subscribed locally
+    final channels = await _isar.channelModels.where().findAll();
+    if (channels.isNotEmpty) {
+      final channelIds = channels.map((c) => c.channelId).toList();
 
       // Sync 41 and 42 via NIP-77 (#e references channelId)
       await _syncOrFallback(client, nip77Connected, _channelSubscriptionId, {
@@ -391,8 +386,8 @@ class WebSocketService {
   /// Called by [CentralRelayManager] when [FollowedNoteModel] rows change.
   void onFollowedNotesChanged() => unawaited(_subscribeFollowedNoteRefs());
 
-  /// Called by [CentralRelayManager] when [SubscriptionRecordModel] rows change.
-  void onSubscriptionsChanged() => unawaited(_resubscribeChannels());
+  /// Called by [CentralRelayManager] when [ChannelModel] rows change.
+  void onChannelSubscriptionsChanged() => unawaited(_resubscribeChannels());
 
   Future<void> _resubscribeChannels() async {
     if (!read || _disposed || _socket == null || !_isConnected) return;
@@ -400,13 +395,10 @@ class WebSocketService {
     _socket!.sink.add(jsonEncode(['CLOSE', _channelSubscriptionId]));
     _socket!.sink.add(jsonEncode(['CLOSE', '${_channelSubscriptionId}_info']));
 
-    final subscriptions = await _isar.subscriptionRecordModels
-        .where()
-        .enabledEqualTo(true)
-        .findAll();
-    if (subscriptions.isEmpty) return;
+    final channelRows = await _isar.channelModels.where().findAll();
+    if (channelRows.isEmpty) return;
 
-    final channelIds = subscriptions.map((s) => s.channelId).toList();
+    final channelIds = channelRows.map((c) => c.channelId).toList();
 
     final client = Nip77Client(relayUrl: url);
     bool connected = false;
