@@ -18,10 +18,3 @@ final class SubmitChannelEvent extends CreateChannelEvent {
     required this.selectedRelays,
   });
 }
-
-final class JoinChannelEvent extends CreateChannelEvent {
-  final String channelId;
-  final List<String> selectedRelays;
-
-  JoinChannelEvent({required this.channelId, required this.selectedRelays});
-}
