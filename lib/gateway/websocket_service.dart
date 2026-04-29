@@ -554,6 +554,28 @@ class WebSocketService {
             .findFirst();
         if (existing != null) return;
         await _isar.noteModels.put(model);
+        // Increment direct parent + mention-refs. Exclude root-tag when it
+        // differs from replyToEventId so nested thread replies don't inflate
+        // the root note's count.
+        final toIncrement = <String>{};
+        if (model.replyToEventId != null) {
+          toIncrement.add(model.replyToEventId!);
+        }
+        for (final ref in model.eTagRefs) {
+          if (ref != model.rootEventId && ref != model.replyToEventId) {
+            toIncrement.add(ref);
+          }
+        }
+        for (final refId in toIncrement) {
+          final ref = await _isar.noteModels
+              .where()
+              .eventIdEqualTo(refId)
+              .findFirst();
+          if (ref != null) {
+            ref.cachedReplyCount++;
+            await _isar.noteModels.put(ref);
+          }
+        }
       });
     } catch (_) {
       // Another concurrent relay delivery may have inserted the same eventId.

@@ -23,7 +23,9 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
     LoadChannelFeedEvent event,
     Emitter<ChannelFeedState> emit,
   ) async {
-    emit(state.copyWith(status: ChannelFeedStatus.loading, isLoading: true));
+    if (!event.silent) {
+      emit(state.copyWith(status: ChannelFeedStatus.loading, isLoading: true));
+    }
 
     final channelResult = await getIt<GetChannelByIdUseCase>().call(event.channelId);
     final channel = channelResult.fold((_) => null, (c) => c);
@@ -43,7 +45,6 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
 
     final profiles = await _loadProfiles(messages);
     final savedIds = await _loadSavedIds(messages);
-    final replyCounts = await _loadReplyCounts(messages);
 
     emit(state.copyWith(
       status: ChannelFeedStatus.loaded,
@@ -51,7 +52,6 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
       messages: messages,
       profiles: profiles,
       savedIds: savedIds,
-      replyCounts: replyCounts,
       isLoading: false,
     ));
   }
@@ -86,20 +86,13 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
         errorMessage: failure.toMessage(),
       )),
       (message) {
-        final updated = [...state.messages, message];
-        final updatedCounts = Map<String, int>.from(state.replyCounts);
-        if (event.replyToEventId != null) {
-          updatedCounts[event.replyToEventId!] =
-              (updatedCounts[event.replyToEventId!] ?? 0) + 1;
-        }
-        for (final ref in event.mentionRefs) {
-          updatedCounts[ref] = (updatedCounts[ref] ?? 0) + 1;
-        }
         emit(state.copyWith(
           isSending: false,
-          messages: updated,
-          replyCounts: updatedCounts,
+          messages: [...state.messages, message],
         ));
+        // Silent reload so any referenced messages show their updated
+        // cachedReplyCount without a loading spinner or scroll reset.
+        add(LoadChannelFeedEvent(event.channelId, silent: true));
       },
     );
   }
@@ -152,14 +145,4 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
     return saved;
   }
 
-  Future<Map<String, int>> _loadReplyCounts(
-      List<ChannelMessageEntity> messages) async {
-    final counts = <String, int>{};
-    for (final msg in messages) {
-      final result =
-          await getIt<GetChannelMessageReplyCountUseCase>().call(msg.id);
-      result.fold((_) => null, (c) => counts[msg.id] = c);
-    }
-    return counts;
-  }
 }

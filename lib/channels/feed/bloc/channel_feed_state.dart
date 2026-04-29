@@ -11,7 +11,6 @@ class ChannelFeedState {
     this.messages = const [],
     this.profiles = const {},
     this.savedIds = const {},
-    this.replyCounts = const {},
     this.isLoading = false,
     this.isSending = false,
     this.errorMessage,
@@ -29,9 +28,6 @@ class ChannelFeedState {
   /// eventIds the active user has saved/bookmarked.
   final Set<String> savedIds;
 
-  /// messageId → reply count (from ChannelMessageModel).
-  final Map<String, int> replyCounts;
-
   final bool isLoading;
   final bool isSending;
   final String? errorMessage;
@@ -42,7 +38,6 @@ class ChannelFeedState {
     List<ChannelMessageEntity>? messages,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
-    Map<String, int>? replyCounts,
     bool? isLoading,
     bool? isSending,
     String? errorMessage,
@@ -53,7 +48,6 @@ class ChannelFeedState {
       messages: messages ?? this.messages,
       profiles: profiles ?? this.profiles,
       savedIds: savedIds ?? this.savedIds,
-      replyCounts: replyCounts ?? this.replyCounts,
       isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
       errorMessage: errorMessage ?? this.errorMessage,

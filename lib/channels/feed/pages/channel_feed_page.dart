@@ -94,11 +94,8 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     }
   }
 
-  void _openThread(
-    BuildContext ctx,
-    ChannelMessageEntity msg,
-    String channelName,
-  ) {
+  void _openThread(BuildContext ctx, ChannelMessageEntity msg, String channelName) {
+    final bloc = ctx.read<ChannelFeedBloc>();
     Navigator.push(
       ctx,
       MaterialPageRoute(
@@ -106,10 +103,15 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           channelId: widget.channelId,
           messageId: msg.id,
           channelName: channelName,
-          parentBloc: ctx.read<ChannelFeedBloc>(),
+          parentBloc: bloc,
         ),
       ),
-    );
+    ).then((_) {
+      // Silent refresh — no loading spinner, scroll position preserved.
+      // listenWhen fires only if new messages arrived, scrolling to bottom
+      // only when there is genuinely new content to show.
+      if (mounted) bloc.add(LoadChannelFeedEvent(widget.channelId, silent: true));
+    });
   }
 
   void _showChannelQrSheet(BuildContext context, ChannelFeedState state) {
@@ -317,7 +319,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
             return NoteCard(
               note: msg.toNoteEntity(),
               profile: state.profiles[msg.authorPubkey],
-              replyCount: state.replyCounts[msg.id] ?? 0,
+              replyCount: msg.cachedReplyCount,
               isSaved: isSaved,
               isFollowed: isFollowed,
               onTap: () => _openThread(ctx, msg, channelName),

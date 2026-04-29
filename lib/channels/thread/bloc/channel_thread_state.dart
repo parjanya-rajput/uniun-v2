@@ -9,7 +9,6 @@ class ChannelThreadState {
     this.replies = const [],
     this.profiles = const {},
     this.savedIds = const {},
-    this.replyCounts = const {},
     this.isLoading = false,
     this.isSending = false,
   });
@@ -22,7 +21,6 @@ class ChannelThreadState {
   final List<ChannelMessageEntity> replies;
   final Map<String, ProfileEntity> profiles;
   final Set<String> savedIds;
-  final Map<String, int> replyCounts;
   final bool isLoading;
   final bool isSending;
 
@@ -33,7 +31,6 @@ class ChannelThreadState {
     List<ChannelMessageEntity>? replies,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
-    Map<String, int>? replyCounts,
     bool? isLoading,
     bool? isSending,
   }) {
@@ -44,7 +41,6 @@ class ChannelThreadState {
       replies: replies ?? this.replies,
       profiles: profiles ?? this.profiles,
       savedIds: savedIds ?? this.savedIds,
-      replyCounts: replyCounts ?? this.replyCounts,
       isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
     );

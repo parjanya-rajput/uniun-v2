@@ -18,8 +18,6 @@ class ThreadReplyItem extends StatefulWidget {
     required this.nestedReplies,
     required this.nestedProfiles,
     required this.allNestedReplies,
-    required this.replyCounts,
-    required this.replyCount,
     required this.showThreadLine, // kept for API compat — ignored
     required this.onReplyTap,
     this.onTap, // navigate into this reply's detail
@@ -33,8 +31,6 @@ class ThreadReplyItem extends StatefulWidget {
   final List<NoteEntity> nestedReplies;
   final Map<String, ProfileEntity> nestedProfiles;
   final Map<String, List<NoteEntity>> allNestedReplies;
-  final Map<String, int> replyCounts;
-  final int replyCount;
   final bool showThreadLine;
   final VoidCallback onReplyTap;
   /// Tapping the content area of this reply navigates into its detail thread.
@@ -103,7 +99,7 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
   void _onToggleReplies() {
     if (!_showReplies &&
         widget.nestedReplies.isEmpty &&
-        widget.replyCount > 0) {
+        widget.reply.cachedReplyCount > 0) {
       widget.onExpandReplies?.call(widget.reply.id);
     }
     setState(() => _showReplies = !_showReplies);
@@ -187,12 +183,12 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
                           onTap: widget.onReplyTap,
                         ),
                         const SizedBox(width: 20),
-                        if (widget.replyCount > 0)
+                        if (widget.reply.cachedReplyCount > 0)
                           _ActionBtn(
                             icon: _showReplies
                                 ? Icons.chat_bubble_rounded
                                 : Icons.chat_bubble_outline_rounded,
-                            label: '${widget.replyCount}',
+                            label: '${widget.reply.cachedReplyCount}',
                             onTap: _onToggleReplies,
                             active: _showReplies,
                           ),
@@ -241,18 +237,17 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
               final nestedName = nestedProfile?.name ??
                   nestedProfile?.username ??
                   threadShortPubkey(nested.authorPubkey);
-              final nestedCount = widget.replyCounts[nested.id] ?? 0;
               return _InlineReplyItem(
                 reply: nested,
                 profile: nestedProfile,
                 displayName: nestedName,
-                replyCount: nestedCount,
+                replyCount: nested.cachedReplyCount,
                 onReplyTap: () {
                   widget.onNestedReplyTap?.call(nested.id, nestedName);
                 },
               );
             })
-          else if (widget.replyCount > 0)
+          else if (widget.reply.cachedReplyCount > 0)
             const _InlineLoadingSkeleton(),
         ],
 

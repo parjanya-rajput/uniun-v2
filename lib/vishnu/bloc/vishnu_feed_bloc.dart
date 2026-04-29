@@ -20,7 +20,6 @@ const _pageSize = 20;
 class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final GetFeedUseCase _getFeed;
   final GetProfileUseCase _getProfile;
-  final GetThreadReplyCountUseCase _getThreadReplyCount;
   final GetAllSavedNotesUseCase _getAllSavedNotes;
   final SaveNoteUseCase _saveNote;
   final UnsaveNoteUseCase _unsaveNote;
@@ -29,7 +28,6 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   VishnuFeedBloc(
     this._getFeed,
     this._getProfile,
-    this._getThreadReplyCount,
     this._getAllSavedNotes,
     this._saveNote,
     this._unsaveNote,
@@ -140,18 +138,6 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
           r.fold((_) {}, (p) => profiles[pubkey] = p);
         }
 
-        // Reply counts — on refresh/initial load start fresh so stale counts
-        // from a previous session are not served after new replies arrive.
-        final counts = append
-            ? Map<String, int>.from(state.replyCounts)
-            : <String, int>{};
-        for (final note in newNotes) {
-          if (!counts.containsKey(note.id)) {
-            final r = await _getThreadReplyCount.call(note.id);
-            r.fold((_) {}, (c) => counts[note.id] = c);
-          }
-        }
-
         // Saved IDs
         final savedResult = await _getAllSavedNotes.call();
         final savedIds = savedResult.fold(
@@ -162,7 +148,6 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
         emit(state.copyWith(
           notes: combined,
           profiles: profiles,
-          replyCounts: counts,
           savedIds: savedIds,
           status: VishnuFeedStatus.loaded,
           hasMore: newNotes.length >= _pageSize,

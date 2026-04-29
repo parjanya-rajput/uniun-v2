@@ -39,6 +39,10 @@ class NoteModel {
   late DateTime created;
   late bool isSeen;
 
+  /// Denormalised reply count — incremented by Gateway and local saveNote
+  /// whenever a new note with an e-tag pointing to this note is stored.
+  int cachedReplyCount = 0;
+
   /// 384-dim L2-normalised float vector from all-MiniLM-L6-v2.
   /// Null until [EmbeddingService] processes this note.
   /// Only generated for own notes (authorPubkey == logged-in user).
@@ -58,6 +62,7 @@ class NoteModel {
     required this.tTags,
     required this.created,
     required this.isSeen,
+    this.cachedReplyCount = 0,
   });
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
@@ -142,6 +147,7 @@ extension NoteModelExtension on NoteModel {
         tTags: tTags,
         created: created,
         isSeen: isSeen,
+        cachedReplyCount: cachedReplyCount,
         embedding: embedding,
       );
 }

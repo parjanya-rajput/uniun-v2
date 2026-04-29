@@ -37,6 +37,28 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
       await isar.writeTxn(() async {
         await isar.savedNoteModels.put(model);
+        // Increment counts on saved notes that this note references.
+        // Same exclusion logic as NoteRepository: only direct parent +
+        // mention-refs, not the root-tag when a deeper reply target exists.
+        final toIncrement = <String>{};
+        if (note.replyToEventId != null) {
+          toIncrement.add(note.replyToEventId!);
+        }
+        for (final ref in note.eTagRefs) {
+          if (ref != note.rootEventId && ref != note.replyToEventId) {
+            toIncrement.add(ref);
+          }
+        }
+        for (final refId in toIncrement) {
+          final ref = await isar.savedNoteModels
+              .where()
+              .eventIdEqualTo(refId)
+              .findFirst();
+          if (ref != null) {
+            ref.cachedReplyCount++;
+            await isar.savedNoteModels.put(ref);
+          }
+        }
       });
 
       return Right(model.toDomain());
@@ -53,9 +75,28 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
             .where()
             .eventIdEqualTo(eventId)
             .findFirst();
-        if (model != null) {
-          await isar.savedNoteModels.delete(model.id);
+        if (model == null) return;
+        // Decrement counts on saved notes this note was referencing.
+        final toDecrement = <String>{};
+        if (model.replyToEventId != null) {
+          toDecrement.add(model.replyToEventId!);
         }
+        for (final ref in model.eTagRefs) {
+          if (ref != model.rootEventId && ref != model.replyToEventId) {
+            toDecrement.add(ref);
+          }
+        }
+        for (final refId in toDecrement) {
+          final ref = await isar.savedNoteModels
+              .where()
+              .eventIdEqualTo(refId)
+              .findFirst();
+          if (ref != null && ref.cachedReplyCount > 0) {
+            ref.cachedReplyCount--;
+            await isar.savedNoteModels.put(ref);
+          }
+        }
+        await isar.savedNoteModels.delete(model.id);
       });
       return const Right(unit);
     } catch (e) {
@@ -83,10 +124,42 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
           .where()
           .sortBySavedAtDesc()
           .findAll();
+      await _backfillReplyCountsIfNeeded(all);
       return Right(all.map((m) => m.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
+  }
+
+  Future<void> _backfillReplyCountsIfNeeded(List<SavedNoteModel> models) async {
+    final toUpdate = <SavedNoteModel>[];
+    for (final m in models) {
+      // Count only OTHER saved notes that reference this one — not all relay notes.
+      final totalEtag = await isar.savedNoteModels
+          .filter()
+          .eTagRefsElementEqualTo(m.eventId)
+          .count();
+      // Subtract nested thread replies (saved notes that have m as root but
+      // reply to someone else — they shouldn't count as a direct interaction).
+      final nestedOnly = await isar.savedNoteModels
+          .filter()
+          .rootEventIdEqualTo(m.eventId)
+          .not()
+          .replyToEventIdEqualTo(m.eventId)
+          .replyToEventIdIsNotNull()
+          .count();
+      final count = totalEtag - nestedOnly;
+      if (count != m.cachedReplyCount) {
+        m.cachedReplyCount = count;
+        toUpdate.add(m);
+      }
+    }
+    if (toUpdate.isEmpty) return;
+    await isar.writeTxn(() async {
+      for (final m in toUpdate) {
+        await isar.savedNoteModels.put(m);
+      }
+    });
   }
 
   @override

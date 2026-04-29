@@ -7,6 +7,7 @@ class GraphState {
     this.status = GraphStatus.initial,
     this.nodes = const [],
     this.adjacency = const {},
+    this.profiles = const {},
     this.selectedNodeId,
     this.errorMessage,
   });
@@ -19,6 +20,9 @@ class GraphState {
   /// Bidirectional adjacency: nodeId → set of connected nodeIds.
   final Map<String, Set<String>> adjacency;
 
+  /// pubkeyHex → ProfileEntity for node author display.
+  final Map<String, ProfileEntity> profiles;
+
   /// The currently selected node id, null = nothing selected.
   final String? selectedNodeId;
 
@@ -28,6 +32,7 @@ class GraphState {
     GraphStatus? status,
     List<GraphNodeData>? nodes,
     Map<String, Set<String>>? adjacency,
+    Map<String, ProfileEntity>? profiles,
     String? selectedNodeId,
     bool clearSelection = false,
     String? errorMessage,
@@ -36,6 +41,7 @@ class GraphState {
       status: status ?? this.status,
       nodes: nodes ?? this.nodes,
       adjacency: adjacency ?? this.adjacency,
+      profiles: profiles ?? this.profiles,
       selectedNodeId:
           clearSelection ? null : (selectedNodeId ?? this.selectedNodeId),
       errorMessage: errorMessage ?? this.errorMessage,
